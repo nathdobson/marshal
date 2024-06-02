@@ -8,6 +8,43 @@ extern crate core;
 
 mod simple;
 mod text;
+mod poison;
+
+pub enum ParseHint {
+    Any,
+    Bool,
+    I64,
+    U64,
+    F64,
+    Char,
+    String,
+    Bytes,
+    Option,
+    Unit,
+    UnitStruct,
+    NewtypeStruct,
+    Seq,
+    Tuple {
+        len: usize,
+    },
+    TupleStruct {
+        name: &'static str,
+        len: usize,
+    },
+    Map,
+    Enum {
+        name: &'static str,
+        variants: &'static [&'static str],
+    },
+    Identifier,
+}
+
+pub enum ParseVariantHint{
+    UnitVariant,
+    NewtypeVariant,
+    TupleVariant,
+    StructVariant,
+}
 
 pub enum ParserView<'p, 'de, P: ?Sized + Parser<'de>>
 where
@@ -29,32 +66,8 @@ where
     Enum(P::EnumParser<'p>),
 }
 pub trait AnyParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_any(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_bool(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_i64(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_u64(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_f64(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_char(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_string(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_bytes(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_option(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_unit(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_unit_struct(self, name: &'static str) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_newtype_struct(self, name: &'static str) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_seq(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_tuple(self, len: usize) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_tuple_struct(
-        self,
-        name: &'static str,
-        len: usize,
-    ) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_map(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_enum(
-        self,
-        name: &'static str,
-        variants: &'static [&'static str],
-    ) -> Result<ParserView<'p, 'de, P>, P::Error>;
-    fn parse_identifier(self) -> Result<ParserView<'p, 'de, P>, P::Error>;
+    fn parse(self, hint: ParseHint) -> Result<ParserView<'p, 'de, P>, P::Error>;
+
     fn is_human_readable(&self) -> bool;
 }
 
@@ -72,16 +85,17 @@ pub trait EntryParser<'p, 'de, P: ?Sized + Parser<'de>> {
 }
 pub trait EnumParser<'p, 'de, P: ?Sized + Parser<'de>> {
     fn parse_discriminant<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, P::Error>;
-    fn parse_unit_variant<'p2>(&'p2 mut self) -> Result<(), P::Error>;
-    fn parse_newtype_variant<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, P::Error>;
-    fn parse_tuple_variant<'p2>(
-        &'p2 mut self,
-        len: usize,
-    ) -> Result<ParserView<'p2, 'de, P>, P::Error>;
-    fn parse_struct_variant<'p2>(
-        &'p2 mut self,
-        fields: &'static [&'static str],
-    ) -> Result<ParserView<'p2, 'de, P>, P::Error>;
+    fn parse_variant<'p2>(&'p2 mut self, hint:ParseVariantHint) -> Result<ParserView<'p2, 'de, P>, P::Error>;
+    // fn parse_unit_variant<'p2>(&'p2 mut self) -> Result<(), P::Error>;
+    // fn parse_newtype_variant<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, P::Error>;
+    // fn parse_tuple_variant<'p2>(
+    //     &'p2 mut self,
+    //     len: usize,
+    // ) -> Result<ParserView<'p2, 'de, P>, P::Error>;
+    // fn parse_struct_variant<'p2>(
+    //     &'p2 mut self,
+    //     fields: &'static [&'static str],
+    // ) -> Result<ParserView<'p2, 'de, P>, P::Error>;
 }
 
 pub trait Parser<'de> {

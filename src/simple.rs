@@ -1,4 +1,7 @@
-use crate::{AnyParser, EntryParser, EnumParser, MapParser, Parser, ParserView, SeqParser};
+use crate::{
+    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, ParseVariantHint, Parser, ParserView,
+    SeqParser,
+};
 use std::marker::PhantomData;
 
 pub struct SimpleParserAdapter<T> {
@@ -32,86 +35,7 @@ pub trait SimpleParser<'de> {
     type DiscriminantParser;
     type VariantParser;
 
-    fn parse_any(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-
-    fn parse_bool(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_i64(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_u64(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_f64(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_char(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_string(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_bytes(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_option(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_unit(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_unit_struct(
-        &mut self,
-        any: Self::AnyParser,
-        name: &'static str,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_newtype_struct(
-        &mut self,
-        any: Self::AnyParser,
-        name: &'static str,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_seq(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_tuple(
-        &mut self,
-        any: Self::AnyParser,
-        len: usize,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_tuple_struct(
-        &mut self,
-        any: Self::AnyParser,
-        name: &'static str,
-        len: usize,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_map(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_enum(
-        &mut self,
-        any: Self::AnyParser,
-        name: &'static str,
-        variants: &'static [&'static str],
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_identifier(
-        &mut self,
-        any: Self::AnyParser,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
+    fn parse(&mut self, hint: ParseHint) -> Result<SimpleParserView<'de, Self>, Self::Error>;
     fn is_human_readable(&self) -> bool;
 
     fn parse_seq_next(
@@ -137,20 +61,10 @@ pub trait SimpleParser<'de> {
         e: Self::DiscriminantParser,
     ) -> Result<(Self::AnyParser, Self::VariantParser), Self::Error>;
 
-    fn parse_enum_unit_variant(&mut self, variant: Self::VariantParser) -> Result<(), Self::Error>;
-    fn parse_enum_newtype_variant(
+    fn parse_enum_variant(
         &mut self,
-        variant: Self::VariantParser,
-    ) -> Result<Self::AnyParser, Self::Error>;
-    fn parse_enum_tuple_variant(
-        &mut self,
-        variant: Self::VariantParser,
-        len: usize,
-    ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
-    fn parse_enum_struct_variant(
-        &mut self,
-        variant: Self::VariantParser,
-        fields: &'static [&'static str],
+        e: Self::VariantParser,
+        hint: ParseVariantHint,
     ) -> Result<SimpleParserView<'de, Self>, Self::Error>;
 }
 
@@ -222,102 +136,11 @@ impl<'p, 'de, T> AnyParser<'p, 'de, SimpleParserAdapter<T>> for SimpleAnyParser<
 where
     T: SimpleParser<'de>,
 {
-    fn parse_any(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_any(self.any)?.wrap(self.this))
-    }
-
-    fn parse_bool(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_bool(self.any)?.wrap(self.this))
-    }
-
-    fn parse_i64(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_i64(self.any)?.wrap(self.this))
-    }
-
-    fn parse_u64(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_u64(self.any)?.wrap(self.this))
-    }
-
-    fn parse_f64(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_f64(self.any)?.wrap(self.this))
-    }
-
-    fn parse_char(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_char(self.any)?.wrap(self.this))
-    }
-
-    fn parse_string(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_string(self.any)?.wrap(self.this))
-    }
-
-    fn parse_bytes(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_bytes(self.any)?.wrap(self.this))
-    }
-
-    fn parse_option(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_option(self.any)?.wrap(self.this))
-    }
-
-    fn parse_unit(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_unit(self.any)?.wrap(self.this))
-    }
-
-    fn parse_unit_struct(
+    fn parse(
         self,
-        name: &'static str,
+        hint: ParseHint,
     ) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_unit_struct(self.any, name)?.wrap(self.this))
-    }
-
-    fn parse_newtype_struct(
-        self,
-        name: &'static str,
-    ) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self
-            .this
-            .parse_newtype_struct(self.any, name)?
-            .wrap(self.this))
-    }
-
-    fn parse_seq(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_seq(self.any)?.wrap(self.this))
-    }
-
-    fn parse_tuple(
-        self,
-        len: usize,
-    ) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_tuple(self.any, len)?.wrap(self.this))
-    }
-
-    fn parse_tuple_struct(
-        self,
-        name: &'static str,
-        len: usize,
-    ) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self
-            .this
-            .parse_tuple_struct(self.any, name, len)?
-            .wrap(self.this))
-    }
-
-    fn parse_map(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_map(self.any)?.wrap(self.this))
-    }
-
-    fn parse_enum(
-        self,
-        name: &'static str,
-        variants: &'static [&'static str],
-    ) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self
-            .this
-            .parse_enum(self.any, name, variants)?
-            .wrap(self.this))
-    }
-
-    fn parse_identifier(self) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, T::Error> {
-        Ok(self.this.parse_identifier(self.any)?.wrap(self.this))
+        Ok(self.this.parse(hint)?.wrap(self.this))
     }
 
     fn is_human_readable(&self) -> bool {
@@ -395,36 +218,14 @@ where
         })
     }
 
-    fn parse_unit_variant(&mut self) -> Result<(), T::Error> {
-        let data = self.variant.take().unwrap();
-        self.this.parse_enum_unit_variant(data)?;
-        Ok(())
-    }
-
-    fn parse_newtype_variant<'p2>(&'p2 mut self) -> Result<SimpleAnyParser<'p2, 'de, T>, T::Error> {
-        let data = self.variant.take().unwrap();
-        let data = self.this.parse_enum_newtype_variant(data)?;
-        Ok(SimpleAnyParser {
-            this: self.this,
-            any: data,
-        })
-    }
-
-    fn parse_tuple_variant<'p2>(
+    fn parse_variant<'p2>(
         &'p2 mut self,
-        len: usize,
+        hint: ParseVariantHint,
     ) -> Result<ParserView<'p2, 'de, SimpleParserAdapter<T>>, T::Error> {
-        let data = self.variant.take().unwrap();
-        let data = self.this.parse_enum_tuple_variant(data, len)?;
+        let data = self
+            .this
+            .parse_enum_variant(self.variant.take().unwrap(), hint)?;
         Ok(data.wrap(self.this))
     }
 
-    fn parse_struct_variant<'p2>(
-        &'p2 mut self,
-        fields: &'static [&'static str],
-    ) -> Result<ParserView<'p2, 'de, SimpleParserAdapter<T>>, T::Error> {
-        let data = self.variant.take().unwrap();
-        let data = self.this.parse_enum_struct_variant(data, fields)?;
-        Ok(data.wrap(self.this))
-    }
 }
