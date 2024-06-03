@@ -1,28 +1,27 @@
-use crate::text::any::{TextAny, TextAnyParser, TextAnyPosition};
-use crate::text::depth_budget::DepthBudget;
-use crate::text::error::TextResult;
-use crate::text::value::into_json_value;
-use crate::text::TextParser;
 use std::fs;
 use std::fs::read_dir;
 
+use crate::error::ParseError;
+use crate::simple::SimpleAnyParser;
+use crate::json::value::into_json_value;
+use crate::json::{SingletonContext, JsonParser};
+use crate::{AnyParser, ParseHint, ParserView, SeqParser};
+
 #[test]
-fn test() -> TextResult<()> {
+fn test() -> Result<(), ParseError> {
     let input = b"[1,23]";
-    let mut p = TextParser::new(input);
-    let mut p = TextAnyParser::new(&mut p, TextAnyPosition::Any, DepthBudget::new(1));
-    match p.parse_any()? {
-        TextAny::TextSeqParser(mut p) => {
-            match p.next()?.unwrap().parse_any()? {
-                TextAny::Number(mut n) => assert_eq!(1, n.parse_number::<u32>()?),
+    let mut p = JsonParser::new(input);
+    let p = SimpleAnyParser::new(&mut p, SingletonContext::default());
+    match p.parse(ParseHint::Any)? {
+        ParserView::Seq(mut p) => {
+            match p.parse_next()?.unwrap().parse(ParseHint::U64)? {
+                ParserView::U64(x) => assert_eq!(x, 1),
                 _ => todo!(),
             }
-            match p.next()?.unwrap().parse_any()? {
-                TextAny::Number(mut n) => assert_eq!(23, n.parse_number::<u32>()?),
+            match p.parse_next()?.unwrap().parse(ParseHint::U64)? {
+                ParserView::U64(x) => assert_eq!(x, 23),
                 _ => todo!(),
             }
-            assert!(p.next()?.is_none());
-            p.end()?;
         }
         _ => todo!(),
     }
@@ -43,7 +42,7 @@ fn test_parsing() {
             .next()
             .unwrap();
         let contents = fs::read(dir.path()).unwrap();
-        let mut parser = TextParser::new(&contents);
+        let mut parser = JsonParser::new(&contents);
         println!("name={}", dir.path().to_str().unwrap());
         if let Ok(contents) = std::str::from_utf8(&contents) {
             println!("{}", contents);

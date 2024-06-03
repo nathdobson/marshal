@@ -1,8 +1,12 @@
-use crate::{
-    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, ParseVariantHint, Parser, ParserView,
-    SeqParser,
-};
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+
+use crate::error::ParseError;
+use crate::{
+    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, ParseVariantHint,
+    Parser, ParserView, SeqParser, SomeParser,
+};
 
 pub struct PoisonParser<T>(PhantomData<T>);
 
@@ -10,18 +14,34 @@ pub struct PoisonState {
     poisoned: bool,
 }
 
-pub enum PoisonError<E> {
-    Poisoned,
-    Other(E),
+impl PoisonState {
+    pub fn new() -> PoisonState {
+        PoisonState { poisoned: false }
+    }
 }
+
+#[derive(Debug)]
+pub struct PoisonError;
+
+impl Display for PoisonError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "parser dropped before being fully consumed")
+    }
+}
+
+impl Error for PoisonError {}
 
 pub struct PoisonGuard<'p> {
     state: Option<&'p mut PoisonState>,
 }
 
-impl<E> From<E> for PoisonError<E> {
-    fn from(value: E) -> Self {
-        PoisonError::Other(value)
+impl PoisonState {
+    pub fn check(self) -> Result<(), PoisonError> {
+        if self.poisoned {
+            Err(PoisonError)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -35,9 +55,9 @@ impl<'p> PoisonGuard<'p> {
     pub fn defuse_into(mut self) -> &'p mut PoisonState {
         self.state.take().unwrap()
     }
-    pub fn check<E>(&self) -> Result<(), PoisonError<E>> {
+    pub fn check(&self) -> Result<(), PoisonError> {
         if self.state.as_ref().unwrap().poisoned {
-            Err(PoisonError::Poisoned)
+            Err(PoisonError)
         } else {
             Ok(())
         }
@@ -80,13 +100,24 @@ pub struct PoisonEnumParser<'p, 'de, T: 'p + Parser<'de>> {
     inner: T::EnumParser<'p>,
 }
 
+pub struct PoisonSomeParser<'p, 'de, T: 'p + Parser<'de>> {
+    guard: PoisonGuard<'p>,
+    inner: T::SomeParser<'p>,
+}
+
+pub struct PoisonNewtypeParser<'p, 'de, T: 'p + Parser<'de>> {
+    guard: PoisonGuard<'p>,
+    inner: T::NewtypeParser<'p>,
+}
+
 impl<'de, T: Parser<'de>> Parser<'de> for PoisonParser<T> {
-    type Error = PoisonError<T::Error>;
     type AnyParser<'p> = PoisonAnyParser<'p, 'de, T> where Self: 'p;
     type SeqParser<'p> = PoisonSeqParser<'p, 'de, T> where Self: 'p;
     type MapParser<'p> = PoisonMapParser<'p, 'de, T> where Self: 'p;
     type EntryParser<'p> = PoisonEntryParser<'p, 'de, T> where Self: 'p;
     type EnumParser<'p> = PoisonEnumParser<'p, 'de, T> where Self: 'p;
+    type SomeParser<'p> = PoisonSomeParser<'p,'de,T> where Self: 'p;
+    type NewtypeParser<'p> = PoisonNewtypeParser<'p,'de,T> where Self: 'p;
 }
 
 impl<'p, 'de, T: Parser<'de>> PoisonAnyParser<'p, 'de, T> {
@@ -111,9 +142,9 @@ fn annotate_view<'p, 'de, T: Parser<'de>>(
         ParserView::String(x) => ParserView::String(x),
         ParserView::Bytes(x) => ParserView::Bytes(x),
         ParserView::None => ParserView::None,
-        ParserView::Some(x) => ParserView::Some(PoisonAnyParser::new(state, x)),
+        ParserView::Some(x) => ParserView::Some(PoisonSomeParser::new(state, x)),
         ParserView::Unit => ParserView::Unit,
-        ParserView::Newtype(x) => ParserView::Newtype(PoisonAnyParser::new(state, x)),
+        ParserView::Newtype(x) => ParserView::Newtype(PoisonNewtypeParser::new(state, x)),
         ParserView::Seq(x) => ParserView::Seq(PoisonSeqParser::new(state, x)),
         ParserView::Map(x) => ParserView::Map(PoisonMapParser::new(state, x)),
         ParserView::Enum(x) => ParserView::Enum(PoisonEnumParser::new(state, x)),
@@ -124,15 +155,11 @@ impl<'p, 'de, T: Parser<'de>> AnyParser<'p, 'de, PoisonParser<T>> for PoisonAnyP
     fn parse(
         mut self,
         hint: ParseHint,
-    ) -> Result<ParserView<'p, 'de, PoisonParser<T>>, PoisonError<T::Error>> {
+    ) -> Result<ParserView<'p, 'de, PoisonParser<T>>, ParseError> {
         self.guard.check()?;
         let inner = self.inner.parse(hint)?;
         let state = self.guard.defuse();
         Ok(annotate_view(state, inner))
-    }
-
-    fn is_human_readable(&self) -> bool {
-        self.inner.is_human_readable()
     }
 }
 
@@ -146,9 +173,7 @@ impl<'p, 'de, T: Parser<'de>> PoisonSeqParser<'p, 'de, T> {
 }
 
 impl<'p, 'de, T: Parser<'de>> SeqParser<'p, 'de, PoisonParser<T>> for PoisonSeqParser<'p, 'de, T> {
-    fn parse_next<'p2>(
-        &'p2 mut self,
-    ) -> Result<Option<PoisonAnyParser<'p2, 'de, T>>, PoisonError<T::Error>> {
+    fn parse_next<'p2>(&'p2 mut self) -> Result<Option<PoisonAnyParser<'p2, 'de, T>>, ParseError> {
         self.guard.check()?;
         if let Some(result) = self.inner.parse_next()? {
             let state = self.guard.state();
@@ -172,7 +197,7 @@ impl<'p, 'de, T: Parser<'de>> PoisonMapParser<'p, 'de, T> {
 impl<'p, 'de, T: Parser<'de>> MapParser<'p, 'de, PoisonParser<T>> for PoisonMapParser<'p, 'de, T> {
     fn parse_next<'p2>(
         &'p2 mut self,
-    ) -> Result<Option<PoisonEntryParser<'p2, 'de, T>>, PoisonError<T::Error>> {
+    ) -> Result<Option<PoisonEntryParser<'p2, 'de, T>>, ParseError> {
         self.guard.check()?;
         if let Some(result) = self.inner.parse_next()? {
             let state = self.guard.state();
@@ -196,20 +221,22 @@ impl<'p, 'de, T: Parser<'de>> PoisonEntryParser<'p, 'de, T> {
 impl<'p, 'de, T: Parser<'de>> EntryParser<'p, 'de, PoisonParser<T>>
     for PoisonEntryParser<'p, 'de, T>
 {
-    fn parse_key<'p2>(
-        &'p2 mut self,
-    ) -> Result<PoisonAnyParser<'p2, 'de, T>, PoisonError<T::Error>> {
+    fn parse_key<'p2>(&'p2 mut self) -> Result<PoisonAnyParser<'p2, 'de, T>, ParseError> {
         self.guard.check()?;
         let result = self.inner.parse_key()?;
         let state = self.guard.state();
         Ok(PoisonAnyParser::new(state, result))
     }
 
-    fn parse_value(mut self) -> Result<PoisonAnyParser<'p, 'de, T>, PoisonError<T::Error>> {
+    fn parse_value<'p2>(&'p2 mut self) -> Result<PoisonAnyParser<'p2, 'de, T>, ParseError> {
         self.guard.check()?;
         let result = self.inner.parse_value()?;
         let state = self.guard.defuse();
         Ok(PoisonAnyParser::new(state, result))
+    }
+
+    fn parse_end(self) -> Result<(), ParseError> {
+        todo!()
     }
 }
 
@@ -225,9 +252,7 @@ impl<'p, 'de, T: Parser<'de>> PoisonEnumParser<'p, 'de, T> {
 impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, PoisonParser<T>>
     for PoisonEnumParser<'p, 'de, T>
 {
-    fn parse_discriminant<'p2>(
-        &'p2 mut self,
-    ) -> Result<PoisonAnyParser<'p2, 'de, T>, PoisonError<T::Error>> {
+    fn parse_discriminant<'p2>(&'p2 mut self) -> Result<PoisonAnyParser<'p2, 'de, T>, ParseError> {
         self.guard.check()?;
         let result = self.inner.parse_discriminant()?;
         let state = self.guard.state();
@@ -237,10 +262,56 @@ impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, PoisonParser<T>>
     fn parse_variant<'p2>(
         &'p2 mut self,
         hint: ParseVariantHint,
-    ) -> Result<ParserView<'p2, 'de, PoisonParser<T>>, PoisonError<T::Error>> {
+    ) -> Result<ParserView<'p2, 'de, PoisonParser<T>>, ParseError> {
         self.guard.check()?;
         let result = self.inner.parse_variant(hint)?;
         let state = self.guard.defuse();
         Ok(annotate_view(state, result))
+    }
+
+    fn parse_end(self) -> Result<(), ParseError> {
+        todo!()
+    }
+}
+
+impl<'p, 'de, T: Parser<'de>> PoisonSomeParser<'p, 'de, T> {
+    pub fn new(state: &'p mut PoisonState, inner: T::SomeParser<'p>) -> Self {
+        PoisonSomeParser {
+            guard: PoisonGuard::new(state),
+            inner,
+        }
+    }
+}
+
+impl<'p, 'de, T: Parser<'de>> SomeParser<'p, 'de, PoisonParser<T>>
+    for PoisonSomeParser<'p, 'de, T>
+{
+    fn parse_some<'p2>(&'p2 mut self) -> Result<PoisonAnyParser<'p2, 'de, T>, ParseError> {
+        todo!()
+    }
+
+    fn parse_end(self) -> Result<(), ParseError> {
+        todo!()
+    }
+}
+
+impl<'p, 'de, T: Parser<'de>> PoisonNewtypeParser<'p, 'de, T> {
+    pub fn new(state: &'p mut PoisonState, inner: T::NewtypeParser<'p>) -> Self {
+        PoisonNewtypeParser {
+            guard: PoisonGuard::new(state),
+            inner,
+        }
+    }
+}
+
+impl<'p, 'de, T: Parser<'de>> NewtypeParser<'p, 'de, PoisonParser<T>>
+    for PoisonNewtypeParser<'p, 'de, T>
+{
+    fn parse_newtype<'p2>(&'p2 mut self) -> Result<PoisonAnyParser<'p2, 'de, T>, ParseError> {
+        todo!()
+    }
+
+    fn parse_end(self) -> Result<(), ParseError> {
+        todo!()
     }
 }

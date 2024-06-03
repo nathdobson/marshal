@@ -6,10 +6,16 @@
 
 extern crate core;
 
-mod simple;
-mod text;
-mod poison;
+use crate::error::ParseError;
+use std::error::Error;
 
+mod depth_budget;
+mod error;
+mod poison;
+mod simple;
+mod json;
+
+#[derive(Debug, Copy, Clone)]
 pub enum ParseHint {
     Any,
     Bool,
@@ -32,6 +38,10 @@ pub enum ParseHint {
         len: usize,
     },
     Map,
+    Struct {
+        name: &'static str,
+        fields: &'static [&'static str],
+    },
     Enum {
         name: &'static str,
         variants: &'static [&'static str],
@@ -39,7 +49,7 @@ pub enum ParseHint {
     Identifier,
 }
 
-pub enum ParseVariantHint{
+pub enum ParseVariantHint {
     UnitVariant,
     NewtypeVariant,
     TupleVariant,
@@ -58,48 +68,50 @@ where
     String(String),
     Bytes(Vec<u8>),
     None,
-    Some(P::AnyParser<'p>),
+    Some(P::SomeParser<'p>),
     Unit,
-    Newtype(P::AnyParser<'p>),
+    Newtype(P::NewtypeParser<'p>),
     Seq(P::SeqParser<'p>),
     Map(P::MapParser<'p>),
     Enum(P::EnumParser<'p>),
 }
 pub trait AnyParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse(self, hint: ParseHint) -> Result<ParserView<'p, 'de, P>, P::Error>;
-
-    fn is_human_readable(&self) -> bool;
+    fn parse(self, hint: ParseHint) -> Result<ParserView<'p, 'de, P>, ParseError>;
 }
 
 pub trait SeqParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_next<'p2>(&'p2 mut self) -> Result<Option<P::AnyParser<'p2>>, P::Error>;
+    fn parse_next<'p2>(&'p2 mut self) -> Result<Option<P::AnyParser<'p2>>, ParseError>;
 }
 
 pub trait MapParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_next<'p2>(&'p2 mut self) -> Result<Option<P::EntryParser<'p2>>, P::Error>;
+    fn parse_next<'p2>(&'p2 mut self) -> Result<Option<P::EntryParser<'p2>>, ParseError>;
 }
 
 pub trait EntryParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_key<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, P::Error>;
-    fn parse_value(self) -> Result<P::AnyParser<'p>, P::Error>;
+    fn parse_key<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, ParseError>;
+    fn parse_value<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, ParseError>;
+    fn parse_end(self) -> Result<(), ParseError>;
 }
 pub trait EnumParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_discriminant<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, P::Error>;
-    fn parse_variant<'p2>(&'p2 mut self, hint:ParseVariantHint) -> Result<ParserView<'p2, 'de, P>, P::Error>;
-    // fn parse_unit_variant<'p2>(&'p2 mut self) -> Result<(), P::Error>;
-    // fn parse_newtype_variant<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, P::Error>;
-    // fn parse_tuple_variant<'p2>(
-    //     &'p2 mut self,
-    //     len: usize,
-    // ) -> Result<ParserView<'p2, 'de, P>, P::Error>;
-    // fn parse_struct_variant<'p2>(
-    //     &'p2 mut self,
-    //     fields: &'static [&'static str],
-    // ) -> Result<ParserView<'p2, 'de, P>, P::Error>;
+    fn parse_discriminant<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, ParseError>;
+    fn parse_variant<'p2>(
+        &'p2 mut self,
+        hint: ParseVariantHint,
+    ) -> Result<ParserView<'p2, 'de, P>, ParseError>;
+    fn parse_end(self) -> Result<(), ParseError>;
+}
+
+pub trait SomeParser<'p, 'de, P: ?Sized + Parser<'de>> {
+    fn parse_some<'p2>(&'p2 mut self) -> Result<<P as Parser<'de>>::AnyParser<'p2>, ParseError>;
+    fn parse_end(self) -> Result<(), ParseError>;
+}
+
+pub trait NewtypeParser<'p, 'de, P: ?Sized + Parser<'de>> {
+    fn parse_newtype<'p2>(&'p2 mut self) -> Result<<P as Parser<'de>>::AnyParser<'p2>, ParseError>;
+    fn parse_end(self) -> Result<(), ParseError>;
 }
 
 pub trait Parser<'de> {
-    type Error;
     type AnyParser<'p>: AnyParser<'p, 'de, Self>
     where
         Self: 'p;
@@ -113,6 +125,12 @@ pub trait Parser<'de> {
     where
         Self: 'p;
     type EnumParser<'p>: EnumParser<'p, 'de, Self>
+    where
+        Self: 'p;
+    type SomeParser<'p>: SomeParser<'p, 'de, Self>
+    where
+        Self: 'p;
+    type NewtypeParser<'p>: NewtypeParser<'p, 'de, Self>
     where
         Self: 'p;
 }

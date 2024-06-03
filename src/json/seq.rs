@@ -1,4 +1,4 @@
-use crate::text::any::{TextAnyParser, TextAnyPosition};
+use crate::text::any::TextAnyPosition;
 use crate::text::bomb::TextBomb;
 use crate::text::depth_budget::DepthBudget;
 use crate::text::error::TextResult;
