@@ -89,7 +89,7 @@ impl<'de> JsonParser<'de> {
         }
     }
 
-    pub fn end_parsing(&mut self) -> ParseResult<()> {
+    pub fn end_parsing(mut self) -> ParseResult<()> {
         self.read_whitespace()?;
         if !self.cursor.is_empty() {
             Err(JsonError::TrailingText.into())

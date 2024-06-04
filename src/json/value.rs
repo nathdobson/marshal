@@ -1,68 +1,50 @@
 use serde_json::{Number, Value};
 
-use crate::depth_budget::{DepthBudgetParser, OverflowError, WithDepthBudget};
-use crate::error::ParseError;
-use crate::poison::{PoisonAnyParser, PoisonError, PoisonParser, PoisonState};
+use crate::context::DeserializeContext;
+use crate::depth_budget::{DepthBudgetParser, WithDepthBudget};
+use crate::deserialize::Deserialize;
+use crate::error::{ParseError, ParseResult};
+use crate::json::{JsonParser, SingletonContext};
+use crate::poison::{PoisonAnyParser, PoisonParser, PoisonState};
 use crate::simple::{SimpleAnyParser, SimpleParserAdapter};
-use crate::json::error::JsonError;
-use crate::json::{SingletonContext, JsonParser};
 use crate::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
 
-pub fn into_json_value<'p, 'de>(p: &'p mut JsonParser<'de>) -> Result<Value, ParseError> {
-    let mut poison = PoisonState::new();
-    let result = into_json_value_rec::<
-        PoisonParser<DepthBudgetParser<SimpleParserAdapter<JsonParser<'de>>>>,
-    >(PoisonAnyParser::new(
-        &mut poison,
-        WithDepthBudget::new(100, SimpleAnyParser::new(p, SingletonContext::default())),
-    ))?;
-    poison.check()?;
-    p.end_parsing()?;
-    Ok(result)
+type JsonFullParser<'de> = PoisonParser<DepthBudgetParser<SimpleParserAdapter<JsonParser<'de>>>>;
+
+pub struct JsonFullParserBuilder<'de> {
+    poison: PoisonState,
+    parser: JsonParser<'de>,
 }
-pub fn into_json_value_rec<'p, 'de, P: Parser<'de>>(
-    p: P::AnyParser<'p>,
-) -> Result<Value, ParseError> {
-    match p.parse(ParseHint::Any)? {
-        // TextAny::Number(p) => Ok(Value::Number(
-        //     Number::from_f64(p.parse_number()?).ok_or(TextError::BadNumber)?,
-        // )),
-        // TextAny::TextSeqParser(mut p) => {
-        //     let mut vec = vec![];
-        //     while let Some(next) = p.next()? {
-        //         vec.push(into_json_value_rec(next)?);
-        //     }
-        //     p.end()?;
-        //     Ok(Value::Array(vec))
-        // }
-        // TextAny::String(x) => Ok(Value::String(x)),
-        // TextAny::Null => Ok(Value::Null),
-        // TextAny::TextMapParser(mut p) => {
-        // }
-        // TextAny::Bool(x) => Ok(Value::Bool(x)),
-        ParserView::Bool(x) => Ok(Value::Bool(x)),
-        ParserView::F64(x) => Ok(Value::Number(Number::from_f64(x).unwrap())),
-        ParserView::String(x) => Ok(Value::String(x)),
-        ParserView::Unit => Ok(Value::Null),
-        ParserView::Seq(mut p) => {
-            let mut vec = vec![];
-            while let Some(next) = p.parse_next()? {
-                vec.push(into_json_value_rec::<P>(next)?);
-            }
-            Ok(Value::Array(vec))
+
+impl<'de> JsonFullParserBuilder<'de> {
+    pub fn new(input: &'de [u8]) -> Self {
+        JsonFullParserBuilder {
+            poison: PoisonState::new(),
+            parser: JsonParser::new(input),
         }
-        ParserView::Map(mut p) => {
-            let mut map = serde_json::Map::new();
-            while let Some(mut entry) = p.parse_next()? {
-                let key = match entry.parse_key()?.parse(ParseHint::String)? {
-                    ParserView::String(key) => key,
-                    _ => unreachable!(),
-                };
-                let value = into_json_value_rec::<P>(entry.parse_value()?)?;
-                map.insert(key, value);
-            }
-            Ok(Value::Object(map))
-        }
-        _ => todo!(),
     }
+    pub fn build<'p>(&'p mut self) -> <JsonFullParser<'de> as Parser<'de>>::AnyParser<'p> {
+        PoisonAnyParser::new(
+            &mut self.poison,
+            WithDepthBudget::new(
+                100,
+                SimpleAnyParser::new(&mut self.parser, SingletonContext::default()),
+            ),
+        )
+    }
+    fn end(self) -> ParseResult<()> {
+        self.poison.check()?;
+        self.parser.end_parsing()?;
+        Ok(())
+    }
+}
+
+pub fn parse_json<'de, T: Deserialize<'de, JsonFullParser<'de>>>(
+    data: &'de [u8],
+    ctx: &DeserializeContext,
+) -> ParseResult<T> {
+    let mut builder = JsonFullParserBuilder::new(data);
+    let value = T::deserialize(builder.build(), ctx)?;
+    builder.end()?;
+    Ok(value)
 }

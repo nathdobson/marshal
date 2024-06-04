@@ -1,10 +1,12 @@
+use serde_json::Value;
 use std::fs;
 use std::fs::read_dir;
 
+use crate::context::DeserializeContext;
 use crate::error::ParseError;
+use crate::json::value::parse_json;
+use crate::json::{JsonParser, SingletonContext};
 use crate::simple::SimpleAnyParser;
-use crate::json::value::into_json_value;
-use crate::json::{SingletonContext, JsonParser};
 use crate::{AnyParser, ParseHint, ParserView, SeqParser};
 
 #[test]
@@ -42,14 +44,13 @@ fn test_parsing() {
             .next()
             .unwrap();
         let contents = fs::read(dir.path()).unwrap();
-        let mut parser = JsonParser::new(&contents);
         println!("name={}", dir.path().to_str().unwrap());
         if let Ok(contents) = std::str::from_utf8(&contents) {
             println!("{}", contents);
         } else {
             println!("<err>");
         }
-        let output = into_json_value(&mut parser);
+        let output = parse_json::<Value>(&contents, &DeserializeContext::new());
         match expected {
             'i' => {}
             'n' => {

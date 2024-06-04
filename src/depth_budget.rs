@@ -18,7 +18,7 @@ pub struct WithDepthBudget<T> {
 pub struct OverflowError;
 impl Display for OverflowError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "insufficient depth budget while parsing")
     }
 }
 
@@ -38,7 +38,8 @@ fn annotate<'p, 'de, T: Parser<'de>>(
     depth_budget: usize,
     view: ParserView<'p, 'de, T>,
 ) -> Result<ParserView<'p, 'de, DepthBudgetParser<T>>, ParseError> {
-    let depth_budget: Result<usize, OverflowError> = depth_budget.checked_sub(1).ok_or(OverflowError);
+    let depth_budget: Result<usize, OverflowError> =
+        depth_budget.checked_sub(1).ok_or(OverflowError);
     Ok(match view {
         ParserView::Bool(x) => ParserView::Bool(x),
         ParserView::I64(x) => ParserView::I64(x),

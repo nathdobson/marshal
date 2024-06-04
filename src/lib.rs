@@ -7,13 +7,14 @@
 extern crate core;
 
 use crate::error::ParseError;
-use std::error::Error;
 
 mod depth_budget;
 mod error;
 mod poison;
 mod simple;
 mod json;
+mod context;
+mod deserialize;
 
 #[derive(Debug, Copy, Clone)]
 pub enum ParseHint {
