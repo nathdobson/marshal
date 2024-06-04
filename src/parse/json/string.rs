@@ -1,17 +1,16 @@
 use std::char::decode_utf16;
-use crate::error::ParseResult;
 
-use crate::json::error::JsonError;
-use crate::json::JsonParser;
+use crate::parse::json::error::JsonError;
+use crate::parse::json::JsonParser;
 
 impl<'de> JsonParser<'de> {
-    pub fn read_hex_u16(&mut self) -> ParseResult<u16> {
+    pub fn read_hex_u16(&mut self) -> anyhow::Result<u16> {
         Ok(u16::from_str_radix(
             std::str::from_utf8(self.read_count(4)?)?,
             16,
         )?)
     }
-    pub fn read_string(&mut self) -> ParseResult<String> {
+    pub fn read_string(&mut self) -> anyhow::Result<String> {
         self.read_exact(b'"')?;
         let mut result = String::new();
         loop {
@@ -54,7 +53,7 @@ impl<'de> JsonParser<'de> {
         }
         Ok(result)
     }
-    pub fn read_unicode(&mut self) -> ParseResult<char> {
+    pub fn read_unicode(&mut self) -> anyhow::Result<char> {
         let first = self.peek_char()?;
         let slice = self.read_count(utf8_width::get_width(first))?;
         let c = std::str::from_utf8(slice)?

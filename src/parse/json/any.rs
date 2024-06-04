@@ -1,6 +1,5 @@
-use crate::error::ParseResult;
-use crate::json::error::JsonError;
-use crate::json::JsonParser;
+use crate::parse::json::error::JsonError;
+use crate::parse::json::JsonParser;
 
 #[derive(Eq, Ord, PartialEq, PartialOrd, Copy, Clone, Debug, Hash)]
 pub enum PeekType {
@@ -13,7 +12,7 @@ pub enum PeekType {
 }
 
 impl<'de> JsonParser<'de> {
-    pub fn peek_type<'p>(&'p mut self) -> ParseResult<PeekType> {
+    pub fn peek_type<'p>(&'p mut self) -> anyhow::Result<PeekType> {
         self.read_whitespace()?;
         let result = match self.peek_char()? {
             b'[' => PeekType::Seq,

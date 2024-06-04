@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
-use crate::json::any::PeekType;
+use crate::parse::json::any::PeekType;
 use crate::ParseHint;
 
 #[derive(Debug)]

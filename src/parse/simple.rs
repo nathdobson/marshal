@@ -1,9 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::error::ParseError;
 use crate::{
-    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, ParseVariantHint,
-    Parser, ParserView, SeqParser, SomeParser,
+    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser,
+    ParserView, ParseVariantHint, SeqParser, SomeParser,
 };
 
 pub struct SimpleParserAdapter<T> {
@@ -42,39 +41,39 @@ pub trait SimpleParser<'de> {
         &mut self,
         any: Self::AnyParser,
         hint: ParseHint,
-    ) -> Result<SimpleParserView<'de, Self>, ParseError>;
+    ) -> anyhow::Result<SimpleParserView<'de, Self>>;
     fn is_human_readable(&self) -> bool;
 
     fn parse_seq_next(
         &mut self,
         seq: &mut Self::SeqParser,
-    ) -> Result<Option<Self::AnyParser>, ParseError>;
+    ) -> anyhow::Result<Option<Self::AnyParser>>;
 
     fn parse_map_next(
         &mut self,
         map: &mut Self::MapParser,
-    ) -> Result<Option<Self::KeyParser>, ParseError>;
+    ) -> anyhow::Result<Option<Self::KeyParser>>;
 
     fn parse_entry_key(
         &mut self,
         key: Self::KeyParser,
-    ) -> Result<(Self::AnyParser, Self::ValueParser), ParseError>;
+    ) -> anyhow::Result<(Self::AnyParser, Self::ValueParser)>;
 
     fn parse_entry_value(
         &mut self,
         value: Self::ValueParser,
-    ) -> Result<Self::AnyParser, ParseError>;
+    ) -> anyhow::Result<Self::AnyParser>;
 
     fn parse_enum_discriminant(
         &mut self,
         e: Self::DiscriminantParser,
-    ) -> Result<(Self::AnyParser, Self::VariantParser), ParseError>;
+    ) -> anyhow::Result<(Self::AnyParser, Self::VariantParser)>;
 
     fn parse_enum_variant(
         &mut self,
         e: Self::VariantParser,
         hint: ParseVariantHint,
-    ) -> Result<SimpleParserView<'de, Self>, ParseError>;
+    ) -> anyhow::Result<SimpleParserView<'de, Self>>;
 }
 
 pub struct SimpleAnyParser<'p, 'de, T: SimpleParser<'de>> {
@@ -165,7 +164,7 @@ where
     fn parse(
         self,
         hint: ParseHint,
-    ) -> Result<ParserView<'p, 'de, SimpleParserAdapter<T>>, ParseError> {
+    ) -> anyhow::Result<ParserView<'p, 'de, SimpleParserAdapter<T>>> {
         Ok(self.this.parse(self.any, hint)?.wrap(self.this))
     }
 }
@@ -174,7 +173,7 @@ impl<'p, 'de, T> SeqParser<'p, 'de, SimpleParserAdapter<T>> for SimpleSeqParser<
 where
     T: SimpleParser<'de>,
 {
-    fn parse_next<'p2>(&'p2 mut self) -> Result<Option<SimpleAnyParser<'p2, 'de, T>>, ParseError> {
+    fn parse_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<SimpleAnyParser<'p2, 'de, T>>> {
         if let Some(any) = self.this.parse_seq_next(&mut self.seq)? {
             Ok(Some(SimpleAnyParser {
                 this: self.this,
@@ -192,7 +191,7 @@ where
 {
     fn parse_next<'p2>(
         &'p2 mut self,
-    ) -> Result<Option<SimpleEntryParser<'p2, 'de, T>>, ParseError> {
+    ) -> anyhow::Result<Option<SimpleEntryParser<'p2, 'de, T>>> {
         if let Some(data) = self.this.parse_map_next(&mut self.map)? {
             Ok(Some(SimpleEntryParser {
                 this: self.this,
@@ -208,7 +207,7 @@ impl<'p, 'de, T> EntryParser<'p, 'de, SimpleParserAdapter<T>> for SimpleEntryPar
 where
     T: SimpleParser<'de>,
 {
-    fn parse_key<'p2>(&'p2 mut self) -> Result<SimpleAnyParser<'p2, 'de, T>, ParseError> {
+    fn parse_key<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
         let (key, value) = self.this.parse_entry_key(self.key.take().unwrap())?;
         self.value = Some(value);
         Ok(SimpleAnyParser {
@@ -217,7 +216,7 @@ where
         })
     }
 
-    fn parse_value<'p2>(&'p2 mut self) -> Result<SimpleAnyParser<'p2, 'de, T>, ParseError> {
+    fn parse_value<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
         let value = self.value.take().unwrap();
         let value = self.this.parse_entry_value(value)?;
         Ok(SimpleAnyParser {
@@ -226,7 +225,7 @@ where
         })
     }
 
-    fn parse_end(mut self) -> Result<(), ParseError> {
+    fn parse_end(mut self) -> anyhow::Result<()> {
         todo!()
     }
 }
@@ -235,7 +234,7 @@ impl<'p, 'de, T> EnumParser<'p, 'de, SimpleParserAdapter<T>> for SimpleEnumParse
 where
     T: SimpleParser<'de>,
 {
-    fn parse_discriminant<'p2>(&'p2 mut self) -> Result<SimpleAnyParser<'p2, 'de, T>, ParseError> {
+    fn parse_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
         let (discriminant, variant) = self
             .this
             .parse_enum_discriminant(self.discriminant.take().unwrap())?;
@@ -249,14 +248,14 @@ where
     fn parse_variant<'p2>(
         &'p2 mut self,
         hint: ParseVariantHint,
-    ) -> Result<ParserView<'p2, 'de, SimpleParserAdapter<T>>, ParseError> {
+    ) -> anyhow::Result<ParserView<'p2, 'de, SimpleParserAdapter<T>>> {
         let data = self
             .this
             .parse_enum_variant(self.variant.take().unwrap(), hint)?;
         Ok(data.wrap(self.this))
     }
 
-    fn parse_end(mut self) -> Result<(), ParseError> {
+    fn parse_end(mut self) -> anyhow::Result<()> {
         todo!()
     }
 }
@@ -265,11 +264,11 @@ impl<'p, 'de, T> SomeParser<'p, 'de, SimpleParserAdapter<T>> for SimpleSomeParse
 where
     T: SimpleParser<'de>,
 {
-    fn parse_some<'p2>(&'p2 mut self) -> Result<SimpleAnyParser<'p2, 'de, T>, ParseError> {
+    fn parse_some<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
         todo!()
     }
 
-    fn parse_end(mut self) -> Result<(), ParseError> {
+    fn parse_end(mut self) -> anyhow::Result<()> {
         todo!()
     }
 }
@@ -278,11 +277,11 @@ impl<'p, 'de, T> NewtypeParser<'p, 'de, SimpleParserAdapter<T>> for SimpleNewtyp
 where
     T: SimpleParser<'de>,
 {
-    fn parse_newtype<'p2>(&'p2 mut self) -> Result<SimpleAnyParser<'p2, 'de, T>, ParseError> {
+    fn parse_newtype<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
         todo!()
     }
 
-    fn parse_end(mut self) -> Result<(), ParseError> {
+    fn parse_end(mut self) -> anyhow::Result<()> {
         todo!()
     }
 }

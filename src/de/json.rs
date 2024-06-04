@@ -1,11 +1,11 @@
-use crate::context::DeserializeContext;
-use crate::deserialize::Deserialize;
-use crate::error::ParseError;
-use crate::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
 use serde_json::{Number, Value};
 
+use crate::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
+use crate::de::context::DeserializeContext;
+use crate::de::Deserialize;
+
 impl<'de, P: Parser<'de>> Deserialize<'de, P> for Value {
-    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &DeserializeContext) -> Result<Self, ParseError> {
+    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &DeserializeContext) -> anyhow::Result<Self> {
         match p.parse(ParseHint::Any)? {
             ParserView::Bool(x) => Ok(Value::Bool(x)),
             ParserView::F64(x) => Ok(Value::Number(Number::from_f64(x).unwrap())),

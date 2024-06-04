@@ -1,11 +1,11 @@
-use crate::error::ParseError;
-use crate::{
-    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, ParseVariantHint,
-    Parser, ParserView, SeqParser, SomeParser,
-};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+
+use crate::{
+    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser,
+    ParserView, ParseVariantHint, SeqParser, SomeParser,
+};
 
 pub struct DepthBudgetParser<T>(PhantomData<T>);
 
@@ -37,7 +37,7 @@ impl<'de, T: Parser<'de>> Parser<'de> for DepthBudgetParser<T> {
 fn annotate<'p, 'de, T: Parser<'de>>(
     depth_budget: usize,
     view: ParserView<'p, 'de, T>,
-) -> Result<ParserView<'p, 'de, DepthBudgetParser<T>>, ParseError> {
+) -> anyhow::Result<ParserView<'p, 'de, DepthBudgetParser<T>>> {
     let depth_budget: Result<usize, OverflowError> =
         depth_budget.checked_sub(1).ok_or(OverflowError);
     Ok(match view {
@@ -85,10 +85,7 @@ impl<T> WithDepthBudget<T> {
 impl<'p, 'de, T: Parser<'de>> AnyParser<'p, 'de, DepthBudgetParser<T>>
     for WithDepthBudget<T::AnyParser<'p>>
 {
-    fn parse(
-        self,
-        hint: ParseHint,
-    ) -> Result<ParserView<'p, 'de, DepthBudgetParser<T>>, ParseError> {
+    fn parse(self, hint: ParseHint) -> anyhow::Result<ParserView<'p, 'de, DepthBudgetParser<T>>> {
         annotate(self.depth_budget, self.inner.parse(hint)?)
     }
 }
@@ -98,7 +95,7 @@ impl<'p, 'de, T: Parser<'de>> SeqParser<'p, 'de, DepthBudgetParser<T>>
 {
     fn parse_next<'p2>(
         &'p2 mut self,
-    ) -> Result<Option<WithDepthBudget<T::AnyParser<'p2>>>, ParseError> {
+    ) -> anyhow::Result<Option<WithDepthBudget<T::AnyParser<'p2>>>> {
         if let Some(inner) = self.inner.parse_next()? {
             Ok(Some(WithDepthBudget {
                 depth_budget: self.depth_budget,
@@ -115,7 +112,7 @@ impl<'p, 'de, T: Parser<'de>> MapParser<'p, 'de, DepthBudgetParser<T>>
 {
     fn parse_next<'p2>(
         &'p2 mut self,
-    ) -> Result<Option<WithDepthBudget<T::EntryParser<'p2>>>, ParseError> {
+    ) -> anyhow::Result<Option<WithDepthBudget<T::EntryParser<'p2>>>> {
         if let Some(inner) = self.inner.parse_next()? {
             Ok(Some(WithDepthBudget {
                 depth_budget: self.depth_budget,
@@ -130,21 +127,21 @@ impl<'p, 'de, T: Parser<'de>> MapParser<'p, 'de, DepthBudgetParser<T>>
 impl<'p, 'de, T: Parser<'de>> EntryParser<'p, 'de, DepthBudgetParser<T>>
     for WithDepthBudget<T::EntryParser<'p>>
 {
-    fn parse_key<'p2>(&'p2 mut self) -> Result<WithDepthBudget<T::AnyParser<'p2>>, ParseError> {
+    fn parse_key<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyParser<'p2>>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
             inner: self.inner.parse_key()?,
         })
     }
 
-    fn parse_value<'p2>(&'p2 mut self) -> Result<WithDepthBudget<T::AnyParser<'p2>>, ParseError> {
+    fn parse_value<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyParser<'p2>>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
             inner: self.inner.parse_value()?,
         })
     }
 
-    fn parse_end(self) -> Result<(), ParseError> {
+    fn parse_end(self) -> anyhow::Result<()> {
         Ok(self.inner.parse_end()?)
     }
 }
@@ -154,7 +151,7 @@ impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, DepthBudgetParser<T>>
 {
     fn parse_discriminant<'p2>(
         &'p2 mut self,
-    ) -> Result<WithDepthBudget<T::AnyParser<'p2>>, ParseError> {
+    ) -> anyhow::Result<WithDepthBudget<T::AnyParser<'p2>>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
             inner: self.inner.parse_discriminant()?,
@@ -164,14 +161,14 @@ impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, DepthBudgetParser<T>>
     fn parse_variant<'p2>(
         &'p2 mut self,
         hint: ParseVariantHint,
-    ) -> Result<ParserView<'p2, 'de, DepthBudgetParser<T>>, ParseError> {
+    ) -> anyhow::Result<ParserView<'p2, 'de, DepthBudgetParser<T>>> {
         Ok(annotate(
             self.depth_budget,
             self.inner.parse_variant(hint)?,
         )?)
     }
 
-    fn parse_end(self) -> Result<(), ParseError> {
+    fn parse_end(self) -> anyhow::Result<()> {
         Ok(self.inner.parse_end()?)
     }
 }
@@ -180,14 +177,14 @@ impl<'p, 'de, T: Parser<'de>> SomeParser<'p, 'de, DepthBudgetParser<T>>
 {
     fn parse_some<'p2>(
         &'p2 mut self,
-    ) -> Result<<DepthBudgetParser<T> as Parser<'de>>::AnyParser<'p2>, ParseError> {
+    ) -> anyhow::Result<<DepthBudgetParser<T> as Parser<'de>>::AnyParser<'p2>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
             inner: self.inner.parse_some()?,
         })
     }
 
-    fn parse_end(self) -> Result<(), ParseError> {
+    fn parse_end(self) -> anyhow::Result<()> {
         Ok(self.inner.parse_end()?)
     }
 }
@@ -196,14 +193,14 @@ impl<'p, 'de, T: Parser<'de>> NewtypeParser<'p, 'de, DepthBudgetParser<T>>
 {
     fn parse_newtype<'p2>(
         &'p2 mut self,
-    ) -> Result<<DepthBudgetParser<T> as Parser<'de>>::AnyParser<'p2>, ParseError> {
+    ) -> anyhow::Result<<DepthBudgetParser<T> as Parser<'de>>::AnyParser<'p2>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
             inner: self.inner.parse_newtype()?,
         })
     }
 
-    fn parse_end(self) -> Result<(), ParseError> {
+    fn parse_end(self) -> anyhow::Result<()> {
         Ok(self.inner.parse_end()?)
     }
 }

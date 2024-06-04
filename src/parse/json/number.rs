@@ -1,8 +1,7 @@
 use std::str::FromStr;
-use crate::error::{ParseError, ParseResult};
 
-use crate::json::error::JsonError;
-use crate::json::JsonParser;
+use crate::parse::json::error::JsonError;
+use crate::parse::json::JsonParser;
 
 struct SliceParser<'p, 'de> {
     parser: &'p mut JsonParser<'de>,
@@ -16,7 +15,7 @@ impl<'p, 'de> SliceParser<'p, 'de> {
     pub fn try_consume_char(
         &mut self,
         expected: impl FnOnce(u8) -> bool,
-    ) -> ParseResult<Option<u8>> {
+    ) -> anyhow::Result<Option<u8>> {
         Ok(match self.parser.try_peek_ahead(self.index)? {
             None => None,
             Some(c) => {
@@ -29,19 +28,19 @@ impl<'p, 'de> SliceParser<'p, 'de> {
             }
         })
     }
-    pub fn try_consume_digit(&mut self) -> ParseResult<Option<u8>> {
+    pub fn try_consume_digit(&mut self) -> anyhow::Result<Option<u8>> {
         Ok(self.try_consume_char(|x| x.is_ascii_digit())?)
     }
 
-    pub fn end(self) -> ParseResult<&'de [u8]> {
+    pub fn end(self) -> anyhow::Result<&'de [u8]> {
         self.parser.read_count(self.index)
     }
 }
 
 impl<'de> JsonParser<'de> {
-    pub fn read_number<T: FromStr>(&mut self) -> ParseResult<T>
+    pub fn read_number<T: FromStr>(&mut self) -> anyhow::Result<T>
     where
-        ParseError: From<T::Err>,
+        <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
     {
         let mut slice = SliceParser::new(self);
         slice.try_consume_char(|x| x == b'-')?;

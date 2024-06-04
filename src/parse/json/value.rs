@@ -1,13 +1,10 @@
-use serde_json::{Number, Value};
-
-use crate::context::DeserializeContext;
-use crate::depth_budget::{DepthBudgetParser, WithDepthBudget};
-use crate::deserialize::Deserialize;
-use crate::error::{ParseError, ParseResult};
-use crate::json::{JsonParser, SingletonContext};
-use crate::poison::{PoisonAnyParser, PoisonParser, PoisonState};
-use crate::simple::{SimpleAnyParser, SimpleParserAdapter};
-use crate::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
+use crate::de::context::DeserializeContext;
+use crate::de::Deserialize;
+use crate::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
+use crate::parse::json::{JsonParser, SingletonContext};
+use crate::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
+use crate::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
+use crate::Parser;
 
 type JsonFullParser<'de> = PoisonParser<DepthBudgetParser<SimpleParserAdapter<JsonParser<'de>>>>;
 
@@ -32,7 +29,7 @@ impl<'de> JsonFullParserBuilder<'de> {
             ),
         )
     }
-    fn end(self) -> ParseResult<()> {
+    fn end(self) -> anyhow::Result<()> {
         self.poison.check()?;
         self.parser.end_parsing()?;
         Ok(())
@@ -42,7 +39,7 @@ impl<'de> JsonFullParserBuilder<'de> {
 pub fn parse_json<'de, T: Deserialize<'de, JsonFullParser<'de>>>(
     data: &'de [u8],
     ctx: &DeserializeContext,
-) -> ParseResult<T> {
+) -> anyhow::Result<T> {
     let mut builder = JsonFullParserBuilder::new(data);
     let value = T::deserialize(builder.build(), ctx)?;
     builder.end()?;

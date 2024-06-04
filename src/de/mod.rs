@@ -1,17 +1,18 @@
-mod tuple;
-mod json;
-
-use crate::context::DeserializeContext;
-use crate::error::ParseError;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+
+use crate::de::context::DeserializeContext;
 use crate::Parser;
+
+mod tuple;
+mod json;
+pub mod context;
 
 pub trait Deserialize<'de, P: Parser<'de>>: Sized {
     fn deserialize<'p>(
         p: P::AnyParser<'p>,
         context: &DeserializeContext,
-    ) -> Result<Self, ParseError>;
+    ) -> anyhow::Result<Self>;
 }
 
 #[derive(Debug)]

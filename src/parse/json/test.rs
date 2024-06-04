@@ -1,16 +1,16 @@
-use serde_json::Value;
 use std::fs;
 use std::fs::read_dir;
 
-use crate::context::DeserializeContext;
-use crate::error::ParseError;
-use crate::json::value::parse_json;
-use crate::json::{JsonParser, SingletonContext};
-use crate::simple::SimpleAnyParser;
+use serde_json::Value;
+
 use crate::{AnyParser, ParseHint, ParserView, SeqParser};
+use crate::de::context::DeserializeContext;
+use crate::parse::json::{JsonParser, SingletonContext};
+use crate::parse::json::value::parse_json;
+use crate::parse::simple::SimpleAnyParser;
 
 #[test]
-fn test() -> Result<(), ParseError> {
+fn test() -> anyhow::Result<()> {
     let input = b"[1,23]";
     let mut p = JsonParser::new(input);
     let p = SimpleAnyParser::new(&mut p, SingletonContext::default());

@@ -1,10 +1,9 @@
 use itertools::Itertools;
 
-use crate::error::ParseError;
-use crate::simple::{SimpleParser, SimpleParserView};
-use crate::json::any::PeekType;
-use crate::json::error::JsonError;
 use crate::{ParseHint, ParseVariantHint};
+use crate::parse::json::any::PeekType;
+use crate::parse::json::error::JsonError;
+use crate::parse::simple::{SimpleParser, SimpleParserView};
 
 mod any;
 mod error;
@@ -47,7 +46,7 @@ impl<'de> SimpleParser<'de> for JsonParser<'de> {
         &mut self,
         context: Self::AnyParser,
         hint: ParseHint,
-    ) -> Result<SimpleParserView<'de, Self>, ParseError> {
+    ) -> anyhow::Result<SimpleParserView<'de, Self>> {
         let found = self.peek_type()?;
         if context.must_be_string {
             if found != PeekType::String {
@@ -119,7 +118,7 @@ impl<'de> SimpleParser<'de> for JsonParser<'de> {
     fn parse_seq_next(
         &mut self,
         seq: &mut Self::SeqParser,
-    ) -> Result<Option<Self::AnyParser>, ParseError> {
+    ) -> anyhow::Result<Option<Self::AnyParser>> {
         if self.try_read_exact(b']')? {
             return Ok(None);
         }
@@ -133,7 +132,7 @@ impl<'de> SimpleParser<'de> for JsonParser<'de> {
     fn parse_map_next(
         &mut self,
         map: &mut Self::MapParser,
-    ) -> Result<Option<Self::KeyParser>, ParseError> {
+    ) -> anyhow::Result<Option<Self::KeyParser>> {
         if self.try_read_exact(b'}')? {
             return Ok(None);
         }
@@ -147,7 +146,7 @@ impl<'de> SimpleParser<'de> for JsonParser<'de> {
     fn parse_entry_key(
         &mut self,
         _: Self::KeyParser,
-    ) -> Result<(Self::AnyParser, Self::ValueParser), ParseError> {
+    ) -> anyhow::Result<(Self::AnyParser, Self::ValueParser)> {
         Ok((
             SingletonContext {
                 must_be_string: true,
@@ -157,7 +156,7 @@ impl<'de> SimpleParser<'de> for JsonParser<'de> {
         ))
     }
 
-    fn parse_entry_value(&mut self, _: Self::ValueParser) -> Result<Self::AnyParser, ParseError> {
+    fn parse_entry_value(&mut self, _: Self::ValueParser) -> anyhow::Result<Self::AnyParser> {
         self.read_exact(b':')?;
         Ok(SingletonContext::default())
     }
@@ -165,7 +164,7 @@ impl<'de> SimpleParser<'de> for JsonParser<'de> {
     fn parse_enum_discriminant(
         &mut self,
         _: Self::DiscriminantParser,
-    ) -> Result<(Self::AnyParser, Self::VariantParser), ParseError> {
+    ) -> anyhow::Result<(Self::AnyParser, Self::VariantParser)> {
         todo!()
     }
 
@@ -173,15 +172,13 @@ impl<'de> SimpleParser<'de> for JsonParser<'de> {
         &mut self,
         _: Self::VariantParser,
         _: ParseVariantHint,
-    ) -> Result<SimpleParserView<'de, Self>, ParseError> {
+    ) -> anyhow::Result<SimpleParserView<'de, Self>> {
         todo!()
     }
 }
 
 impl<'de> JsonParser<'de> {
     pub fn new(input: &'de [u8]) -> Self {
-        JsonParser {
-            cursor: input,
-        }
+        JsonParser { cursor: input }
     }
 }

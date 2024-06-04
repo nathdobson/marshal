@@ -6,15 +6,8 @@
 
 extern crate core;
 
-use crate::error::ParseError;
-
-mod depth_budget;
-mod error;
-mod poison;
-mod simple;
-mod json;
-mod context;
-mod deserialize;
+mod de;
+mod parse;
 
 #[derive(Debug, Copy, Clone)]
 pub enum ParseHint {
@@ -77,39 +70,39 @@ where
     Enum(P::EnumParser<'p>),
 }
 pub trait AnyParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse(self, hint: ParseHint) -> Result<ParserView<'p, 'de, P>, ParseError>;
+    fn parse(self, hint: ParseHint) -> anyhow::Result<ParserView<'p, 'de, P>>;
 }
 
 pub trait SeqParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_next<'p2>(&'p2 mut self) -> Result<Option<P::AnyParser<'p2>>, ParseError>;
+    fn parse_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<P::AnyParser<'p2>>>;
 }
 
 pub trait MapParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_next<'p2>(&'p2 mut self) -> Result<Option<P::EntryParser<'p2>>, ParseError>;
+    fn parse_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<P::EntryParser<'p2>>>;
 }
 
 pub trait EntryParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_key<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, ParseError>;
-    fn parse_value<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, ParseError>;
-    fn parse_end(self) -> Result<(), ParseError>;
+    fn parse_key<'p2>(&'p2 mut self) -> anyhow::Result<P::AnyParser<'p2>>;
+    fn parse_value<'p2>(&'p2 mut self) -> anyhow::Result<P::AnyParser<'p2>>;
+    fn parse_end(self) -> anyhow::Result<()>;
 }
 pub trait EnumParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_discriminant<'p2>(&'p2 mut self) -> Result<P::AnyParser<'p2>, ParseError>;
+    fn parse_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<P::AnyParser<'p2>>;
     fn parse_variant<'p2>(
         &'p2 mut self,
         hint: ParseVariantHint,
-    ) -> Result<ParserView<'p2, 'de, P>, ParseError>;
-    fn parse_end(self) -> Result<(), ParseError>;
+    ) -> anyhow::Result<ParserView<'p2, 'de, P>>;
+    fn parse_end(self) -> anyhow::Result<()>;
 }
 
 pub trait SomeParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_some<'p2>(&'p2 mut self) -> Result<<P as Parser<'de>>::AnyParser<'p2>, ParseError>;
-    fn parse_end(self) -> Result<(), ParseError>;
+    fn parse_some<'p2>(&'p2 mut self) -> anyhow::Result<<P as Parser<'de>>::AnyParser<'p2>>;
+    fn parse_end(self) -> anyhow::Result<()>;
 }
 
 pub trait NewtypeParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_newtype<'p2>(&'p2 mut self) -> Result<<P as Parser<'de>>::AnyParser<'p2>, ParseError>;
-    fn parse_end(self) -> Result<(), ParseError>;
+    fn parse_newtype<'p2>(&'p2 mut self) -> anyhow::Result<<P as Parser<'de>>::AnyParser<'p2>>;
+    fn parse_end(self) -> anyhow::Result<()>;
 }
 
 pub trait Parser<'de> {
