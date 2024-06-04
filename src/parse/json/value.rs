@@ -1,7 +1,7 @@
 use crate::de::context::DeserializeContext;
 use crate::de::Deserialize;
 use crate::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
-use crate::parse::json::{JsonParser, SingletonContext};
+use crate::parse::json::{AnyParser, JsonParser};
 use crate::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
 use crate::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
 use crate::parse::Parser;
@@ -25,7 +25,7 @@ impl<'de> JsonFullParserBuilder<'de> {
             &mut self.poison,
             WithDepthBudget::new(
                 100,
-                SimpleAnyParser::new(&mut self.parser, SingletonContext::default()),
+                SimpleAnyParser::new(&mut self.parser, AnyParser::default()),
             ),
         )
     }

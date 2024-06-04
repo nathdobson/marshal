@@ -1,22 +1,21 @@
 use std::marker::PhantomData;
 
-use crate::parse::{AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser, ParserView, ParseVariantHint, SeqParser, SomeParser};
+use crate::parse::{
+    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, ParseVariantHint,
+    Parser, ParserView, SeqParser, SomeParser,
+};
+use crate::Primitive;
 
 pub struct SimpleParserAdapter<T> {
     inner: PhantomData<T>,
 }
 
 pub enum SimpleParserView<'de, P: ?Sized + SimpleParser<'de>> {
-    Bool(bool),
-    I64(i64),
-    U64(u64),
-    F64(f64),
-    Char(char),
+    Primitive(Primitive),
     String(String),
     Bytes(Vec<u8>),
     None,
     Some(P::SomeParser),
-    Unit,
     NewType(P::NewtypeParser),
     Seq(P::SeqParser),
     Map(P::MapParser),
@@ -56,10 +55,7 @@ pub trait SimpleParser<'de> {
         key: Self::KeyParser,
     ) -> anyhow::Result<(Self::AnyParser, Self::ValueParser)>;
 
-    fn parse_entry_value(
-        &mut self,
-        value: Self::ValueParser,
-    ) -> anyhow::Result<Self::AnyParser>;
+    fn parse_entry_value(&mut self, value: Self::ValueParser) -> anyhow::Result<Self::AnyParser>;
 
     fn parse_enum_discriminant(
         &mut self,
@@ -126,11 +122,7 @@ where
 impl<'de, T: SimpleParser<'de>> SimpleParserView<'de, T> {
     fn wrap<'p>(self, this: &'p mut T) -> ParserView<'p, 'de, SimpleParserAdapter<T>> {
         match self {
-            SimpleParserView::Bool(x) => ParserView::Bool(x),
-            SimpleParserView::I64(x) => ParserView::I64(x),
-            SimpleParserView::U64(x) => ParserView::U64(x),
-            SimpleParserView::F64(x) => ParserView::F64(x),
-            SimpleParserView::Char(x) => ParserView::Char(x),
+            SimpleParserView::Primitive(x) => ParserView::Primitive(x),
             SimpleParserView::String(x) => ParserView::String(x),
             SimpleParserView::Bytes(x) => ParserView::Bytes(x),
             SimpleParserView::None => ParserView::None,
@@ -138,7 +130,6 @@ impl<'de, T: SimpleParser<'de>> SimpleParserView<'de, T> {
                 this,
                 some: Some(some),
             }),
-            SimpleParserView::Unit => ParserView::Unit,
             SimpleParserView::NewType(newtype) => ParserView::Newtype(SimpleNewtypeParser {
                 this,
                 newtype: Some(newtype),
@@ -158,10 +149,7 @@ impl<'p, 'de, T> AnyParser<'p, 'de, SimpleParserAdapter<T>> for SimpleAnyParser<
 where
     T: SimpleParser<'de>,
 {
-    fn parse(
-        self,
-        hint: ParseHint,
-    ) -> anyhow::Result<ParserView<'p, 'de, SimpleParserAdapter<T>>> {
+    fn parse(self, hint: ParseHint) -> anyhow::Result<ParserView<'p, 'de, SimpleParserAdapter<T>>> {
         Ok(self.this.parse(self.any, hint)?.wrap(self.this))
     }
 }
@@ -186,9 +174,7 @@ impl<'p, 'de, T> MapParser<'p, 'de, SimpleParserAdapter<T>> for SimpleMapParser<
 where
     T: SimpleParser<'de>,
 {
-    fn parse_next<'p2>(
-        &'p2 mut self,
-    ) -> anyhow::Result<Option<SimpleEntryParser<'p2, 'de, T>>> {
+    fn parse_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<SimpleEntryParser<'p2, 'de, T>>> {
         if let Some(data) = self.this.parse_map_next(&mut self.map)? {
             Ok(Some(SimpleEntryParser {
                 this: self.this,

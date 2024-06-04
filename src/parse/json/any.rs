@@ -25,7 +25,7 @@ impl<'de> JsonParser<'de> {
                 return Err(JsonError::UnexpectedInitialCharacter {
                     found: char::from(c),
                 }
-                .into())
+                    .into());
             }
         };
         Ok(result)

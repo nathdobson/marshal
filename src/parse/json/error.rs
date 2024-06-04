@@ -26,6 +26,7 @@ pub enum JsonError {
     DepthBudgetExceeded,
     TooManyChars,
     SchemaMismatch { hint: ParseHint, found: PeekType },
+    UnexpectedNull,
 }
 
 impl Display for JsonError {

@@ -2,7 +2,10 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
-use crate::parse::{AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser, ParserView, ParseVariantHint, SeqParser, SomeParser};
+use crate::parse::{
+    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, ParseVariantHint,
+    Parser, ParserView, SeqParser, SomeParser,
+};
 
 pub struct DepthBudgetParser<T>(PhantomData<T>);
 
@@ -38,11 +41,7 @@ fn annotate<'p, 'de, T: Parser<'de>>(
     let depth_budget: Result<usize, OverflowError> =
         depth_budget.checked_sub(1).ok_or(OverflowError);
     Ok(match view {
-        ParserView::Bool(x) => ParserView::Bool(x),
-        ParserView::I64(x) => ParserView::I64(x),
-        ParserView::U64(x) => ParserView::U64(x),
-        ParserView::F64(x) => ParserView::F64(x),
-        ParserView::Char(x) => ParserView::Char(x),
+        ParserView::Primitive(x) => ParserView::Primitive(x),
         ParserView::String(x) => ParserView::String(x),
         ParserView::Bytes(x) => ParserView::Bytes(x),
         ParserView::None => ParserView::None,
@@ -50,7 +49,6 @@ fn annotate<'p, 'de, T: Parser<'de>>(
             depth_budget: depth_budget?,
             inner,
         }),
-        ParserView::Unit => ParserView::Unit,
         ParserView::Newtype(inner) => ParserView::Newtype(WithDepthBudget {
             depth_budget: depth_budget?,
             inner,

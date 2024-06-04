@@ -39,8 +39,8 @@ impl<'p, 'de> SliceParser<'p, 'de> {
 
 impl<'de> JsonParser<'de> {
     pub fn read_number<T: FromStr>(&mut self) -> anyhow::Result<T>
-    where
-        <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
+        where
+            <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
     {
         let mut slice = SliceParser::new(self);
         slice.try_consume_char(|x| x == b'-')?;

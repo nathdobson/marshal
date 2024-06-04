@@ -1,3 +1,6 @@
+use crate::{Primitive, PrimitiveType};
+use std::fmt::{Debug, Formatter};
+
 pub mod depth_budget;
 pub mod json;
 mod poison;
@@ -6,17 +9,16 @@ mod simple;
 #[derive(Debug, Copy, Clone)]
 pub enum ParseHint {
     Any,
-    Bool,
-    I64,
-    U64,
-    F64,
-    Char,
+    Primitive(PrimitiveType),
     String,
     Bytes,
     Option,
-    Unit,
-    UnitStruct,
-    NewtypeStruct,
+    UnitStruct {
+        name: &'static str,
+    },
+    NewtypeStruct {
+        name: &'static str,
+    },
     Seq,
     Tuple {
         len: usize,
@@ -48,16 +50,11 @@ pub enum ParserView<'p, 'de, P: ?Sized + Parser<'de>>
 where
     P: 'p,
 {
-    Bool(bool),
-    I64(i64),
-    U64(u64),
-    F64(f64),
-    Char(char),
+    Primitive(Primitive),
     String(String),
     Bytes(Vec<u8>),
     None,
     Some(P::SomeParser<'p>),
-    Unit,
     Newtype(P::NewtypeParser<'p>),
     Seq(P::SeqParser<'p>),
     Map(P::MapParser<'p>),
@@ -123,4 +120,20 @@ pub trait Parser<'de> {
     type NewtypeParser<'p>: NewtypeParser<'p, 'de, Self>
     where
         Self: 'p;
+}
+
+impl<'p, 'de, P: Parser<'de>> Debug for ParserView<'p, 'de, P> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParserView::Primitive(x) => f.debug_tuple("Primitive").field(x).finish(),
+            ParserView::String(x) => f.debug_tuple("String").field(x).finish(),
+            ParserView::Bytes(x) => f.debug_tuple("Bytes").field(x).finish(),
+            ParserView::None => f.debug_tuple("None").finish(),
+            ParserView::Some(_) => f.debug_struct("Some").finish_non_exhaustive(),
+            ParserView::Newtype(_) => f.debug_struct("Newtype").finish_non_exhaustive(),
+            ParserView::Seq(_) => f.debug_struct("Seq").finish_non_exhaustive(),
+            ParserView::Map(_) => f.debug_struct("Map").finish_non_exhaustive(),
+            ParserView::Enum(_) => f.debug_struct("Enum").finish_non_exhaustive(),
+        }
+    }
 }

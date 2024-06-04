@@ -5,23 +5,24 @@ use serde_json::Value;
 
 use crate::de::context::DeserializeContext;
 use crate::parse::{AnyParser, ParseHint, ParserView, SeqParser};
-use crate::parse::json::{JsonParser, SingletonContext};
+use crate::parse::json::{JsonParser};
 use crate::parse::json::value::parse_json;
 use crate::parse::simple::SimpleAnyParser;
+use crate::{Primitive, PrimitiveType};
 
 #[test]
 fn test() -> anyhow::Result<()> {
     let input = b"[1,23]";
     let mut p = JsonParser::new(input);
-    let p = SimpleAnyParser::new(&mut p, SingletonContext::default());
+    let p = SimpleAnyParser::new(&mut p, crate::parse::json::AnyParser::default());
     match p.parse(ParseHint::Any)? {
         ParserView::Seq(mut p) => {
-            match p.parse_next()?.unwrap().parse(ParseHint::U64)? {
-                ParserView::U64(x) => assert_eq!(x, 1),
+            match p.parse_next()?.unwrap().parse(ParseHint::Primitive(PrimitiveType::U64))? {
+                ParserView::Primitive(Primitive::U64(x)) => assert_eq!(x, 1),
                 _ => todo!(),
             }
-            match p.parse_next()?.unwrap().parse(ParseHint::U64)? {
-                ParserView::U64(x) => assert_eq!(x, 23),
+            match p.parse_next()?.unwrap().parse(ParseHint::Primitive(PrimitiveType::U64))? {
+                ParserView::Primitive(Primitive::U64(x)) => assert_eq!(x, 23),
                 _ => todo!(),
             }
         }

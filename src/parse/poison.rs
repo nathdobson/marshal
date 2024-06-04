@@ -2,7 +2,10 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
-use crate::parse::{AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser, ParserView, ParseVariantHint, SeqParser, SomeParser};
+use crate::parse::{
+    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, ParseVariantHint,
+    Parser, ParserView, SeqParser, SomeParser,
+};
 
 pub struct PoisonParser<T>(PhantomData<T>);
 
@@ -130,16 +133,11 @@ fn annotate_view<'p, 'de, T: Parser<'de>>(
     view: ParserView<'p, 'de, T>,
 ) -> ParserView<'p, 'de, PoisonParser<T>> {
     match view {
-        ParserView::Bool(x) => ParserView::Bool(x),
-        ParserView::I64(x) => ParserView::I64(x),
-        ParserView::U64(x) => ParserView::U64(x),
-        ParserView::F64(x) => ParserView::F64(x),
-        ParserView::Char(x) => ParserView::Char(x),
+        ParserView::Primitive(x) => ParserView::Primitive(x),
         ParserView::String(x) => ParserView::String(x),
         ParserView::Bytes(x) => ParserView::Bytes(x),
         ParserView::None => ParserView::None,
         ParserView::Some(x) => ParserView::Some(PoisonSomeParser::new(state, x)),
-        ParserView::Unit => ParserView::Unit,
         ParserView::Newtype(x) => ParserView::Newtype(PoisonNewtypeParser::new(state, x)),
         ParserView::Seq(x) => ParserView::Seq(PoisonSeqParser::new(state, x)),
         ParserView::Map(x) => ParserView::Map(PoisonMapParser::new(state, x)),

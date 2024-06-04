@@ -3,14 +3,17 @@ use serde_json::{Number, Value};
 use crate::de::context::DeserializeContext;
 use crate::de::Deserialize;
 use crate::parse::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
+use crate::Primitive;
 
 impl<'de, P: Parser<'de>> Deserialize<'de, P> for Value {
     fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &DeserializeContext) -> anyhow::Result<Self> {
         match p.parse(ParseHint::Any)? {
-            ParserView::Bool(x) => Ok(Value::Bool(x)),
-            ParserView::F64(x) => Ok(Value::Number(Number::from_f64(x).unwrap())),
+            ParserView::Primitive(Primitive::Bool(x)) => Ok(Value::Bool(x)),
+            ParserView::Primitive(Primitive::F64(x)) => {
+                Ok(Value::Number(Number::from_f64(x).unwrap()))
+            }
+            ParserView::Primitive(Primitive::Unit) => Ok(Value::Null),
             ParserView::String(x) => Ok(Value::String(x)),
-            ParserView::Unit => Ok(Value::Null),
             ParserView::Seq(mut p) => {
                 let mut vec = vec![];
                 while let Some(next) = p.parse_next()? {
@@ -25,12 +28,13 @@ impl<'de, P: Parser<'de>> Deserialize<'de, P> for Value {
                         ParserView::String(key) => key,
                         _ => unreachable!(),
                     };
-                    let value = <Value as Deserialize<'de, P>>::deserialize(entry.parse_value()?, ctx)?;
+                    let value =
+                        <Value as Deserialize<'de, P>>::deserialize(entry.parse_value()?, ctx)?;
                     map.insert(key, value);
                 }
                 Ok(Value::Object(map))
             }
-            _ => todo!(),
+            x => todo!("{:?}", x),
         }
     }
 }
