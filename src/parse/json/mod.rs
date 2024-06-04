@@ -1,8 +1,8 @@
 use itertools::Itertools;
 
-use crate::{ParseHint, ParseVariantHint};
 use crate::parse::json::any::PeekType;
 use crate::parse::json::error::JsonError;
+use crate::parse::{ParseHint, ParseVariantHint};
 use crate::parse::simple::{SimpleParser, SimpleParserView};
 
 mod any;

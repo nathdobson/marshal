@@ -4,7 +4,7 @@ use crate::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
 use crate::parse::json::{JsonParser, SingletonContext};
 use crate::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
 use crate::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
-use crate::Parser;
+use crate::parse::Parser;
 
 type JsonFullParser<'de> = PoisonParser<DepthBudgetParser<SimpleParserAdapter<JsonParser<'de>>>>;
 

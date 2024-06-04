@@ -1,9 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{
-    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser,
-    ParserView, ParseVariantHint, SeqParser, SomeParser,
-};
+use crate::parse::{AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser, ParserView, ParseVariantHint, SeqParser, SomeParser};
 
 pub struct SimpleParserAdapter<T> {
     inner: PhantomData<T>,

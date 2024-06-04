@@ -2,10 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
-use crate::{
-    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser,
-    ParserView, ParseVariantHint, SeqParser, SomeParser,
-};
+use crate::parse::{AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser, ParserView, ParseVariantHint, SeqParser, SomeParser};
 
 pub struct PoisonParser<T>(PhantomData<T>);
 

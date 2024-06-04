@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 use crate::de::context::DeserializeContext;
-use crate::Parser;
+use crate::parse::Parser;
 
 mod tuple;
 mod json;
