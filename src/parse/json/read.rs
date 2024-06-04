@@ -1,7 +1,7 @@
 use crate::parse::json::error::JsonError;
-use crate::parse::json::JsonParser;
+use crate::parse::json::SimpleJsonParser;
 
-impl<'de> JsonParser<'de> {
+impl<'de> SimpleJsonParser<'de> {
     pub fn try_peek_char(&self) -> anyhow::Result<Option<u8>> {
         Ok(self.cursor.get(0).cloned())
     }

@@ -5,15 +5,15 @@ use serde_json::Value;
 
 use crate::de::context::DeserializeContext;
 use crate::parse::{AnyParser, ParseHint, ParserView, SeqParser};
-use crate::parse::json::{JsonParser};
-use crate::parse::json::value::parse_json;
+use crate::parse::json::{SimpleJsonParser};
+use crate::parse::json::full::parse_json;
 use crate::parse::simple::SimpleAnyParser;
 use crate::{Primitive, PrimitiveType};
 
 #[test]
 fn test() -> anyhow::Result<()> {
     let input = b"[1,23]";
-    let mut p = JsonParser::new(input);
+    let mut p = SimpleJsonParser::new(input);
     let p = SimpleAnyParser::new(&mut p, crate::parse::json::AnyParser::default());
     match p.parse(ParseHint::Any)? {
         ParserView::Seq(mut p) => {

@@ -12,9 +12,9 @@ mod number;
 mod read;
 mod string;
 mod test;
-mod value;
+mod full;
 
-pub struct JsonParser<'de> {
+pub struct SimpleJsonParser<'de> {
     cursor: &'de [u8],
 }
 
@@ -39,7 +39,7 @@ pub struct JsonMapParser {
     started: bool,
 }
 
-impl<'de> SimpleParser<'de> for JsonParser<'de> {
+impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
     type AnyParser = AnyParser;
     type SeqParser = JsonSeqParser;
     type MapParser = JsonMapParser;
@@ -313,8 +313,8 @@ impl<'de> SimpleParser<'de> for JsonParser<'de> {
     }
 }
 
-impl<'de> JsonParser<'de> {
+impl<'de> SimpleJsonParser<'de> {
     pub fn new(input: &'de [u8]) -> Self {
-        JsonParser { cursor: input }
+        SimpleJsonParser { cursor: input }
     }
 }
