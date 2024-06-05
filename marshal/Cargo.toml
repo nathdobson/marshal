@@ -8,4 +8,3 @@ itertools = {workspace=true}
 anyhow = {workspace=true}
 type-map = {workspace=true}
 base64 = {workspace=true}
-serde_json = {workspace=true}

@@ -5,7 +5,6 @@ use crate::de::context::DeserializeContext;
 use crate::parse::Parser;
 
 mod tuple;
-mod json;
 pub mod context;
 
 pub trait Deserialize<'de, P: Parser<'de>>: Sized {
