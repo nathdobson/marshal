@@ -1,5 +1,6 @@
 mod tuple;
 mod vec;
+mod map;
 
 use crate::context::Context;
 use crate::write::Writer;
