@@ -7,12 +7,13 @@ use crate::context::Context;
 impl<'de, P: Parser<'de>, K: Hash + Eq + Deserialize<'de, P>, V: Deserialize<'de, P>>
     Deserialize<'de, P> for HashMap<K, V>
 {
-    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &mut Context) -> anyhow::Result<Self> {
         p.parse(ParseHint::Map)?
             .try_into_map()?
             .map_into_iter(
-                |k| K::deserialize(k, ctx),
-                |k, v| Ok((k, V::deserialize(v, ctx)?)),
+                ctx,
+                |ctx, k| K::deserialize(k, ctx),
+                |ctx, k, v| Ok((k, V::deserialize(v, ctx)?)),
             )
             .collect()
     }

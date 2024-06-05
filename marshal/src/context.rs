@@ -1,8 +1,8 @@
+use std::any::type_name;
 use std::{
     any::Any,
     fmt::{Display, Formatter},
 };
-use std::any::type_name;
 
 use type_map::TypeMap;
 
@@ -23,6 +23,9 @@ impl Context {
         self.map
             .get::<T>()
             .ok_or_else(|| GetError(type_name::<T>()))
+    }
+    pub fn get_or_default<T: Any + Default>(&mut self) -> &mut T {
+        self.map.entry::<T>().or_insert_with(T::default)
     }
 }
 

@@ -119,17 +119,20 @@ pub trait MapParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
         None
     }
     fn map_into_iter<
+        C,
         K,
-        KF: for<'p2> FnMut(P::AnyParser<'p2>) -> anyhow::Result<K>,
+        KF: for<'p2> FnMut(&mut C, P::AnyParser<'p2>) -> anyhow::Result<K>,
         V,
-        VF: for<'p2> FnMut(K, P::AnyParser<'p2>) -> anyhow::Result<V>,
+        VF: for<'p2> FnMut(&mut C, K, P::AnyParser<'p2>) -> anyhow::Result<V>,
     >(
         self,
+        ctx: C,
         key: KF,
         value: VF,
-    ) -> MapIter<'p, 'de, Self, P, KF, VF> {
+    ) -> MapIter<'p, 'de, Self, P, C, KF, VF> {
         MapIter {
             map: self,
+            ctx,
             key,
             value,
             phantom: PhantomData,
@@ -137,8 +140,9 @@ pub trait MapParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
     }
 }
 
-pub struct MapIter<'p, 'de, M: MapParser<'p, 'de, P>, P: Parser<'de> + 'p, KF, VF> {
+pub struct MapIter<'p, 'de, M: MapParser<'p, 'de, P>, P: Parser<'de> + 'p, C, KF, VF> {
     map: M,
+    ctx: C,
     key: KF,
     value: VF,
     phantom: PhantomData<(&'p P, &'de ())>,
@@ -149,11 +153,12 @@ impl<
         'de,
         M: MapParser<'p, 'de, P>,
         P: Parser<'de>,
+        C,
         K,
         V,
-        KF: for<'p2> FnMut(P::AnyParser<'p2>) -> anyhow::Result<K>,
-        VF: for<'p2> FnMut(K, P::AnyParser<'p2>) -> anyhow::Result<V>,
-    > Iterator for MapIter<'p, 'de, M, P, KF, VF>
+        KF: for<'p2> FnMut(&mut C, P::AnyParser<'p2>) -> anyhow::Result<K>,
+        VF: for<'p2> FnMut(&mut C, K, P::AnyParser<'p2>) -> anyhow::Result<V>,
+    > Iterator for MapIter<'p, 'de, M, P, C, KF, VF>
 {
     type Item = anyhow::Result<V>;
 
@@ -162,8 +167,8 @@ impl<
             match self.map.parse_next()? {
                 None => None,
                 Some(mut p) => {
-                    let key = (self.key)(p.parse_key()?)?;
-                    let value = (self.value)(key, p.parse_value()?)?;
+                    let key = (self.key)(&mut self.ctx, p.parse_key()?)?;
+                    let value = (self.value)(&mut self.ctx, key, p.parse_value()?)?;
                     p.parse_end()?;
                     Some(value)
                 }

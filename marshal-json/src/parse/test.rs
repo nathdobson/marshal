@@ -50,7 +50,7 @@ fn test_parsing() {
         } else {
             println!("<err>");
         }
-        let output = parse_json::<JsonValue>(&contents, &Context::new());
+        let output = parse_json::<JsonValue>(&contents, &mut Context::new());
         match expected {
             'i' => {}
             'n' => {

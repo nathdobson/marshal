@@ -10,7 +10,7 @@ mod hash_map;
 mod string;
 
 pub trait Deserialize<'de, P: Parser<'de>>: Sized {
-    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &Context) -> anyhow::Result<Self>;
+    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &mut Context) -> anyhow::Result<Self>;
 }
 
 #[derive(Debug)]

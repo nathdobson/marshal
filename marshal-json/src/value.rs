@@ -14,7 +14,7 @@ pub enum JsonValue {
 }
 
 impl<'de, P: Parser<'de>> Deserialize<'de, P> for JsonValue {
-    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &mut Context) -> anyhow::Result<Self> {
         match p.parse(ParseHint::Any)? {
             ParserView::Primitive(Primitive::Bool(x)) => Ok(JsonValue::Bool(x)),
             ParserView::Primitive(Primitive::F64(x)) => Ok(JsonValue::Number(x)),

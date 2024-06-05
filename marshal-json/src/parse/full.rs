@@ -37,7 +37,7 @@ impl<'de> JsonParserBuilder<'de> {
     }
     pub fn parse<T: Deserialize<'de, JsonParser<'de>>>(
         mut self,
-        ctx: &Context,
+        ctx: &mut Context,
     ) -> anyhow::Result<T> {
         let result = T::deserialize(self.build(), ctx)?;
         self.end()?;
@@ -52,7 +52,7 @@ impl<'de> JsonParserBuilder<'de> {
 
 pub fn parse_json<'de, T: Deserialize<'de, JsonParser<'de>>>(
     data: &'de [u8],
-    ctx: &Context,
+    ctx: &mut Context,
 ) -> anyhow::Result<T> {
     JsonParserBuilder::new(data).parse(ctx)
 }
