@@ -247,6 +247,12 @@ impl<'p, 'de, P: Parser<'de>> ParserView<'p, 'de, P> {
             unexpected => unexpected.mismatch("map")?,
         }
     }
+    pub fn try_into_string(self) -> anyhow::Result<String> {
+        match self{
+            ParserView::String(x) => Ok(x),
+            unexpected => unexpected.mismatch("string")?,
+        }
+    }
     pub fn mismatch(&self, expected: &'static str) -> anyhow::Result<!> {
         Err(TypeMismatch {
             found: match self {

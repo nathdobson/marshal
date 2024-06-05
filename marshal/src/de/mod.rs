@@ -8,6 +8,7 @@ pub mod context;
 mod tuple;
 mod vec;
 mod hash_map;
+mod string;
 
 pub trait Deserialize<'de, P: Parser<'de>>: Sized {
     fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &DeserializeContext) -> anyhow::Result<Self>;
