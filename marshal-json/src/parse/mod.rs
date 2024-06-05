@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use itertools::Itertools;
 use marshal::parse::{ParseHint, ParseVariantHint};
 use marshal::parse::simple::{SimpleParser, SimpleParserView};
@@ -142,7 +143,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 | ParseHint::Enum { .. },
                 PeekType::String,
             ) => {
-                Ok(SimpleParserView::String(self.read_string()?))
+                Ok(SimpleParserView::String(Cow::Owned(self.read_string()?)))
             }
             (_, PeekType::Seq) => {
                 self.read_exact(b'[')?;

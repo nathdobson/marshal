@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::marker::PhantomData;
 
 use crate::parse::{
@@ -12,7 +13,7 @@ pub struct SimpleParserAdapter<T> {
 
 pub enum SimpleParserView<'de, P: ?Sized + SimpleParser<'de>> {
     Primitive(Primitive),
-    String(String),
+    String(Cow<'de, str>),
     Bytes(Vec<u8>),
     None,
     Some(P::SomeParser),

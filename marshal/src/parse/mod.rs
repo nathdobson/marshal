@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 
@@ -49,7 +50,7 @@ where
     P: 'p,
 {
     Primitive(Primitive),
-    String(String),
+    String(Cow<'de, str>),
     Bytes(Vec<u8>),
     None,
     Some(P::SomeParser<'p>),
@@ -247,8 +248,8 @@ impl<'p, 'de, P: Parser<'de>> ParserView<'p, 'de, P> {
             unexpected => unexpected.mismatch("map")?,
         }
     }
-    pub fn try_into_string(self) -> anyhow::Result<String> {
-        match self{
+    pub fn try_into_string(self) -> anyhow::Result<Cow<'de, str>> {
+        match self {
             ParserView::String(x) => Ok(x),
             unexpected => unexpected.mismatch("string")?,
         }
