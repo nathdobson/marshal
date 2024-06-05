@@ -28,7 +28,6 @@ pub enum Primitive {
     F64(f64),
     Char(char),
 }
-
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub enum PrimitiveType {
     Unit,
