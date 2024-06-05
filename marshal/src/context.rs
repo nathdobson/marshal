@@ -6,13 +6,13 @@ use std::any::type_name;
 
 use type_map::TypeMap;
 
-pub struct DeserializeContext {
+pub struct Context {
     map: TypeMap,
 }
 
-impl DeserializeContext {
+impl Context {
     pub fn new() -> Self {
-        DeserializeContext {
+        Context {
             map: TypeMap::new(),
         }
     }

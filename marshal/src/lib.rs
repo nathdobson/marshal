@@ -9,6 +9,8 @@
 pub mod de;
 pub mod parse;
 pub mod write;
+mod ser;
+pub mod context;
 
 #[derive(Debug)]
 pub enum Primitive {

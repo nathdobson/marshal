@@ -1,5 +1,5 @@
+use marshal::context::Context;
 use crate::parse::{JsonAnyParser, SimpleJsonParser};
-use marshal::de::context::DeserializeContext;
 use marshal::de::Deserialize;
 use marshal::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
 use marshal::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
@@ -37,7 +37,7 @@ impl<'de> JsonParserBuilder<'de> {
     }
     pub fn parse<T: Deserialize<'de, JsonParser<'de>>>(
         mut self,
-        ctx: &DeserializeContext,
+        ctx: &Context,
     ) -> anyhow::Result<T> {
         let result = T::deserialize(self.build(), ctx)?;
         self.end()?;
@@ -52,7 +52,7 @@ impl<'de> JsonParserBuilder<'de> {
 
 pub fn parse_json<'de, T: Deserialize<'de, JsonParser<'de>>>(
     data: &'de [u8],
-    ctx: &DeserializeContext,
+    ctx: &Context,
 ) -> anyhow::Result<T> {
     JsonParserBuilder::new(data).parse(ctx)
 }

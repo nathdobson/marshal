@@ -1,8 +1,8 @@
-use marshal::de::context::DeserializeContext;
 use marshal::de::Deserialize;
 use marshal::parse::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
 use marshal::Primitive;
 use std::collections::HashMap;
+use marshal::context::Context;
 
 pub enum JsonValue {
     Null,
@@ -14,7 +14,7 @@ pub enum JsonValue {
 }
 
 impl<'de, P: Parser<'de>> Deserialize<'de, P> for JsonValue {
-    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &DeserializeContext) -> anyhow::Result<Self> {
+    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &Context) -> anyhow::Result<Self> {
         match p.parse(ParseHint::Any)? {
             ParserView::Primitive(Primitive::Bool(x)) => Ok(JsonValue::Bool(x)),
             ParserView::Primitive(Primitive::F64(x)) => Ok(JsonValue::Number(x)),

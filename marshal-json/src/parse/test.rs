@@ -1,10 +1,10 @@
 use std::fs;
 use std::fs::read_dir;
 
-use marshal::de::context::DeserializeContext;
 use marshal::parse::{AnyParser, ParseHint, ParserView, SeqParser};
 use marshal::parse::simple::SimpleAnyParser;
 use marshal::{Primitive, PrimitiveType};
+use marshal::context::Context;
 use crate::parse::full::parse_json;
 use crate::parse::{JsonAnyParser, SimpleJsonParser};
 use crate::value::JsonValue;
@@ -50,7 +50,7 @@ fn test_parsing() {
         } else {
             println!("<err>");
         }
-        let output = parse_json::<JsonValue>(&contents, &DeserializeContext::new());
+        let output = parse_json::<JsonValue>(&contents, &Context::new());
         match expected {
             'i' => {}
             'n' => {

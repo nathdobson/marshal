@@ -1,17 +1,16 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use crate::context::Context;
 
-use crate::de::context::DeserializeContext;
 use crate::parse::Parser;
 
-pub mod context;
 mod tuple;
 mod vec;
 mod hash_map;
 mod string;
 
 pub trait Deserialize<'de, P: Parser<'de>>: Sized {
-    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &DeserializeContext) -> anyhow::Result<Self>;
+    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &Context) -> anyhow::Result<Self>;
 }
 
 #[derive(Debug)]
