@@ -1,5 +1,5 @@
-use crate::read::error::JsonError;
-use crate::read::SimpleJsonParser;
+use crate::parse::error::JsonError;
+use crate::parse::SimpleJsonParser;
 
 #[derive(Eq, Ord, PartialEq, PartialOrd, Copy, Clone, Debug, Hash)]
 pub enum PeekType {

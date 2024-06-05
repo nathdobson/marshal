@@ -2,8 +2,8 @@ use itertools::Itertools;
 use marshal::parse::{ParseHint, ParseVariantHint};
 use marshal::parse::simple::{SimpleParser, SimpleParserView};
 use marshal::{Primitive, PrimitiveType};
-use crate::read::any::PeekType;
-use crate::read::error::JsonError;
+use crate::parse::any::PeekType;
+use crate::parse::error::JsonError;
 
 mod any;
 mod error;

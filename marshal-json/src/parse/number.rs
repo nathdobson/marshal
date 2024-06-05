@@ -1,6 +1,6 @@
 use std::str::FromStr;
-use crate::read::error::JsonError;
-use crate::read::SimpleJsonParser;
+use crate::parse::error::JsonError;
+use crate::parse::SimpleJsonParser;
 
 
 struct SliceParser<'p, 'de> {

@@ -7,8 +7,8 @@ use marshal::de::context::DeserializeContext;
 use marshal::parse::{AnyParser, ParseHint, ParserView, SeqParser};
 use marshal::parse::simple::SimpleAnyParser;
 use marshal::{Primitive, PrimitiveType};
-use crate::read::full::parse_json;
-use crate::read::{JsonAnyParser, SimpleJsonParser};
+use crate::parse::full::parse_json;
+use crate::parse::{JsonAnyParser, SimpleJsonParser};
 
 #[test]
 fn test() -> anyhow::Result<()> {

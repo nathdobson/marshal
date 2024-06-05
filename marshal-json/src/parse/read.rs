@@ -1,5 +1,5 @@
-use crate::read::error::JsonError;
-use crate::read::SimpleJsonParser;
+use crate::parse::error::JsonError;
+use crate::parse::SimpleJsonParser;
 
 impl<'de> SimpleJsonParser<'de> {
     pub fn try_peek_char(&self) -> anyhow::Result<Option<u8>> {

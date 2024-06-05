@@ -4,7 +4,7 @@
 #![allow(unused_mut)]
 #![allow(dead_code)]
 
-mod read;
+mod parse;
 mod write;
 
 pub fn add(left: usize, right: usize) -> usize {

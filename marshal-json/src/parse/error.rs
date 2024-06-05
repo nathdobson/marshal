@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
 use marshal::parse::ParseHint;
-use crate::read::any::PeekType;
+use crate::parse::any::PeekType;
 
 #[derive(Debug)]
 pub enum JsonError {

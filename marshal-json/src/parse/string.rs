@@ -1,6 +1,6 @@
 use std::char::decode_utf16;
-use crate::read::error::JsonError;
-use crate::read::SimpleJsonParser;
+use crate::parse::error::JsonError;
+use crate::parse::SimpleJsonParser;
 
 
 impl<'de> SimpleJsonParser<'de> {
