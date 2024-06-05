@@ -7,12 +7,10 @@ use std::marker::PhantomData;
 
 pub trait SimpleWriter {
     type AnyWriter;
-    type SomeWriter;
     type SomeCloser;
     type TupleWriter;
     type SeqWriter;
     type MapWriter;
-    type KeyWriter;
     type ValueWriter;
     type EntryCloser;
     type TupleStructWriter;
@@ -23,7 +21,10 @@ pub trait SimpleWriter {
     fn write_str(&mut self, any: Self::AnyWriter, s: &str) -> anyhow::Result<()>;
     fn write_bytes(&mut self, any: Self::AnyWriter, s: &[u8]) -> anyhow::Result<()>;
     fn write_none(&mut self, any: Self::AnyWriter) -> anyhow::Result<()>;
-    fn write_some(&mut self, any: Self::AnyWriter) -> anyhow::Result<Self::SomeWriter>;
+    fn write_some(
+        &mut self,
+        any: Self::AnyWriter,
+    ) -> anyhow::Result<(Self::AnyWriter, Self::SomeCloser)>;
     fn write_unit_struct(&mut self, any: Self::AnyWriter, name: &'static str)
         -> anyhow::Result<()>;
     fn write_tuple_struct(
@@ -77,10 +78,6 @@ pub trait SimpleWriter {
         len: Option<usize>,
     ) -> anyhow::Result<Self::MapWriter>;
 
-    fn some_write_some(
-        &mut self,
-        some: Self::SomeWriter,
-    ) -> anyhow::Result<(Self::AnyWriter, Self::SomeCloser)>;
     fn some_end(&mut self, some: Self::SomeCloser) -> anyhow::Result<()>;
 
     fn tuple_write_element(
@@ -89,17 +86,16 @@ pub trait SimpleWriter {
     ) -> anyhow::Result<Self::AnyWriter>;
     fn tuple_end(&mut self, tuple: Self::TupleWriter) -> anyhow::Result<()>;
 
-    fn seq_write_element(&mut self, tuple: &mut Self::SeqWriter)
+    fn seq_write_element(&mut self, seq: &mut Self::SeqWriter)
         -> anyhow::Result<Self::AnyWriter>;
     fn seq_end(&mut self, tuple: Self::SeqWriter) -> anyhow::Result<()>;
 
-    fn map_write_element(&mut self, map: &mut Self::MapWriter) -> anyhow::Result<Self::KeyWriter>;
+    fn map_write_element(
+        &mut self,
+        map: &mut Self::MapWriter,
+    ) -> anyhow::Result<(Self::AnyWriter, Self::ValueWriter)>;
     fn map_end(&mut self, map: Self::MapWriter) -> anyhow::Result<()>;
 
-    fn entry_write_key(
-        &mut self,
-        key: Self::KeyWriter,
-    ) -> anyhow::Result<(Self::AnyWriter, Self::ValueWriter)>;
     fn entry_write_value(
         &mut self,
         value: Self::ValueWriter,
@@ -140,6 +136,12 @@ pub struct SimpleAnyWriter<'w, T: SimpleWriter> {
     inner: T::AnyWriter,
 }
 
+impl<'w, T: SimpleWriter> SimpleAnyWriter<'w, T> {
+    pub fn new(writer: &'w mut T, inner: T::AnyWriter) -> Self {
+        SimpleAnyWriter { writer, inner }
+    }
+}
+
 impl<'w, T: SimpleWriter> AnyWriter<'w, SimpleWriterAdapter<T>> for SimpleAnyWriter<'w, T> {
     fn write_prim(mut self, prim: Primitive) -> anyhow::Result<()> {
         self.writer.write_prim(self.inner, prim)
@@ -158,11 +160,11 @@ impl<'w, T: SimpleWriter> AnyWriter<'w, SimpleWriterAdapter<T>> for SimpleAnyWri
     }
 
     fn write_some(mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::SomeWriter<'w>> {
-        let inner = self.writer.write_some(self.inner)?;
+        let (any, closer) = self.writer.write_some(self.inner)?;
         Ok(SimpleSomeWriter {
             writer: self.writer,
-            some_writer: Some(inner),
-            some_closer: None,
+            some_writer: Some(any),
+            some_closer: Some(closer),
         })
     }
 
@@ -272,19 +274,15 @@ impl<'w, T: SimpleWriter> AnyWriter<'w, SimpleWriterAdapter<T>> for SimpleAnyWri
 
 pub struct SimpleSomeWriter<'w, T: SimpleWriter> {
     writer: &'w mut T,
-    some_writer: Option<T::SomeWriter>,
+    some_writer: Option<T::AnyWriter>,
     some_closer: Option<T::SomeCloser>,
 }
 
 impl<'w, T: SimpleWriter> SomeWriter<'w, SimpleWriterAdapter<T>> for SimpleSomeWriter<'w, T> {
     fn write_some(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        let (any, closer) = self
-            .writer
-            .some_write_some(self.some_writer.take().unwrap())?;
-        self.some_closer = Some(closer);
         Ok(SimpleAnyWriter {
-            writer: &mut *self.writer,
-            inner: any,
+            writer: self.writer,
+            inner: self.some_writer.take().unwrap(),
         })
     }
 
@@ -344,11 +342,11 @@ impl<'w, T: SimpleWriter> MapWriter<'w, SimpleWriterAdapter<T>> for SimpleMapWri
     fn write_entry(
         &mut self,
     ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::EntryWriter<'_>> {
-        let inner = self.writer.map_write_element(&mut self.inner)?;
+        let (key, value) = self.writer.map_write_element(&mut self.inner)?;
         Ok(SimpleEntryWriter {
             writer: self.writer,
-            key: Some(inner),
-            value: None,
+            key: Some(key),
+            value: Some(value),
             closer: None,
         })
     }
@@ -360,18 +358,16 @@ impl<'w, T: SimpleWriter> MapWriter<'w, SimpleWriterAdapter<T>> for SimpleMapWri
 
 pub struct SimpleEntryWriter<'w, T: SimpleWriter> {
     writer: &'w mut T,
-    key: Option<T::KeyWriter>,
+    key: Option<T::AnyWriter>,
     value: Option<T::ValueWriter>,
     closer: Option<T::EntryCloser>,
 }
 
 impl<'w, T: SimpleWriter> EntryWriter<'w, SimpleWriterAdapter<T>> for SimpleEntryWriter<'w, T> {
     fn write_key(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        let (any, value) = self.writer.entry_write_key(self.key.take().unwrap())?;
-        self.value = Some(value);
         Ok(SimpleAnyWriter {
             writer: self.writer,
-            inner: any,
+            inner: self.key.take().unwrap(),
         })
     }
 

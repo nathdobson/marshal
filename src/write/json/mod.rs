@@ -1,5 +1,6 @@
 mod test;
 
+use crate::write::simple::{SimpleAnyWriter, SimpleWriter};
 use crate::write::{
     AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
     TupleStructWriter, TupleVariantWriter, TupleWriter, Writer,
@@ -28,19 +29,6 @@ impl Display for JsonWriterError {
 
 impl Error for JsonWriterError {}
 
-impl Writer for JsonWriter {
-    type AnyWriter<'w> = JsonAnyWriter<'w> where Self: 'w;
-    type SomeWriter<'w> = JsonSomeWriter<'w> where Self: 'w;
-    type TupleWriter<'w> = JsonTupleWriter<'w> where Self: 'w;
-    type SeqWriter<'w> = JsonSeqWriter<'w> where Self: 'w;
-    type MapWriter<'w> = JsonMapWriter<'w> where Self: 'w;
-    type EntryWriter<'w> = JsonEntryWriter<'w> where Self: 'w;
-    type TupleStructWriter<'w> = JsonTupleStructWriter<'w> where Self: 'w;
-    type StructWriter<'w> = JsonStructWriter<'w>where Self: 'w;
-    type TupleVariantWriter<'w> =JsonTupleVariantWriter<'w>where Self: 'w;
-    type StructVariantWriter<'w> =JsonStructVariantWriter<'w>where Self: 'w;
-}
-
 impl JsonWriter {
     pub fn new() -> Self {
         JsonWriter {
@@ -48,15 +36,15 @@ impl JsonWriter {
             current_indentation: Some(0),
         }
     }
-    pub fn start(&mut self) -> JsonAnyWriter<'_> {
-        JsonAnyWriter {
-            ctx: WriteContext {
-                writer: self,
-                indentation: 0,
+    pub fn start(&mut self) -> SimpleAnyWriter<JsonWriter> {
+        SimpleAnyWriter::new(
+            self,
+            JsonAnyWriter {
+                ctx: WriteContext { indentation: 0 },
+                must_be_string: false,
+                cannot_be_null: false,
             },
-            must_be_string: false,
-            cannot_be_null: false,
-        }
+        )
     }
     fn set_indentation(&mut self, indentation: usize) -> anyhow::Result<()> {
         if let Some(current) = self.current_indentation {
@@ -76,391 +64,405 @@ impl JsonWriter {
     pub fn end(self) -> anyhow::Result<String> {
         Ok(String::from_utf8(self.output)?)
     }
-}
 
-struct WriteContext<'w> {
-    writer: &'w mut JsonWriter,
-    indentation: usize,
-}
-
-impl<'w> WriteContext<'w> {
-    pub fn write(&mut self, x: fmt::Arguments) -> anyhow::Result<()> {
-        self.writer.set_indentation(self.indentation)?;
-        write!(&mut self.writer.output, "{}", x)?;
+    fn write(&mut self, ctx: WriteContext, value: impl Display) -> anyhow::Result<()> {
+        self.set_indentation(ctx.indentation)?;
+        write!(&mut self.output, "{}", value)?;
         Ok(())
     }
-    pub fn writeln(&mut self, x: fmt::Arguments) -> anyhow::Result<()> {
-        self.write(format_args!("{}\n", x))?;
-        self.writer.current_indentation = None;
+    fn writeln(&mut self, ctx: WriteContext, value: impl Display) -> anyhow::Result<()> {
+        self.set_indentation(ctx.indentation)?;
+        write!(&mut self.output, "{}\n", value)?;
+        self.current_indentation = None;
         Ok(())
     }
-    pub fn write_null(&mut self) -> anyhow::Result<()> {
-        self.write(format_args!("null"))
+    pub fn write_null(&mut self, ctx: WriteContext) -> anyhow::Result<()> {
+        self.write(ctx, "null")
     }
-    pub fn indent_mut(&mut self) -> WriteContext<'_> {
-        WriteContext {
-            writer: self.writer,
-            indentation: self.indentation + 1,
-        }
+    pub fn open_map(&mut self, ctx: WriteContext) -> anyhow::Result<()> {
+        self.write(ctx, "{")
     }
-    pub fn indent(self) -> Self {
-        WriteContext {
-            writer: self.writer,
-            indentation: self.indentation + 1,
-        }
+    pub fn close_map(&mut self, ctx: WriteContext) -> anyhow::Result<()> {
+        self.write(ctx, "}")
     }
-    pub fn reborrow(&mut self) -> WriteContext<'_> {
-        WriteContext {
-            writer: self.writer,
-            indentation: self.indentation,
-        }
+    pub fn open_list(&mut self, ctx: WriteContext) -> anyhow::Result<()> {
+        self.write(ctx, "[")
     }
-    pub fn open(&mut self, x: fmt::Arguments) -> anyhow::Result<()> {
-        self.write(x)?;
-        Ok(())
+    pub fn close_list(&mut self, ctx: WriteContext) -> anyhow::Result<()> {
+        self.write(ctx, "]")
     }
-    pub fn close(&mut self, x: fmt::Arguments) -> anyhow::Result<()> {
-        self.write(x)
-    }
-    pub fn open_map(&mut self) -> anyhow::Result<()> {
-        self.open(format_args!("{{"))
-    }
-    pub fn close_map(&mut self) -> anyhow::Result<()> {
-        self.close(format_args!("}}"))
-    }
-    pub fn write_str_literal(&mut self, s: &str) -> anyhow::Result<()> {
-        self.write(format_args!("\""))?;
+    pub fn write_str_literal(&mut self, ctx: WriteContext, s: &str) -> anyhow::Result<()> {
+        self.write(ctx, "\"")?;
         for c in s.chars() {
             match c {
-                '\\' => write!(&mut self.writer.output, "\\\\")?,
-                '"' => write!(&mut self.writer.output, "\\\"")?,
-                '\u{0008}' => write!(&mut self.writer.output, "\\b")?,
-                '\u{000c}' => write!(&mut self.writer.output, "\\f")?,
-                '\n' => write!(&mut self.writer.output, "\\n")?,
-                '\r' => write!(&mut self.writer.output, "\\r")?,
-                '\t' => write!(&mut self.writer.output, "\\t")?,
+                '\\' => write!(&mut self.output, "\\\\")?,
+                '"' => write!(&mut self.output, "\\\"")?,
+                '\u{0008}' => write!(&mut self.output, "\\b")?,
+                '\u{000c}' => write!(&mut self.output, "\\f")?,
+                '\n' => write!(&mut self.output, "\\n")?,
+                '\r' => write!(&mut self.output, "\\r")?,
+                '\t' => write!(&mut self.output, "\\t")?,
                 ..='\u{001f}' => {
-                    write!(&mut self.writer.output, "\\u{:0>4x}", c as u32)?;
+                    write!(&mut self.output, "\\u{:0>4x}", c as u32)?;
                 }
-                _ => write!(&mut self.writer.output, "{}", c)?,
+                _ => write!(&mut self.output, "{}", c)?,
             }
         }
-        self.write(format_args!("\""))?;
+        self.write(ctx, "\"")?;
         Ok(())
     }
-    pub fn write_colon(&mut self) -> anyhow::Result<()> {
-        self.write(format_args!(": "))
+    pub fn write_colon(&mut self, ctx: WriteContext) -> anyhow::Result<()> {
+        self.write(ctx, ": ")
+    }
+    pub fn write_comma(&mut self, ctx: WriteContext) -> anyhow::Result<()> {
+        self.writeln(ctx, ",")
     }
 }
 
-pub struct JsonAnyWriter<'w> {
-    ctx: WriteContext<'w>,
-    must_be_string: bool,
-    cannot_be_null: bool,
-}
+impl SimpleWriter for JsonWriter {
+    type AnyWriter = JsonAnyWriter;
+    type SomeCloser = JsonSomeCloser;
+    type TupleWriter = JsonTupleWriter;
+    type SeqWriter = JsonSeqWriter;
+    type MapWriter = JsonMapWriter;
+    type ValueWriter = JsonValueWriter;
+    type EntryCloser = JsonEntryCloser;
+    type TupleStructWriter = JsonTupleStructWriter;
+    type StructWriter = JsonStructWriter;
+    type TupleVariantWriter = JsonTupleVariantWriter;
+    type StructVariantWriter = JsonStructVariantWriter;
 
-impl<'w> AnyWriter<'w, JsonWriter> for JsonAnyWriter<'w> {
-    fn write_prim(mut self, prim: Primitive) -> anyhow::Result<()> {
+    fn write_prim(&mut self, any: Self::AnyWriter, prim: Primitive) -> anyhow::Result<()> {
         match prim {
-            Primitive::Unit => self.ctx.write_null(),
-            Primitive::Bool(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::I8(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::I16(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::I32(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::I64(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::I128(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::U8(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::U16(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::U32(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::U64(x) => self.ctx.write(format_args!("{}", x)),
-            Primitive::U128(x) => self.ctx.write(format_args!("{}", x)),
+            Primitive::Unit => self.write_null(any.ctx),
+            Primitive::Bool(x) => self.write(any.ctx, x),
+            Primitive::I8(x) => self.write(any.ctx, x),
+            Primitive::I16(x) => self.write(any.ctx, x),
+            Primitive::I32(x) => self.write(any.ctx, x),
+            Primitive::I64(x) => self.write(any.ctx, x),
+            Primitive::I128(x) => self.write(any.ctx, x),
+            Primitive::U8(x) => self.write(any.ctx, x),
+            Primitive::U16(x) => self.write(any.ctx, x),
+            Primitive::U32(x) => self.write(any.ctx, x),
+            Primitive::U64(x) => self.write(any.ctx, x),
+            Primitive::U128(x) => self.write(any.ctx, x),
             Primitive::F32(x) => {
                 if x.is_finite() {
-                    self.ctx.write(format_args!("{}", x))
+                    self.write(any.ctx, x)
                 } else {
                     return Err(JsonWriterError::BadNumber)?;
                 }
             }
             Primitive::F64(x) => {
                 if x.is_finite() {
-                    self.ctx.write(format_args!("{}", x))
+                    self.write(any.ctx, x)
                 } else {
                     return Err(JsonWriterError::BadNumber)?;
                 }
             }
-            Primitive::Char(x) => self.write_str(x.encode_utf8(&mut [0u8; 4])),
+            Primitive::Char(x) => self.write_str_literal(any.ctx, x.encode_utf8(&mut [0u8; 4])),
         }
     }
 
-    fn write_str(mut self, s: &str) -> anyhow::Result<()> {
-        self.ctx.write_str_literal(s)
+    fn write_str(&mut self, any: Self::AnyWriter, s: &str) -> anyhow::Result<()> {
+        self.write_str_literal(any.ctx, s)
     }
 
-    fn write_bytes(self, _: &[u8]) -> anyhow::Result<()> {
+    fn write_bytes(&mut self, any: Self::AnyWriter, s: &[u8]) -> anyhow::Result<()> {
         todo!()
     }
 
-    fn write_none(mut self) -> anyhow::Result<()> {
-        if self.cannot_be_null {
-            let mut map = self.write_map(Some(1))?;
-            let mut elem = map.write_entry()?;
-            elem.write_key()?.write_str("None")?;
-            elem.write_value()?.write_prim(Primitive::Unit)?;
-            elem.end()?;
-            map.end()?;
-        } else {
-            self.ctx.write_null()?;
-        }
-        Ok(())
+    fn write_none(&mut self, any: Self::AnyWriter) -> anyhow::Result<()> {
+        todo!()
     }
 
-    fn write_some(self) -> anyhow::Result<<JsonWriter as Writer>::SomeWriter<'w>> {
-        Ok(JsonSomeWriter {
-            ctx: self.ctx,
-            must_be_string: self.must_be_string,
-            cannot_be_null: true,
-        })
+    fn write_some(
+        &mut self,
+        any: Self::AnyWriter,
+    ) -> anyhow::Result<(Self::AnyWriter, Self::SomeCloser)> {
+        todo!()
     }
 
-    fn write_unit_struct(mut self, name: &'static str) -> anyhow::Result<()> {
-        self.ctx.write_null()
+    fn write_unit_struct(
+        &mut self,
+        any: Self::AnyWriter,
+        name: &'static str,
+    ) -> anyhow::Result<()> {
+        todo!()
     }
 
     fn write_tuple_struct(
-        self,
+        &mut self,
+        any: Self::AnyWriter,
         name: &'static str,
         len: usize,
-    ) -> anyhow::Result<<JsonWriter as Writer>::TupleStructWriter<'w>> {
-        Ok(JsonTupleStructWriter { ctx: self.ctx })
+    ) -> anyhow::Result<Self::TupleStructWriter> {
+        todo!()
     }
 
     fn write_struct(
-        self,
+        &mut self,
+        any: Self::AnyWriter,
         name: &'static str,
         len: usize,
-    ) -> anyhow::Result<<JsonWriter as Writer>::StructWriter<'w>> {
-        Ok(JsonStructWriter { ctx: self.ctx })
+    ) -> anyhow::Result<Self::StructWriter> {
+        todo!()
     }
 
     fn write_unit_variant(
-        mut self,
+        &mut self,
+        any: Self::AnyWriter,
         name: &'static str,
         variant_index: u32,
         variant: &'static str,
     ) -> anyhow::Result<()> {
-        let mut map = self.write_map(None)?;
-        let mut entry = map.write_entry()?;
-        entry.write_key()?.write_str(variant)?;
-        entry.write_value()?.write_prim(Primitive::Unit)?;
-        entry.end()?;
-        map.end()?;
-        Ok(())
+        todo!()
     }
 
     fn write_tuple_variant(
-        self,
+        &mut self,
+        any: Self::AnyWriter,
         name: &'static str,
         variant_index: u32,
         variant: &'static str,
         len: usize,
-    ) -> anyhow::Result<<JsonWriter as Writer>::TupleVariantWriter<'w>> {
-        Ok(JsonTupleVariantWriter { ctx: self.ctx })
+    ) -> anyhow::Result<Self::TupleVariantWriter> {
+        todo!()
     }
 
     fn write_struct_variant(
-        self,
+        &mut self,
+        any: Self::AnyWriter,
         name: &'static str,
         variant_index: u32,
         variant: &'static str,
         len: usize,
-    ) -> anyhow::Result<<JsonWriter as Writer>::StructVariantWriter<'w>> {
-        Ok(JsonStructVariantWriter { ctx: self.ctx })
+    ) -> anyhow::Result<Self::StructVariantWriter> {
+        todo!()
     }
 
     fn write_seq(
-        self,
+        &mut self,
+        any: Self::AnyWriter,
         len: Option<usize>,
-    ) -> anyhow::Result<<JsonWriter as Writer>::SeqWriter<'w>> {
-        Ok(JsonSeqWriter { ctx: self.ctx })
+    ) -> anyhow::Result<Self::SeqWriter> {
+        self.open_list(any.ctx)?;
+        Ok(JsonSeqWriter {
+            ctx: any.ctx,
+            started: false,
+        })
     }
 
-    fn write_tuple(self, len: usize) -> anyhow::Result<<JsonWriter as Writer>::TupleWriter<'w>> {
-        Ok(JsonTupleWriter { ctx: self.ctx })
+    fn write_tuple(
+        &mut self,
+        any: Self::AnyWriter,
+        len: usize,
+    ) -> anyhow::Result<Self::TupleWriter> {
+        todo!()
     }
 
     fn write_map(
-        mut self,
+        &mut self,
+        any: Self::AnyWriter,
         len: Option<usize>,
-    ) -> anyhow::Result<<JsonWriter as Writer>::MapWriter<'w>> {
-        self.ctx.open_map()?;
+    ) -> anyhow::Result<Self::MapWriter> {
+        self.open_map(any.ctx)?;
         Ok(JsonMapWriter {
-            ctx: self.ctx,
+            ctx: any.ctx,
+            started: false,
         })
     }
-}
 
-pub struct JsonSomeWriter<'w> {
-    ctx: WriteContext<'w>,
-    must_be_string: bool,
-    cannot_be_null: bool,
-}
+    fn some_end(&mut self, some: Self::SomeCloser) -> anyhow::Result<()> {
+        todo!()
+    }
 
-impl<'w> SomeWriter<'w, JsonWriter> for JsonSomeWriter<'w> {
-    fn write_some(&mut self) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'_>> {
-        if self.cannot_be_null {
-            self.ctx.open_map()?;
-            let mut ctx = self.ctx.indent_mut();
-            ctx.write_str_literal("Some")?;
-            ctx.write_colon()?;
-            Ok(JsonAnyWriter {
-                ctx,
-                must_be_string: self.must_be_string,
-                cannot_be_null: false,
-            })
-        } else {
-            return Ok(JsonAnyWriter {
-                ctx: self.ctx.reborrow(),
-                must_be_string: self.must_be_string,
-                cannot_be_null: true,
-            });
+    fn tuple_write_element(
+        &mut self,
+        tuple: &mut Self::TupleWriter,
+    ) -> anyhow::Result<Self::AnyWriter> {
+        todo!()
+    }
+
+    fn tuple_end(&mut self, tuple: Self::TupleWriter) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn seq_write_element(&mut self, seq: &mut Self::SeqWriter) -> anyhow::Result<Self::AnyWriter> {
+        let ctx = seq.ctx.indent();
+        if seq.started {
+            self.write_comma(ctx)?;
         }
-    }
-
-    fn end(mut self) -> anyhow::Result<()> {
-        if self.cannot_be_null {
-            self.ctx.close_map()?;
-        }
-        Ok(())
-    }
-}
-
-pub struct JsonTupleWriter<'w> {
-    ctx: WriteContext<'w>,
-}
-
-impl<'w> TupleWriter<'w, JsonWriter> for JsonTupleWriter<'w> {
-    fn write_element(&mut self) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'_>> {
-        todo!()
-    }
-
-    fn end(self) -> anyhow::Result<()> {
-        todo!()
-    }
-}
-
-pub struct JsonSeqWriter<'w> {
-    ctx: WriteContext<'w>,
-}
-
-impl<'w> SeqWriter<'w, JsonWriter> for JsonSeqWriter<'w> {
-    fn write_element(&mut self) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'_>> {
-        todo!()
-    }
-
-    fn end(self) -> anyhow::Result<()> {
-        todo!()
-    }
-}
-
-pub struct JsonMapWriter<'w> {
-    ctx: WriteContext<'w>,
-}
-
-impl<'w> MapWriter<'w, JsonWriter> for JsonMapWriter<'w> {
-    fn write_entry(&mut self) -> anyhow::Result<<JsonWriter as Writer>::EntryWriter<'_>> {
-        Ok(JsonEntryWriter {
-            ctx: self.ctx.indent_mut(),
-        })
-    }
-
-    fn end(mut self) -> anyhow::Result<()> {
-        self.ctx.close_map()
-    }
-}
-pub struct JsonEntryWriter<'w> {
-    ctx: WriteContext<'w>,
-}
-impl<'w> EntryWriter<'w, JsonWriter> for JsonEntryWriter<'w> {
-    fn write_key(&mut self) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'_>> {
+        seq.started = true;
         Ok(JsonAnyWriter {
-            ctx: self.ctx.reborrow(),
-            must_be_string: true,
-            cannot_be_null: false,
-        })
-    }
-
-    fn write_value(&mut self) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'_>> {
-        self.ctx.write_colon()?;
-        Ok(JsonAnyWriter {
-            ctx: self.ctx.reborrow(),
+            ctx,
             must_be_string: false,
             cannot_be_null: false,
         })
     }
 
-    fn end(self) -> anyhow::Result<()> {
+    fn seq_end(&mut self, tuple: Self::SeqWriter) -> anyhow::Result<()> {
+        self.close_list(tuple.ctx)
+    }
+
+    fn map_write_element(
+        &mut self,
+        map: &mut Self::MapWriter,
+    ) -> anyhow::Result<(Self::AnyWriter, Self::ValueWriter)> {
+        let ctx = map.ctx.indent();
+        if map.started {
+            self.write_comma(ctx)?;
+        }
+        map.started = true;
+        Ok((
+            JsonAnyWriter {
+                ctx,
+                must_be_string: true,
+                cannot_be_null: false,
+            },
+            JsonValueWriter { ctx },
+        ))
+    }
+
+    fn map_end(&mut self, map: Self::MapWriter) -> anyhow::Result<()> {
+        self.close_map(map.ctx)?;
         Ok(())
     }
-}
 
-pub struct JsonTupleStructWriter<'w> {
-    ctx: WriteContext<'w>,
-}
-
-impl<'w> TupleStructWriter<'w, JsonWriter> for JsonTupleStructWriter<'w> {
-    fn write_field(&mut self) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'w>> {
-        todo!()
-    }
-
-    fn end(self) -> anyhow::Result<()> {
-        todo!()
-    }
-}
-
-pub struct JsonStructWriter<'w> {
-    ctx: WriteContext<'w>,
-}
-
-impl<'w> StructWriter<'w, JsonWriter> for JsonStructWriter<'w> {
-    fn write_field(
+    fn entry_write_value(
         &mut self,
-        key: &'static str,
-    ) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'w>> {
-        todo!()
+        value: Self::ValueWriter,
+    ) -> anyhow::Result<(Self::AnyWriter, Self::EntryCloser)> {
+        self.write_colon(value.ctx)?;
+        Ok((
+            JsonAnyWriter {
+                ctx: value.ctx,
+                must_be_string: false,
+                cannot_be_null: false,
+            },
+            JsonEntryCloser { ctx: value.ctx },
+        ))
     }
 
-    fn end(self) -> anyhow::Result<()> {
-        todo!()
-    }
-}
-
-pub struct JsonTupleVariantWriter<'w> {
-    ctx: WriteContext<'w>,
-}
-
-impl<'w> TupleVariantWriter<'w, JsonWriter> for JsonTupleVariantWriter<'w> {
-    fn write_field(&mut self) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'w>> {
-        todo!()
+    fn entry_end(&mut self, closer: Self::EntryCloser) -> anyhow::Result<()> {
+        Ok(())
     }
 
-    fn end(self) -> anyhow::Result<()> {
-        todo!()
-    }
-}
-
-pub struct JsonStructVariantWriter<'w> {
-    ctx: WriteContext<'w>,
-}
-
-impl<'w> StructVariantWriter<'w, JsonWriter> for JsonStructVariantWriter<'w> {
-    fn write_field(
+    fn tuple_struct_write_field(
         &mut self,
-        key: &'static str,
-    ) -> anyhow::Result<<JsonWriter as Writer>::AnyWriter<'w>> {
+        map: &mut Self::TupleStructWriter,
+    ) -> anyhow::Result<Self::AnyWriter> {
         todo!()
     }
 
-    fn end(self) -> anyhow::Result<()> {
+    fn tuple_struct_end(&mut self, map: Self::TupleStructWriter) -> anyhow::Result<()> {
         todo!()
     }
+
+    fn struct_write_field(
+        &mut self,
+        map: &mut Self::StructWriter,
+        key: &'static str,
+    ) -> anyhow::Result<Self::AnyWriter> {
+        todo!()
+    }
+
+    fn struct_end(&mut self, map: Self::StructWriter) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn tuple_variant_write_field(
+        &mut self,
+        map: &mut Self::TupleVariantWriter,
+    ) -> anyhow::Result<Self::AnyWriter> {
+        todo!()
+    }
+
+    fn tuple_variant_end(&mut self, map: Self::TupleVariantWriter) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn struct_variant_write_field(
+        &mut self,
+        map: &mut Self::StructVariantWriter,
+        key: &'static str,
+    ) -> anyhow::Result<Self::AnyWriter> {
+        todo!()
+    }
+
+    fn struct_variant_end(&mut self, map: Self::StructVariantWriter) -> anyhow::Result<()> {
+        todo!()
+    }
+}
+
+#[derive(Copy, Clone)]
+struct WriteContext {
+    indentation: usize,
+}
+
+impl WriteContext {
+    pub fn indent(self) -> Self {
+        WriteContext {
+            indentation: self.indentation + 1,
+        }
+    }
+}
+
+pub struct JsonAnyWriter {
+    ctx: WriteContext,
+    must_be_string: bool,
+    cannot_be_null: bool,
+}
+
+pub struct JsonSomeWriter {
+    ctx: WriteContext,
+    must_be_string: bool,
+    cannot_be_null: bool,
+}
+
+pub struct JsonSomeCloser {
+    ctx: WriteContext,
+    cannot_be_null: bool,
+}
+
+pub struct JsonTupleWriter {
+    ctx: WriteContext,
+}
+
+pub struct JsonSeqWriter {
+    ctx: WriteContext,
+    started: bool,
+}
+
+pub struct JsonMapWriter {
+    ctx: WriteContext,
+    started: bool,
+}
+
+pub struct JsonKeyWriter {
+    ctx: WriteContext,
+}
+
+pub struct JsonValueWriter {
+    ctx: WriteContext,
+}
+
+pub struct JsonEntryCloser {
+    ctx: WriteContext,
+}
+
+pub struct JsonTupleStructWriter {
+    ctx: WriteContext,
+}
+
+pub struct JsonStructWriter {
+    ctx: WriteContext,
+}
+
+pub struct JsonTupleVariantWriter {
+    ctx: WriteContext,
+}
+
+pub struct JsonStructVariantWriter {
+    ctx: WriteContext,
 }
