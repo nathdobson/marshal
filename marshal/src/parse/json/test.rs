@@ -33,7 +33,7 @@ fn test() -> anyhow::Result<()> {
 
 #[test]
 fn test_parsing() {
-    for dir in read_dir("JSONTestSuite/test_parsing").unwrap() {
+    for dir in read_dir("../JSONTestSuite/test_parsing").unwrap() {
         let dir = dir.unwrap();
         let expected = dir
             .path()
