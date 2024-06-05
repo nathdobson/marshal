@@ -51,7 +51,7 @@ where
 {
     Primitive(Primitive),
     String(Cow<'de, str>),
-    Bytes(Vec<u8>),
+    Bytes(Cow<'de, [u8]>),
     None,
     Some(P::SomeParser<'p>),
     Seq(P::SeqParser<'p>),

@@ -1,19 +1,21 @@
-use std::borrow::Cow;
-use itertools::Itertools;
-use marshal::parse::{ParseHint, ParseVariantHint};
-use marshal::parse::simple::{SimpleParser, SimpleParserView};
-use marshal::{Primitive, PrimitiveType};
 use crate::parse::any::PeekType;
 use crate::parse::error::JsonError;
+use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
+use itertools::Itertools;
+use marshal::parse::simple::{SimpleParser, SimpleParserView};
+use marshal::parse::{ParseHint, ParseVariantHint};
+use marshal::{Primitive, PrimitiveType};
+use std::borrow::Cow;
 
 mod any;
 mod error;
+mod full;
 mod number;
 mod read;
 mod string;
 #[cfg(test)]
 mod test;
-mod full;
 
 pub struct SimpleJsonParser<'de> {
     cursor: &'de [u8],
@@ -102,7 +104,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 Ok(SimpleParserView::Primitive(Primitive::Unit))
             }
             (ParseHint::Bytes, PeekType::String) => {
-                Ok(SimpleParserView::Bytes(self.read_string()?.into_bytes()))
+                Ok(SimpleParserView::Bytes(BASE64_STANDARD_NO_PAD.decode(self.read_string()?)?.into()))
             }
             (ParseHint::Primitive(PrimitiveType::Char), PeekType::String) => {
                 Ok(SimpleParserView::Primitive(Primitive::Char(
