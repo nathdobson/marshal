@@ -1,10 +1,9 @@
 use itertools::Itertools;
-
-use crate::{Primitive, PrimitiveType};
-use crate::parse::{ParseHint, ParseVariantHint};
-use crate::parse::json::any::PeekType;
-use crate::parse::json::error::JsonError;
-use crate::parse::simple::{SimpleParser, SimpleParserView};
+use marshal::parse::{ParseHint, ParseVariantHint};
+use marshal::parse::simple::{SimpleParser, SimpleParserView};
+use marshal::{Primitive, PrimitiveType};
+use crate::read::any::PeekType;
+use crate::read::error::JsonError;
 
 mod any;
 mod error;
@@ -20,12 +19,12 @@ pub struct SimpleJsonParser<'de> {
 }
 
 #[derive(Default)]
-pub struct AnyParser {
+pub struct JsonAnyParser {
     must_be_string: bool,
     cannot_be_null: bool,
 }
 
-pub enum SomeParser {
+pub enum JsonSomeParser {
     Transparent { must_be_string: bool },
     Struct,
 }
@@ -41,14 +40,14 @@ pub struct JsonMapParser {
 }
 
 impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
-    type AnyParser = AnyParser;
+    type AnyParser = JsonAnyParser;
     type SeqParser = JsonSeqParser;
     type MapParser = JsonMapParser;
     type KeyParser = ();
     type ValueParser = ();
     type DiscriminantParser = ();
     type VariantParser = ();
-    type SomeParser = SomeParser;
+    type SomeParser = JsonSomeParser;
 
     fn parse(
         &mut self,
@@ -67,14 +66,14 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             }
             (ParseHint::Option, PeekType::Map) if context.cannot_be_null => {
                 self.read_exact(b'{')?;
-                Ok(SimpleParserView::Some(SomeParser::Struct))
+                Ok(SimpleParserView::Some(JsonSomeParser::Struct))
             }
             (ParseHint::Option, PeekType::Null) => {
                 self.read_null()?;
                 Ok(SimpleParserView::None)
             }
             (ParseHint::Option, _) => {
-                Ok(SimpleParserView::Some(SomeParser::Transparent {
+                Ok(SimpleParserView::Some(JsonSomeParser::Transparent {
                     must_be_string: context.must_be_string,
                 }))
             }
@@ -261,7 +260,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             self.read_exact(b',')?;
         }
         seq.started = true;
-        Ok(Some(AnyParser::default()))
+        Ok(Some(JsonAnyParser::default()))
     }
 
     fn parse_map_next(
@@ -283,9 +282,9 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
         _: Self::KeyParser,
     ) -> anyhow::Result<(Self::AnyParser, Self::ValueParser)> {
         Ok((
-            AnyParser {
+            JsonAnyParser {
                 must_be_string: true,
-                ..AnyParser::default()
+                ..JsonAnyParser::default()
             },
             (),
         ))
@@ -293,7 +292,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
 
     fn parse_entry_value(&mut self, _: Self::ValueParser) -> anyhow::Result<Self::AnyParser> {
         self.read_exact(b':')?;
-        Ok(AnyParser::default())
+        Ok(JsonAnyParser::default())
     }
 
     fn parse_enum_discriminant(

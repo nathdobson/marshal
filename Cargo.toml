@@ -2,5 +2,15 @@
 resolver = "2"
 
 members = [
-    "marshal",
+    "marshal", "marshal-json",
 ]
+
+[workspace.dependencies]
+marshal = {path="marshal"}
+marshal-json = {path="marshal-json"}
+utf8-width = "0.1.7"
+serde_json = "1.0.117"
+base64="0.22.1"
+itertools = "0.13.0"
+anyhow = "1.0.86 "
+type-map = "0.5.0"

@@ -6,9 +6,9 @@
 
 extern crate core;
 
-mod de;
-mod parse;
-mod write;
+pub mod de;
+pub mod parse;
+pub mod write;
 
 #[derive(Debug)]
 pub enum Primitive {

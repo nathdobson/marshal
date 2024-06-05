@@ -42,9 +42,19 @@ dependencies = [
  "anyhow",
  "base64",
  "itertools",
- "serde",
  "serde_json",
  "type-map",
+]
+
+[[package]]
+name = "marshal-json"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "itertools",
+ "marshal",
+ "serde_json",
  "utf8-width",
 ]
 

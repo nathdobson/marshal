@@ -3,9 +3,8 @@ use std::fmt::{Debug, Formatter};
 use crate::{Primitive, PrimitiveType};
 
 pub mod depth_budget;
-pub mod json;
-mod poison;
-mod simple;
+pub mod poison;
+pub mod simple;
 
 #[derive(Debug, Copy, Clone)]
 pub enum ParseHint {

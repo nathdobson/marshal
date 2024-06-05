@@ -3,18 +3,18 @@ use std::fs::read_dir;
 
 use serde_json::Value;
 
-use crate::{Primitive, PrimitiveType};
-use crate::de::context::DeserializeContext;
-use crate::parse::{AnyParser, ParseHint, ParserView, SeqParser};
-use crate::parse::json::full::parse_json;
-use crate::parse::json::SimpleJsonParser;
-use crate::parse::simple::SimpleAnyParser;
+use marshal::de::context::DeserializeContext;
+use marshal::parse::{AnyParser, ParseHint, ParserView, SeqParser};
+use marshal::parse::simple::SimpleAnyParser;
+use marshal::{Primitive, PrimitiveType};
+use crate::read::full::parse_json;
+use crate::read::{JsonAnyParser, SimpleJsonParser};
 
 #[test]
 fn test() -> anyhow::Result<()> {
     let input = b"[1,23]";
     let mut p = SimpleJsonParser::new(input);
-    let p = SimpleAnyParser::new(&mut p, crate::parse::json::AnyParser::default());
+    let p = SimpleAnyParser::new(&mut p, JsonAnyParser::default());
     match p.parse(ParseHint::Any)? {
         ParserView::Seq(mut p) => {
             match p.parse_next()?.unwrap().parse(ParseHint::Primitive(PrimitiveType::U64))? {

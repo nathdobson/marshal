@@ -1,10 +1,10 @@
-use crate::de::context::DeserializeContext;
-use crate::de::Deserialize;
-use crate::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
-use crate::parse::json::{AnyParser, SimpleJsonParser};
-use crate::parse::Parser;
-use crate::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
-use crate::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
+use crate::read::{JsonAnyParser, SimpleJsonParser};
+use marshal::de::context::DeserializeContext;
+use marshal::de::Deserialize;
+use marshal::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
+use marshal::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
+use marshal::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
+use marshal::parse::Parser;
 
 type JsonParser<'de> = PoisonParser<DepthBudgetParser<SimpleParserAdapter<SimpleJsonParser<'de>>>>;
 
@@ -31,7 +31,7 @@ impl<'de> JsonParserBuilder<'de> {
             &mut self.poison,
             WithDepthBudget::new(
                 self.depth_budget,
-                SimpleAnyParser::new(&mut self.parser, AnyParser::default()),
+                SimpleAnyParser::new(&mut self.parser, JsonAnyParser::default()),
             ),
         )
     }

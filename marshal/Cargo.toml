@@ -4,10 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde_json = "1.0.117"
-utf8-width = "0.1.7"
-itertools = "0.13.0"
-anyhow = "1.0.86"
-serde = "1.0.203"
-type-map = "0.5.0"
-base64="0.22.1"
+itertools = {workspace=true}
+anyhow = {workspace=true}
+type-map = {workspace=true}
+base64 = {workspace=true}
+serde_json = {workspace=true}

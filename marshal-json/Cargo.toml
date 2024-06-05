@@ -1,0 +1,14 @@
+[package]
+name = "marshal-json"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+marshal = {workspace=true}
+utf8-width = {workspace=true}
+base64 = {workspace=true}
+anyhow = {workspace=true}
+itertools = {workspace=true}
+
+[dev-dependencies]
+serde_json = {workspace=true}
