@@ -3,12 +3,12 @@ use std::fs::read_dir;
 
 use serde_json::Value;
 
+use crate::{Primitive, PrimitiveType};
 use crate::de::context::DeserializeContext;
 use crate::parse::{AnyParser, ParseHint, ParserView, SeqParser};
-use crate::parse::json::{SimpleJsonParser};
 use crate::parse::json::full::parse_json;
+use crate::parse::json::SimpleJsonParser;
 use crate::parse::simple::SimpleAnyParser;
-use crate::{Primitive, PrimitiveType};
 
 #[test]
 fn test() -> anyhow::Result<()> {

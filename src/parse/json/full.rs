@@ -2,9 +2,9 @@ use crate::de::context::DeserializeContext;
 use crate::de::Deserialize;
 use crate::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
 use crate::parse::json::{AnyParser, SimpleJsonParser};
+use crate::parse::Parser;
 use crate::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
 use crate::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
-use crate::parse::Parser;
 
 type JsonParser<'de> = PoisonParser<DepthBudgetParser<SimpleParserAdapter<SimpleJsonParser<'de>>>>;
 

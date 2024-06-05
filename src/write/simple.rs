@@ -1,9 +1,10 @@
+use std::marker::PhantomData;
+
+use crate::Primitive;
 use crate::write::{
     AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
     TupleStructWriter, TupleVariantWriter, TupleWriter, Writer,
 };
-use crate::Primitive;
-use std::marker::PhantomData;
 
 pub trait SimpleWriter {
     type AnyWriter;

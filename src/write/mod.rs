@@ -1,7 +1,7 @@
+use crate::Primitive;
+
 mod json;
 mod simple;
-
-use crate::Primitive;
 
 pub trait Writer: Sized {
     type AnyWriter<'w>: AnyWriter<'w, Self>

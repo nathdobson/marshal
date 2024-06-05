@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::parse::{
-    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, ParseVariantHint,
-    Parser, ParserView, SeqParser, SomeParser,
+    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser,
+    ParserView, ParseVariantHint, SeqParser, SomeParser,
 };
 
 pub struct DepthBudgetParser<T>(PhantomData<T>);

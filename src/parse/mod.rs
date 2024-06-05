@@ -1,5 +1,6 @@
-use crate::{Primitive, PrimitiveType};
 use std::fmt::{Debug, Formatter};
+
+use crate::{Primitive, PrimitiveType};
 
 pub mod depth_budget;
 pub mod json;

@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::parse::{
-    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, ParseVariantHint,
-    Parser, ParserView, SeqParser, SomeParser,
+    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser,
+    ParserView, ParseVariantHint, SeqParser, SomeParser,
 };
 use crate::Primitive;
 

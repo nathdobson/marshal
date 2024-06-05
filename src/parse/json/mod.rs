@@ -1,10 +1,10 @@
 use itertools::Itertools;
 
+use crate::{Primitive, PrimitiveType};
+use crate::parse::{ParseHint, ParseVariantHint};
 use crate::parse::json::any::PeekType;
 use crate::parse::json::error::JsonError;
 use crate::parse::simple::{SimpleParser, SimpleParserView};
-use crate::parse::{ParseHint, ParseVariantHint};
-use crate::{Primitive, PrimitiveType};
 
 mod any;
 mod error;
