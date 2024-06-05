@@ -2,14 +2,16 @@
 resolver = "2"
 
 members = [
-    "marshal", "marshal-json",
+    "marshal", "marshal-bin", "marshal-json",
 ]
 
 [workspace.dependencies]
 marshal = {path="marshal"}
 marshal-json = {path="marshal-json"}
+marshal-bin = {path= "marshal-bin"}
 utf8-width = "0.1.7"
 base64="0.22.1"
 itertools = "0.13.0"
 anyhow = "1.0.86 "
 type-map = "0.5.0"
+vu128="1.0.0"
