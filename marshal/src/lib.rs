@@ -4,6 +4,7 @@
 #![allow(unused_mut)]
 #![allow(dead_code)]
 #![feature(never_type)]
+#![feature(try_blocks)]
 
 pub mod de;
 pub mod parse;

@@ -67,7 +67,7 @@ pub trait SeqParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
     fn exact_size(&self) -> Option<usize> {
         None
     }
-    fn seq_to_iter<T, F: for<'p2> FnMut(P::AnyParser<'p2>) -> anyhow::Result<T>>(
+    fn seq_into_iter<T, F: for<'p2> FnMut(P::AnyParser<'p2>) -> anyhow::Result<T>>(
         self,
         map: F,
     ) -> SeqIter<'p, 'de, Self, P, F> {
@@ -112,8 +112,71 @@ impl<
     }
 }
 
-pub trait MapParser<'p, 'de, P: ?Sized + Parser<'de>> {
+pub trait MapParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
     fn parse_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<P::EntryParser<'p2>>>;
+    fn exact_size(&self) -> Option<usize> {
+        None
+    }
+    fn map_into_iter<
+        K,
+        KF: for<'p2> FnMut(P::AnyParser<'p2>) -> anyhow::Result<K>,
+        V,
+        VF: for<'p2> FnMut(K, P::AnyParser<'p2>) -> anyhow::Result<V>,
+    >(
+        self,
+        key: KF,
+        value: VF,
+    ) -> MapIter<'p, 'de, Self, P, KF, VF> {
+        MapIter {
+            map: self,
+            key,
+            value,
+            phantom: PhantomData,
+        }
+    }
+}
+
+pub struct MapIter<'p, 'de, M: MapParser<'p, 'de, P>, P: Parser<'de> + 'p, KF, VF> {
+    map: M,
+    key: KF,
+    value: VF,
+    phantom: PhantomData<(&'p P, &'de ())>,
+}
+
+impl<
+        'p,
+        'de,
+        M: MapParser<'p, 'de, P>,
+        P: Parser<'de>,
+        K,
+        V,
+        KF: for<'p2> FnMut(P::AnyParser<'p2>) -> anyhow::Result<K>,
+        VF: for<'p2> FnMut(K, P::AnyParser<'p2>) -> anyhow::Result<V>,
+    > Iterator for MapIter<'p, 'de, M, P, KF, VF>
+{
+    type Item = anyhow::Result<V>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result: anyhow::Result<Option<V>> = try {
+            match self.map.parse_next()? {
+                None => None,
+                Some(mut p) => {
+                    let key = (self.key)(p.parse_key()?)?;
+                    let value = (self.value)(key, p.parse_value()?)?;
+                    p.parse_end()?;
+                    Some(value)
+                }
+            }
+        };
+        result.transpose()
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        if let Some(size) = self.map.exact_size() {
+            (size, Some(size))
+        } else {
+            (0, None)
+        }
+    }
 }
 
 pub trait EntryParser<'p, 'de, P: ?Sized + Parser<'de>> {
@@ -172,6 +235,18 @@ impl<'p, 'de, P: Parser<'de>> Debug for ParserView<'p, 'de, P> {
 }
 
 impl<'p, 'de, P: Parser<'de>> ParserView<'p, 'de, P> {
+    pub fn try_into_seq(self) -> anyhow::Result<P::SeqParser<'p>> {
+        match self {
+            ParserView::Seq(x) => Ok(x),
+            unexpected => unexpected.mismatch("seq")?,
+        }
+    }
+    pub fn try_into_map(self) -> anyhow::Result<P::MapParser<'p>> {
+        match self {
+            ParserView::Map(x) => Ok(x),
+            unexpected => unexpected.mismatch("map")?,
+        }
+    }
     pub fn mismatch(&self, expected: &'static str) -> anyhow::Result<!> {
         Err(TypeMismatch {
             found: match self {
