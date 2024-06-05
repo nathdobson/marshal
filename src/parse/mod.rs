@@ -17,9 +17,6 @@ pub enum ParseHint {
     UnitStruct {
         name: &'static str,
     },
-    NewtypeStruct {
-        name: &'static str,
-    },
     Seq,
     Tuple {
         len: usize,
@@ -42,7 +39,6 @@ pub enum ParseHint {
 
 pub enum ParseVariantHint {
     UnitVariant,
-    NewtypeVariant,
     TupleVariant,
     StructVariant,
 }
@@ -56,7 +52,6 @@ where
     Bytes(Vec<u8>),
     None,
     Some(P::SomeParser<'p>),
-    Newtype(P::NewtypeParser<'p>),
     Seq(P::SeqParser<'p>),
     Map(P::MapParser<'p>),
     Enum(P::EnumParser<'p>),
@@ -93,12 +88,6 @@ pub trait SomeParser<'p, 'de, P: ?Sized + Parser<'de>> {
     fn parse_some<'p2>(&'p2 mut self) -> anyhow::Result<<P as Parser<'de>>::AnyParser<'p2>>;
     fn parse_end(self) -> anyhow::Result<()>;
 }
-
-pub trait NewtypeParser<'p, 'de, P: ?Sized + Parser<'de>> {
-    fn parse_newtype<'p2>(&'p2 mut self) -> anyhow::Result<<P as Parser<'de>>::AnyParser<'p2>>;
-    fn parse_end(self) -> anyhow::Result<()>;
-}
-
 pub trait Parser<'de> {
     type AnyParser<'p>: AnyParser<'p, 'de, Self>
     where
@@ -118,9 +107,6 @@ pub trait Parser<'de> {
     type SomeParser<'p>: SomeParser<'p, 'de, Self>
     where
         Self: 'p;
-    type NewtypeParser<'p>: NewtypeParser<'p, 'de, Self>
-    where
-        Self: 'p;
 }
 
 impl<'p, 'de, P: Parser<'de>> Debug for ParserView<'p, 'de, P> {
@@ -131,7 +117,6 @@ impl<'p, 'de, P: Parser<'de>> Debug for ParserView<'p, 'de, P> {
             ParserView::Bytes(x) => f.debug_tuple("Bytes").field(x).finish(),
             ParserView::None => f.debug_tuple("None").finish(),
             ParserView::Some(_) => f.debug_struct("Some").finish_non_exhaustive(),
-            ParserView::Newtype(_) => f.debug_struct("Newtype").finish_non_exhaustive(),
             ParserView::Seq(_) => f.debug_struct("Seq").finish_non_exhaustive(),
             ParserView::Map(_) => f.debug_struct("Map").finish_non_exhaustive(),
             ParserView::Enum(_) => f.debug_struct("Enum").finish_non_exhaustive(),

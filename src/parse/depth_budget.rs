@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::parse::{
-    AnyParser, EntryParser, EnumParser, MapParser, NewtypeParser, ParseHint, Parser,
-    ParserView, ParseVariantHint, SeqParser, SomeParser,
+    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, ParseVariantHint, Parser, ParserView,
+    SeqParser, SomeParser,
 };
 
 pub struct DepthBudgetParser<T>(PhantomData<T>);
@@ -31,7 +31,6 @@ impl<'de, T: Parser<'de>> Parser<'de> for DepthBudgetParser<T> {
     type EntryParser<'p> = WithDepthBudget<T::EntryParser<'p>> where Self: 'p;
     type EnumParser<'p> = WithDepthBudget<T::EnumParser<'p>> where Self: 'p;
     type SomeParser<'p> = WithDepthBudget<T::SomeParser<'p>> where Self: 'p;
-    type NewtypeParser<'p> = WithDepthBudget<T::NewtypeParser<'p>> where Self: 'p;
 }
 
 fn annotate<'p, 'de, T: Parser<'de>>(
@@ -46,10 +45,6 @@ fn annotate<'p, 'de, T: Parser<'de>>(
         ParserView::Bytes(x) => ParserView::Bytes(x),
         ParserView::None => ParserView::None,
         ParserView::Some(inner) => ParserView::Some(WithDepthBudget {
-            depth_budget: depth_budget?,
-            inner,
-        }),
-        ParserView::Newtype(inner) => ParserView::Newtype(WithDepthBudget {
             depth_budget: depth_budget?,
             inner,
         }),
@@ -176,22 +171,6 @@ impl<'p, 'de, T: Parser<'de>> SomeParser<'p, 'de, DepthBudgetParser<T>>
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
             inner: self.inner.parse_some()?,
-        })
-    }
-
-    fn parse_end(self) -> anyhow::Result<()> {
-        Ok(self.inner.parse_end()?)
-    }
-}
-impl<'p, 'de, T: Parser<'de>> NewtypeParser<'p, 'de, DepthBudgetParser<T>>
-    for WithDepthBudget<<T as Parser<'de>>::NewtypeParser<'p>>
-{
-    fn parse_newtype<'p2>(
-        &'p2 mut self,
-    ) -> anyhow::Result<<DepthBudgetParser<T> as Parser<'de>>::AnyParser<'p2>> {
-        Ok(WithDepthBudget {
-            depth_budget: self.depth_budget,
-            inner: self.inner.parse_newtype()?,
         })
     }
 

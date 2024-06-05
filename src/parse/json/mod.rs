@@ -11,6 +11,7 @@ mod error;
 mod number;
 mod read;
 mod string;
+#[cfg(test)]
 mod test;
 mod full;
 
@@ -48,7 +49,6 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
     type DiscriminantParser = ();
     type VariantParser = ();
     type SomeParser = SomeParser;
-    type NewtypeParser = AnyParser;
 
     fn parse(
         &mut self,
@@ -78,7 +78,6 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                     must_be_string: context.must_be_string,
                 }))
             }
-            (ParseHint::NewtypeStruct { .. }, _) => Ok(SimpleParserView::NewType(context)),
             (
                 ParseHint::Any
                 | ParseHint::UnitStruct { .. }

@@ -8,6 +8,7 @@ use crate::Primitive;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
 
+#[cfg(test)]
 mod test;
 
 pub struct JsonWriter {

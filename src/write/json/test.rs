@@ -1,10 +1,7 @@
 use crate::write::json::JsonWriter;
 use crate::write::simple::SimpleAnyWriter;
-use crate::write::{
-    AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
-    TupleStructWriter, TupleVariantWriter, TupleWriter,
-};
 use crate::Primitive;
+use crate::write::{AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter, TupleStructWriter, TupleVariantWriter, TupleWriter};
 
 #[track_caller]
 fn run_simple(
