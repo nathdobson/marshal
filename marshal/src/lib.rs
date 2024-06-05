@@ -3,8 +3,7 @@
 #![deny(unused_must_use)]
 #![allow(unused_mut)]
 #![allow(dead_code)]
-
-extern crate core;
+#![feature(never_type)]
 
 pub mod de;
 pub mod parse;

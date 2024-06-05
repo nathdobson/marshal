@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Formatter};
+use std::marker::PhantomData;
 
+use crate::de::TypeMismatch;
 use crate::{Primitive, PrimitiveType};
 
 pub mod depth_budget;
@@ -60,8 +62,54 @@ pub trait AnyParser<'p, 'de, P: ?Sized + Parser<'de>> {
     fn parse(self, hint: ParseHint) -> anyhow::Result<ParserView<'p, 'de, P>>;
 }
 
-pub trait SeqParser<'p, 'de, P: ?Sized + Parser<'de>> {
+pub trait SeqParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
     fn parse_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<P::AnyParser<'p2>>>;
+    fn exact_size(&self) -> Option<usize> {
+        None
+    }
+    fn seq_to_iter<T, F: for<'p2> FnMut(P::AnyParser<'p2>) -> anyhow::Result<T>>(
+        self,
+        map: F,
+    ) -> SeqIter<'p, 'de, Self, P, F> {
+        SeqIter {
+            seq: self,
+            map,
+            phantom: PhantomData,
+        }
+    }
+}
+
+pub struct SeqIter<'p, 'de, S: SeqParser<'p, 'de, P>, P: Parser<'de> + 'p, F> {
+    seq: S,
+    map: F,
+    phantom: PhantomData<(&'p P, &'de ())>,
+}
+
+impl<
+        'p,
+        'de,
+        S: SeqParser<'p, 'de, P>,
+        P: Parser<'de>,
+        T,
+        F: for<'p2> FnMut(P::AnyParser<'p2>) -> anyhow::Result<T>,
+    > Iterator for SeqIter<'p, 'de, S, P, F>
+{
+    type Item = anyhow::Result<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.seq.parse_next() {
+            Err(e) => Some(Err(e)),
+            Ok(None) => None,
+            Ok(Some(x)) => Some((self.map)(x)),
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        if let Some(size) = self.seq.exact_size() {
+            (size, Some(size))
+        } else {
+            (0, None)
+        }
+    }
 }
 
 pub trait MapParser<'p, 'de, P: ?Sized + Parser<'de>> {
@@ -87,7 +135,7 @@ pub trait SomeParser<'p, 'de, P: ?Sized + Parser<'de>> {
     fn parse_some<'p2>(&'p2 mut self) -> anyhow::Result<<P as Parser<'de>>::AnyParser<'p2>>;
     fn parse_end(self) -> anyhow::Result<()>;
 }
-pub trait Parser<'de> {
+pub trait Parser<'de>: Sized {
     type AnyParser<'p>: AnyParser<'p, 'de, Self>
     where
         Self: 'p;
@@ -120,5 +168,40 @@ impl<'p, 'de, P: Parser<'de>> Debug for ParserView<'p, 'de, P> {
             ParserView::Map(_) => f.debug_struct("Map").finish_non_exhaustive(),
             ParserView::Enum(_) => f.debug_struct("Enum").finish_non_exhaustive(),
         }
+    }
+}
+
+impl<'p, 'de, P: Parser<'de>> ParserView<'p, 'de, P> {
+    pub fn mismatch(&self, expected: &'static str) -> anyhow::Result<!> {
+        Err(TypeMismatch {
+            found: match self {
+                ParserView::Primitive(p) => match p {
+                    Primitive::Unit => "unit",
+                    Primitive::Bool(_) => "bool",
+                    Primitive::I8(_) => "i8",
+                    Primitive::I16(_) => "i16",
+                    Primitive::I32(_) => "i32",
+                    Primitive::I64(_) => "i64",
+                    Primitive::I128(_) => "i128",
+                    Primitive::U8(_) => "u8",
+                    Primitive::U16(_) => "u16",
+                    Primitive::U32(_) => "u32",
+                    Primitive::U64(_) => "u64",
+                    Primitive::U128(_) => "u128",
+                    Primitive::F32(_) => "f32",
+                    Primitive::F64(_) => "f64",
+                    Primitive::Char(_) => "char",
+                },
+                ParserView::String(_) => "string",
+                ParserView::Bytes(_) => "bytes",
+                ParserView::None => "none",
+                ParserView::Some(_) => "some",
+                ParserView::Seq(_) => "seq",
+                ParserView::Map(_) => "map",
+                ParserView::Enum(_) => "enum",
+            },
+            expected,
+        }
+        .into())
     }
 }

@@ -1,16 +1,16 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use crate::{Primitive, PrimitiveType};
-use crate::de::{Deserialize, TypeMismatch};
 use crate::de::context::DeserializeContext;
+use crate::de::Deserialize;
 use crate::parse::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
+use crate::{Primitive, PrimitiveType};
 
 impl<'de, P: Parser<'de>> Deserialize<'de, P> for () {
     fn deserialize(p: P::AnyParser<'_>, _: &DeserializeContext) -> anyhow::Result<Self> {
         match p.parse(ParseHint::Primitive(PrimitiveType::Unit))? {
             ParserView::Primitive(Primitive::Unit) => Ok(()),
-            _ => Err(TypeMismatch.into()),
+            unexpected => unexpected.mismatch("unit")?,
         }
     }
 }
@@ -43,7 +43,7 @@ impl<'de, P: Parser<'de>, T1: Deserialize<'de, P>> Deserialize<'de, P> for (T1,)
                 }
                 Ok((f0,))
             }
-            _ => Err(TypeMismatch.into()),
+            unexpected => unexpected.mismatch("seq")?,
         }
     }
 }
@@ -61,7 +61,7 @@ impl<'de, P: Parser<'de>, T1: Deserialize<'de, P>, T2: Deserialize<'de, P>> Dese
                 }
                 Ok((f0, f1))
             }
-            _ => Err(TypeMismatch.into()),
+            unexpected => unexpected.mismatch("seq")?,
         }
     }
 }
