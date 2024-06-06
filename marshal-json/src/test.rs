@@ -9,9 +9,6 @@ use crate::parse::full::{JsonParser, JsonParserBuilder};
 use crate::write::full::{JsonWriter, JsonWriterBuilder};
 use crate::write::SimpleJsonWriter;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-struct Foo {}
-
 fn test_round_trip<
     T: Debug + Eq + Serialize<JsonWriter> + for<'de> Deserialize<'de, JsonParser<'de>>,
 >(
@@ -31,6 +28,14 @@ fn test_round_trip<
 
 #[test]
 fn test_rt() -> anyhow::Result<()> {
-    test_round_trip(Foo {}, "{}")?;
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+    struct Struct0 {}
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+    struct Struct1 {
+        x: u32,
+    }
+
+    test_round_trip(Struct0 {}, "{}")?;
+    test_round_trip(Struct1 { x: 123 }, "{\n  \"x\": 123\n}")?;
     Ok(())
 }

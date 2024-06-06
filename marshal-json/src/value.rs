@@ -38,6 +38,7 @@ impl<'de, P: Parser<'de>> Deserialize<'de, P> for JsonValue {
                         .into_owned();
                     let value =
                         <JsonValue as Deserialize<'de, P>>::deserialize(entry.parse_value()?, ctx)?;
+                    entry.parse_end()?;
                     map.insert(key, value);
                 }
                 Ok(JsonValue::Object(map))

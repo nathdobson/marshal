@@ -228,7 +228,7 @@ impl<'p, 'de, T: Parser<'de>> EntryParser<'p, 'de, PoisonParser<T>>
         self.read_value = true;
         self.guard.check()?;
         let result = self.inner.parse_value()?;
-        let state = self.guard.defuse();
+        let state = self.guard.state();
         Ok(PoisonAnyParser::new(state, result))
     }
 
@@ -277,7 +277,7 @@ impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, PoisonParser<T>>
         self.read_variant = true;
         self.guard.check()?;
         let result = self.inner.parse_variant(hint)?;
-        let state = self.guard.defuse();
+        let state = self.guard.state();
         Ok(annotate_view(state, result))
     }
 

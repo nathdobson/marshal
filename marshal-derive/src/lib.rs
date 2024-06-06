@@ -1,8 +1,8 @@
 extern crate proc_macro;
 
 use quote::quote;
-use syn::{Data, DataStruct, DeriveInput, Fields, LitStr, parse_macro_input};
 use syn::__private::TokenStream2;
+use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, LitStr};
 
 #[proc_macro_derive(Deserialize)]
 pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -62,6 +62,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         .iter()
                         .map(|x| LitStr::new(&format!("{}", x), type_ident.span()))
                         .collect::<Vec<_>>();
+                    let field_name_indexes = (0..fields.named.len()).collect::<Vec<_>>();
                     output = quote! {
                         impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
                             fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
@@ -74,21 +75,37 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                     name: #type_name,
                                 };
                                 #(
-                                    let #field_names : #option_type<field_types> = #option_type::None;
+                                    let mut #field_names : #option_type<#field_types> = #option_type::None;
                                 )*
                                 let parser = #as_any_parser::parse(parser, hint)?;
                                 match parser {
                                     #parser_view_type::Map(mut parser) => {
-                                        while let Some(mut entry)=#as_map_parser::parse_next(&mut parser)?{
-                                            match #as_any_parser::parse(#as_entry_parser::parse_key(&mut entry)?,#parse_hint_type::Identifier)?{
+                                        while let Some(mut entry) = #as_map_parser::parse_next(&mut parser)?{
+                                            let field_index:usize = match #as_any_parser::parse(#as_entry_parser::parse_key(&mut entry)?,#parse_hint_type::Identifier)?{
+                                                #parser_view_type::String(name) => match &*name{
+                                                    #(
+                                                        #field_name_literals => #field_name_indexes,
+                                                    )*
+                                                    _ => todo!("x"),
+                                                },
                                                 _=>todo!("A")
+                                            };
+                                            match field_index {
+                                                #(
+                                                    #field_name_indexes => {
+                                                        let value = #as_entry_parser::parse_value(&mut entry)?;
+                                                        #field_names = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
+                                                    }
+                                                )*
+                                                _=>todo!("y"),
                                             }
+                                            #as_entry_parser::parse_end(entry)?;
                                         }
                                     },
                                      _ => todo!("b"),
                                 }
                                 #(
-                                    let #field_names = #field_names.ok_or(#missing_field_error_type{name:#field_name_literals})?;
+                                    let #field_names = #field_names.ok_or(#missing_field_error_type{field_name:#field_name_literals})?;
                                 )*
                                 Ok(#type_ident {
                                     #(
@@ -152,12 +169,17 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                         .iter()
                         .map(|x| x.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
+                    let field_name_literals = field_names
+                        .iter()
+                        .map(|x| LitStr::new(&format!("{}", x), type_ident.span()))
+                        .collect::<Vec<_>>();
+
                     output = quote! {
                         impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
                             fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
                                 let mut writer = #as_any_writer::write_struct(writer, #type_name, #field_count)?;
                                 #(
-                                    #serialize_trait<W>::serialize(self.#field_names, #as_struct_writer::write_field(&mut writer,#field_names)?)?;
+                                    #serialize_trait::<W>::serialize(&self.#field_names, #as_struct_writer::write_field(&mut writer,#field_name_literals)?, ctx)?;
                                 )*
                                 #as_struct_writer::end(writer)?;
                                 Ok(())

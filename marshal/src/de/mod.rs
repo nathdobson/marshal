@@ -8,6 +8,7 @@ mod hash_map;
 mod string;
 mod tuple;
 mod vec;
+mod number;
 
 pub trait Deserialize<'de, P: Parser<'de>>: Sized {
     fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &mut Context) -> anyhow::Result<Self>;
@@ -15,7 +16,7 @@ pub trait Deserialize<'de, P: Parser<'de>>: Sized {
 
 #[derive(Debug)]
 pub struct MissingFieldError {
-    field_name: &'static str,
+    pub field_name: &'static str,
 }
 
 impl Display for MissingFieldError {
