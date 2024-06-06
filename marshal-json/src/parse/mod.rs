@@ -3,10 +3,10 @@ use crate::parse::error::JsonError;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
 use itertools::Itertools;
-use marshal::parse::simple::{SimpleParser, SimpleParserView};
-use marshal::parse::{ParseHint, ParseVariantHint};
-use marshal::{Primitive, PrimitiveType};
 use std::borrow::Cow;
+use marshal_core::{Primitive, PrimitiveType};
+use marshal_core::parse::{ParseHint, ParseVariantHint};
+use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
 
 mod any;
 mod error;

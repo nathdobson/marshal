@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::marker::PhantomData;
 
 use crate::parse::{
-    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, ParseVariantHint, Parser, ParserView,
+    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, Parser, ParserView, ParseVariantHint,
     SeqParser, SomeParser,
 };
 use crate::Primitive;

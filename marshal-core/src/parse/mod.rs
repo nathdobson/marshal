@@ -1,9 +1,9 @@
 use std::borrow::Cow;
-use std::fmt::{Debug, Formatter};
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
-
-use crate::de::TypeMismatch;
 use crate::{Primitive, PrimitiveType};
+
 
 pub mod depth_budget;
 pub mod poison;
@@ -239,6 +239,20 @@ impl<'p, 'de, P: Parser<'de>> Debug for ParserView<'p, 'de, P> {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct TypeMismatch {
+    pub found: &'static str,
+    pub expected: &'static str,
+}
+
+impl Display for TypeMismatch {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Actual type did not match expected type")
+    }
+}
+impl Error for TypeMismatch {}
+
 
 impl<'p, 'de, P: Parser<'de>> ParserView<'p, 'de, P> {
     pub fn try_into_seq(self) -> anyhow::Result<P::SeqParser<'p>> {

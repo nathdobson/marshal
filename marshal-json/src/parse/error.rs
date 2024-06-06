@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use marshal_core::parse::ParseHint;
 
-use marshal::parse::ParseHint;
 use crate::parse::any::PeekType;
 
 #[derive(Debug)]

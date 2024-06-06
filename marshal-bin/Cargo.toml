@@ -7,3 +7,4 @@ edition = "2021"
 marshal = {workspace=true}
 anyhow = {workspace=true}
 vu128={workspace=true}
+marshal-core={workspace=true}

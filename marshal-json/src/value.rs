@@ -1,8 +1,8 @@
 use marshal::de::Deserialize;
-use marshal::parse::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
-use marshal::Primitive;
+use marshal_core::Primitive;
 use std::collections::HashMap;
 use marshal::context::Context;
+use marshal_core::parse::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
 
 pub enum JsonValue {
     Null,

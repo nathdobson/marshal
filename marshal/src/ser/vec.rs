@@ -1,6 +1,6 @@
 use crate::context::Context;
 use crate::ser::Serialize;
-use crate::write::{AnyWriter, SeqWriter, Writer};
+use marshal_core::write::{AnyWriter, SeqWriter, Writer};
 
 impl<W: Writer, T: Serialize<W>> Serialize<W> for Vec<T> {
     fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()> {

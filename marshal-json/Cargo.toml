@@ -9,3 +9,4 @@ utf8-width = {workspace=true}
 base64 = {workspace=true}
 anyhow = {workspace=true}
 itertools = {workspace=true}
+marshal-core={workspace=true}

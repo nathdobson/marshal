@@ -36,6 +36,7 @@ dependencies = [
  "anyhow",
  "base64",
  "itertools",
+ "marshal-core",
  "type-map",
 ]
 
@@ -45,7 +46,18 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "marshal",
+ "marshal-core",
  "vu128",
+]
+
+[[package]]
+name = "marshal-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "itertools",
+ "type-map",
 ]
 
 [[package]]
@@ -56,6 +68,7 @@ dependencies = [
  "base64",
  "itertools",
  "marshal",
+ "marshal-core",
  "utf8-width",
 ]
 

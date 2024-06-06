@@ -1,7 +1,7 @@
 use crate::de::Deserialize;
-use crate::parse::{AnyParser, MapParser, ParseHint, Parser};
 use std::collections::HashMap;
 use std::hash::Hash;
+use marshal_core::parse::{AnyParser, MapParser, ParseHint, Parser};
 use crate::context::Context;
 
 impl<'de, P: Parser<'de>, K: Hash + Eq + Deserialize<'de, P>, V: Deserialize<'de, P>>

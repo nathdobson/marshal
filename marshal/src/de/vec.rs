@@ -1,6 +1,6 @@
+use marshal_core::parse::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
 use crate::context::Context;
 use crate::de::Deserialize;
-use crate::parse::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
 
 impl<'de, P: Parser<'de>, T: Deserialize<'de, P>> Deserialize<'de, P> for Vec<T> {
     fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &mut Context) -> anyhow::Result<Self> {

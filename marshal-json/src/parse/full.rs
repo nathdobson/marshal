@@ -1,10 +1,10 @@
 use marshal::context::Context;
 use crate::parse::{JsonAnyParser, SimpleJsonParser};
 use marshal::de::Deserialize;
-use marshal::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
-use marshal::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
-use marshal::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
-use marshal::parse::Parser;
+use marshal_core::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
+use marshal_core::parse::Parser;
+use marshal_core::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
+use marshal_core::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
 
 type JsonParser<'de> = PoisonParser<DepthBudgetParser<SimpleParserAdapter<SimpleJsonParser<'de>>>>;
 

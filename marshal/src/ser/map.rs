@@ -1,6 +1,6 @@
 use crate::context::Context;
 use crate::ser::Serialize;
-use crate::write::{AnyWriter, EntryWriter, MapWriter, Writer};
+use marshal_core::write::{AnyWriter, EntryWriter, MapWriter, Writer};
 use std::collections::HashMap;
 use std::hash::Hash;
 

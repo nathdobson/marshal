@@ -1,10 +1,10 @@
 use std::fs;
 use std::fs::read_dir;
 
-use marshal::parse::{AnyParser, ParseHint, ParserView, SeqParser};
-use marshal::parse::simple::SimpleAnyParser;
-use marshal::{Primitive, PrimitiveType};
 use marshal::context::Context;
+use marshal_core::{Primitive, PrimitiveType};
+use marshal_core::parse::{AnyParser, ParseHint, ParserView, SeqParser};
+use marshal_core::parse::simple::SimpleAnyParser;
 use crate::parse::full::parse_json;
 use crate::parse::{JsonAnyParser, SimpleJsonParser};
 use crate::value::JsonValue;
