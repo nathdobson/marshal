@@ -3,14 +3,14 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 
-use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriter};
-use marshal_core::Primitive;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
+use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriter};
+use marshal_core::Primitive;
 
+pub mod full;
 #[cfg(test)]
 mod test;
-pub mod full;
 
 pub struct SimpleJsonWriter {
     output: Vec<u8>,
@@ -536,6 +536,9 @@ struct WriteContext {
 }
 
 impl WriteContext {
+    pub fn new() -> Self {
+        WriteContext { indentation: 0 }
+    }
     pub fn indent(self) -> Self {
         WriteContext {
             indentation: self.indentation + 1,
@@ -547,6 +550,16 @@ pub struct JsonAnyWriter {
     ctx: WriteContext,
     must_be_string: bool,
     cannot_be_null: bool,
+}
+
+impl JsonAnyWriter {
+    pub fn new() -> Self {
+        JsonAnyWriter {
+            ctx: WriteContext::new(),
+            must_be_string: false,
+            cannot_be_null: false,
+        }
+    }
 }
 
 pub struct JsonSomeWriter {
