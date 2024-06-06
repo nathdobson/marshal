@@ -1,6 +1,7 @@
-use crate::write::{JsonAnyWriter, SimpleJsonWriter};
 use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriter, SimpleWriterAdapter};
 use marshal_core::write::Writer;
+
+use crate::write::{JsonAnyWriter, SimpleJsonWriter};
 
 pub type JsonWriter = SimpleWriterAdapter<SimpleJsonWriter>;
 

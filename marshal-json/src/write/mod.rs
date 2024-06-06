@@ -3,10 +3,11 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 
-use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
-use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriter};
+use base64::prelude::BASE64_STANDARD_NO_PAD;
+
 use marshal_core::Primitive;
+use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriter};
 
 pub mod full;
 #[cfg(test)]

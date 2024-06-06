@@ -1,11 +1,13 @@
-use crate::parse::full::{JsonParser, JsonParserBuilder};
-use crate::write::full::{JsonWriter, JsonWriterBuilder};
-use crate::write::SimpleJsonWriter;
+use std::fmt::Debug;
+
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
-use std::fmt::Debug;
+
+use crate::parse::full::{JsonParser, JsonParserBuilder};
+use crate::write::full::{JsonWriter, JsonWriterBuilder};
+use crate::write::SimpleJsonWriter;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 struct Foo {}

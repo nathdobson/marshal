@@ -1,10 +1,11 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+
 use marshal_core::{Primitive, PrimitiveType};
 use marshal_core::parse::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
 
-use crate::de::Deserialize;
 use crate::context::Context;
+use crate::de::Deserialize;
 
 impl<'de, P: Parser<'de>> Deserialize<'de, P> for () {
     fn deserialize(p: P::AnyParser<'_>, _: &mut Context) -> anyhow::Result<Self> {

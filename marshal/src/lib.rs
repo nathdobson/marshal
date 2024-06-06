@@ -12,6 +12,7 @@ pub mod ser;
 
 #[doc(hidden)]
 pub mod reexports {
-    pub use marshal_core;
     pub use anyhow;
+
+    pub use marshal_core;
 }

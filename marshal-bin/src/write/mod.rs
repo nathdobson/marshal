@@ -1,6 +1,7 @@
-use crate::to_from_vu128::{Array, ToFromVu128};
-use marshal_core::write::simple::SimpleWriter;
 use marshal_core::Primitive;
+use marshal_core::write::simple::SimpleWriter;
+
+use crate::to_from_vu128::{Array, ToFromVu128};
 
 pub struct BinSchema {}
 

@@ -1,4 +1,5 @@
 use std::array::TryFromSliceError;
+
 use vu128::{decode_u32, encode_u32};
 
 pub trait Array {

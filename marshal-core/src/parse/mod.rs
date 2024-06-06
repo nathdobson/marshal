@@ -2,8 +2,8 @@ use std::borrow::Cow;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
-use crate::{Primitive, PrimitiveType};
 
+use crate::{Primitive, PrimitiveType};
 
 pub mod depth_budget;
 pub mod poison;

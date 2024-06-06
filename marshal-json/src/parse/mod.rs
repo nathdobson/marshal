@@ -1,12 +1,15 @@
-use crate::parse::any::PeekType;
-use crate::parse::error::JsonError;
-use base64::prelude::BASE64_STANDARD_NO_PAD;
-use base64::Engine;
-use itertools::Itertools;
 use std::borrow::Cow;
+
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD_NO_PAD;
+use itertools::Itertools;
+
 use marshal_core::{Primitive, PrimitiveType};
 use marshal_core::parse::{ParseHint, ParseVariantHint};
 use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
+
+use crate::parse::any::PeekType;
+use crate::parse::error::JsonError;
 
 mod any;
 mod error;

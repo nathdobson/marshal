@@ -5,8 +5,9 @@ use marshal::context::Context;
 use marshal_core::{Primitive, PrimitiveType};
 use marshal_core::parse::{AnyParser, ParseHint, ParserView, SeqParser};
 use marshal_core::parse::simple::SimpleAnyParser;
-use crate::parse::full::parse_json;
+
 use crate::parse::{JsonAnyParser, SimpleJsonParser};
+use crate::parse::full::parse_json;
 use crate::value::JsonValue;
 
 #[test]
@@ -44,12 +45,12 @@ fn test_parsing() {
             .next()
             .unwrap();
         let contents = fs::read(dir.path()).unwrap();
-        println!("name={}", dir.path().to_str().unwrap());
-        if let Ok(contents) = std::str::from_utf8(&contents) {
-            println!("{}", contents);
-        } else {
-            println!("<err>");
-        }
+        // println!("name={}", dir.path().to_str().unwrap());
+        // if let Ok(contents) = std::str::from_utf8(&contents) {
+        //     println!("{}", contents);
+        // } else {
+        //     println!("<err>");
+        // }
         let output = parse_json::<JsonValue>(&contents, &mut Context::new());
         match expected {
             'i' => {}

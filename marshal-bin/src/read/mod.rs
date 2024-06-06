@@ -1,7 +1,9 @@
-use crate::to_from_vu128::{Array, ToFromVu128};
 use std::fmt::{Debug, Display, Formatter};
+
 use marshal_core::parse::{ParseHint, ParseVariantHint};
 use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
+
+use crate::to_from_vu128::{Array, ToFromVu128};
 
 pub struct BinReader<'de> {
     content: &'de [u8],

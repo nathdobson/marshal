@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::parse::{
-    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, ParseVariantHint, Parser, ParserView,
+    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, Parser, ParserView, ParseVariantHint,
     SeqParser, SomeParser,
 };
 

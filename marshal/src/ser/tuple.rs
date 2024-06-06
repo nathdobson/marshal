@@ -1,7 +1,8 @@
+use marshal_core::Primitive;
+use marshal_core::write::{AnyWriter, TupleWriter, Writer};
+
 use crate::context::Context;
 use crate::ser::Serialize;
-use marshal_core::write::{AnyWriter, TupleWriter, Writer};
-use marshal_core::Primitive;
 
 impl<W: Writer> Serialize<W> for () {
     fn serialize(&self, w: W::AnyWriter<'_>, _ctx: &mut Context) -> anyhow::Result<()> {

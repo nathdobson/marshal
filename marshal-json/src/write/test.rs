@@ -1,6 +1,7 @@
-use marshal_core::write::simple::SimpleAnyWriter;
 use marshal_core::Primitive;
 use marshal_core::write::{AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter, TupleStructWriter, TupleVariantWriter, TupleWriter};
+use marshal_core::write::simple::SimpleAnyWriter;
+
 use crate::write::SimpleJsonWriter;
 
 #[track_caller]

@@ -1,8 +1,10 @@
-use crate::context::Context;
-use crate::ser::Serialize;
-use marshal_core::write::{AnyWriter, EntryWriter, MapWriter, Writer};
 use std::collections::HashMap;
 use std::hash::Hash;
+
+use marshal_core::write::{AnyWriter, EntryWriter, MapWriter, Writer};
+
+use crate::context::Context;
+use crate::ser::Serialize;
 
 impl<W: Writer, K: Eq + Hash + Serialize<W>, V: Serialize<W>> Serialize<W> for HashMap<K, V> {
     fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()> {
