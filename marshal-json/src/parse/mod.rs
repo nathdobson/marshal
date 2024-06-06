@@ -10,7 +10,7 @@ use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
 
 mod any;
 mod error;
-mod full;
+pub mod full;
 mod number;
 mod read;
 mod string;

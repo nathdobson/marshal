@@ -1,7 +1,10 @@
 use std::marker::PhantomData;
 
+use crate::write::{
+    AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
+    TupleStructWriter, TupleVariantWriter, TupleWriter, Writer,
+};
 use crate::Primitive;
-use crate::write::{AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter, TupleStructWriter, TupleVariantWriter, TupleWriter, Writer};
 
 pub trait SimpleWriter {
     type AnyWriter;
@@ -84,8 +87,7 @@ pub trait SimpleWriter {
     ) -> anyhow::Result<Self::AnyWriter>;
     fn tuple_end(&mut self, tuple: Self::TupleWriter) -> anyhow::Result<()>;
 
-    fn seq_write_element(&mut self, seq: &mut Self::SeqWriter)
-        -> anyhow::Result<Self::AnyWriter>;
+    fn seq_write_element(&mut self, seq: &mut Self::SeqWriter) -> anyhow::Result<Self::AnyWriter>;
     fn seq_end(&mut self, tuple: Self::SeqWriter) -> anyhow::Result<()>;
 
     fn map_write_element(

@@ -7,6 +7,7 @@
 mod parse;
 mod write;
 mod value;
+#[cfg(test)]
 mod test;
 
 pub fn add(left: usize, right: usize) -> usize {

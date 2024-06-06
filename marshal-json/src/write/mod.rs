@@ -10,8 +10,9 @@ use base64::Engine;
 
 #[cfg(test)]
 mod test;
+pub mod full;
 
-pub struct JsonWriter {
+pub struct SimpleJsonWriter {
     output: Vec<u8>,
     current_indentation: Option<usize>,
 }
@@ -30,14 +31,14 @@ impl Display for JsonWriterError {
 
 impl Error for JsonWriterError {}
 
-impl JsonWriter {
+impl SimpleJsonWriter {
     pub fn new() -> Self {
-        JsonWriter {
+        SimpleJsonWriter {
             output: vec![],
             current_indentation: Some(0),
         }
     }
-    pub fn start(&mut self) -> SimpleAnyWriter<JsonWriter> {
+    pub fn start(&mut self) -> SimpleAnyWriter<SimpleJsonWriter> {
         SimpleAnyWriter::new(
             self,
             JsonAnyWriter {
@@ -120,7 +121,7 @@ impl JsonWriter {
     }
 }
 
-impl SimpleWriter for JsonWriter {
+impl SimpleWriter for SimpleJsonWriter {
     type AnyWriter = JsonAnyWriter;
     type SomeCloser = JsonSomeCloser;
     type TupleWriter = JsonTupleWriter;

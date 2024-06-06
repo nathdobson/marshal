@@ -6,7 +6,7 @@ use marshal_core::parse::Parser;
 use marshal_core::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
 use marshal_core::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
 
-type JsonParser<'de> = PoisonParser<DepthBudgetParser<SimpleParserAdapter<SimpleJsonParser<'de>>>>;
+pub type JsonParser<'de> = PoisonParser<DepthBudgetParser<SimpleParserAdapter<SimpleJsonParser<'de>>>>;
 
 pub struct JsonParserBuilder<'de> {
     poison: PoisonState,

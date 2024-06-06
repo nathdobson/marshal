@@ -6,6 +6,12 @@
 #![feature(never_type)]
 #![feature(try_blocks)]
 
-pub mod de;
-mod ser;
 pub mod context;
+pub mod de;
+pub mod ser;
+
+#[doc(hidden)]
+pub mod reexports {
+    pub use marshal_core;
+    pub use anyhow;
+}

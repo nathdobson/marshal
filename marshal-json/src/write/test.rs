@@ -1,14 +1,14 @@
 use marshal_core::write::simple::SimpleAnyWriter;
 use marshal_core::Primitive;
 use marshal_core::write::{AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter, TupleStructWriter, TupleVariantWriter, TupleWriter};
-use crate::write::JsonWriter;
+use crate::write::SimpleJsonWriter;
 
 #[track_caller]
 fn run_simple(
     expected: &str,
-    f: impl FnOnce(SimpleAnyWriter<JsonWriter>) -> anyhow::Result<()>,
+    f: impl FnOnce(SimpleAnyWriter<SimpleJsonWriter>) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let mut w = JsonWriter::new();
+    let mut w = SimpleJsonWriter::new();
     f(w.start())?;
     let actual = w.end()?;
     let expected = expected.trim_start();
@@ -22,7 +22,7 @@ fn run_simple(
 
 #[test]
 fn test_empty_string() -> anyhow::Result<()> {
-    let mut w = JsonWriter::new();
+    let mut w = SimpleJsonWriter::new();
     w.start().write_str("")?;
     assert_eq!(w.end()?, "\"\"");
     Ok(())
@@ -30,7 +30,7 @@ fn test_empty_string() -> anyhow::Result<()> {
 
 #[test]
 fn test_ascii() -> anyhow::Result<()> {
-    let mut w = JsonWriter::new();
+    let mut w = SimpleJsonWriter::new();
     w.start().write_str("abc")?;
     assert_eq!(w.end()?, "\"abc\"");
     Ok(())
@@ -38,7 +38,7 @@ fn test_ascii() -> anyhow::Result<()> {
 
 #[test]
 fn test_escape() -> anyhow::Result<()> {
-    let mut w = JsonWriter::new();
+    let mut w = SimpleJsonWriter::new();
     w.start()
         .write_str("\" \\ \n \r \u{0000} ' \u{000b} \t \u{000c} \u{0008}")?;
     assert_eq!(w.end()?, r#""\" \\ \n \r \u0000 ' \u000b \t \f \b""#);
@@ -47,7 +47,7 @@ fn test_escape() -> anyhow::Result<()> {
 
 #[test]
 fn test_surrogate() -> anyhow::Result<()> {
-    let mut w = JsonWriter::new();
+    let mut w = SimpleJsonWriter::new();
     w.start().write_str("🫎")?;
     assert_eq!(w.end()?, r#""🫎""#);
     Ok(())
