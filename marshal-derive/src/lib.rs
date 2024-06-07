@@ -29,6 +29,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 semi_token,
             } = data;
             let parser_trait = quote!(::marshal::reexports::marshal_core::parse::Parser);
+            let primitive_type = quote!(::marshal::reexports::marshal_core::Primitive);
 
             let any_parser_trait = quote!(::marshal::reexports::marshal_core::parse::AnyParser);
             let any_parser_type = quote!(<P as #parser_trait<'de>>::AnyParser<'_>);
@@ -88,6 +89,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                     )*
                                                     _ => todo!("x"),
                                                 },
+                                                #parser_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
                                                 _=>todo!("A")
                                             };
                                             match field_index {
@@ -177,9 +179,13 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     output = quote! {
                         impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
                             fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
-                                let mut writer = #as_any_writer::write_struct(writer, #type_name, #field_count)?;
+                                let mut writer = #as_any_writer::write_struct(writer, #type_name, &[
+                                        #(
+                                            #field_name_literals
+                                        ),*
+                                    ])?;
                                 #(
-                                    #serialize_trait::<W>::serialize(&self.#field_names, #as_struct_writer::write_field(&mut writer,#field_name_literals)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(&self.#field_names, #as_struct_writer::write_field(&mut writer)?, ctx)?;
                                 )*
                                 #as_struct_writer::end(writer)?;
                                 Ok(())

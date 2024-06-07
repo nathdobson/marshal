@@ -1,6 +1,9 @@
-use marshal_core::Primitive;
-use marshal_core::write::{AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter, TupleStructWriter, TupleVariantWriter, TupleWriter};
 use marshal_core::write::simple::SimpleAnyWriter;
+use marshal_core::write::{
+    AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
+    TupleStructWriter, TupleVariantWriter, TupleWriter,
+};
+use marshal_core::Primitive;
 
 use crate::write::SimpleJsonWriter;
 
@@ -298,7 +301,7 @@ fn test_tuple_struct() -> anyhow::Result<()> {
 #[test]
 fn test_struct() -> anyhow::Result<()> {
     run_simple("{}", |w| {
-        let mut w = w.write_struct("", 0)?;
+        let mut w = w.write_struct("", &[])?;
         w.end()?;
         Ok(())
     })?;
@@ -308,8 +311,8 @@ fn test_struct() -> anyhow::Result<()> {
   "a": 4
 }"#,
         |w| {
-            let mut w = w.write_struct("", 0)?;
-            w.write_field("a")?.write_prim(Primitive::U32(4))?;
+            let mut w = w.write_struct("", &["a"])?;
+            w.write_field()?.write_prim(Primitive::U32(4))?;
             w.end()?;
             Ok(())
         },
@@ -321,9 +324,9 @@ fn test_struct() -> anyhow::Result<()> {
   "c": 8
 }"#,
         |w| {
-            let mut w = w.write_struct("", 0)?;
-            w.write_field("b")?.write_prim(Primitive::U32(4))?;
-            w.write_field("c")?.write_prim(Primitive::U32(8))?;
+            let mut w = w.write_struct("", &["b", "c"])?;
+            w.write_field()?.write_prim(Primitive::U32(4))?;
+            w.write_field()?.write_prim(Primitive::U32(8))?;
             w.end()?;
             Ok(())
         },

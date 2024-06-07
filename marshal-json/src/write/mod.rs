@@ -3,11 +3,11 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 
-use marshal_core::Primitive;
 use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriter};
+use marshal_core::Primitive;
 
 pub mod full;
 #[cfg(test)]
@@ -251,7 +251,7 @@ impl SimpleWriter for SimpleJsonWriter {
         &mut self,
         any: Self::AnyWriter,
         _: &'static str,
-        _: usize,
+        _: &'static [&'static str],
     ) -> anyhow::Result<Self::StructWriter> {
         self.open_map(any.ctx)?;
         Ok(JsonStructWriter {
@@ -462,7 +462,7 @@ impl SimpleWriter for SimpleJsonWriter {
     fn struct_write_field(
         &mut self,
         s: &mut Self::StructWriter,
-        key: &'static str,
+        key: &'static str
     ) -> anyhow::Result<Self::AnyWriter> {
         let ctx = s.ctx.indent();
         if s.started {

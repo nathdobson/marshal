@@ -50,7 +50,7 @@ pub trait AnyWriter<'w, W: Writer> {
     fn write_struct(
         self,
         name: &'static str,
-        len: usize,
+        fields: &'static [&'static str],
     ) -> anyhow::Result<<W as Writer>::StructWriter<'w>>;
     fn write_unit_variant(
         self,
@@ -108,7 +108,7 @@ pub trait TupleStructWriter<'w, W: Writer> {
 }
 
 pub trait StructWriter<'w, W: Writer> {
-    fn write_field(&mut self, key: &'static str) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+    fn write_field(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
 

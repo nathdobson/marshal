@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
+use std::slice;
 
-use crate::Primitive;
 use crate::write::{
     AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
     TupleStructWriter, TupleVariantWriter, TupleWriter, Writer,
 };
+use crate::Primitive;
 
 pub trait SimpleWriter {
     type AnyWriter;
@@ -38,7 +39,7 @@ pub trait SimpleWriter {
         &mut self,
         any: Self::AnyWriter,
         name: &'static str,
-        len: usize,
+        fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructWriter>;
     fn write_unit_variant(
         &mut self,
@@ -111,7 +112,7 @@ pub trait SimpleWriter {
     fn struct_write_field(
         &mut self,
         map: &mut Self::StructWriter,
-        key: &'static str,
+        field: &'static str,
     ) -> anyhow::Result<Self::AnyWriter>;
     fn struct_end(&mut self, map: Self::StructWriter) -> anyhow::Result<()>;
 
@@ -187,11 +188,12 @@ impl<'w, T: SimpleWriter> AnyWriter<'w, SimpleWriterAdapter<T>> for SimpleAnyWri
     fn write_struct(
         mut self,
         name: &'static str,
-        len: usize,
+        fields: &'static [&'static str],
     ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::StructWriter<'w>> {
-        let inner = self.writer.write_struct(self.inner, name, len)?;
+        let inner = self.writer.write_struct(self.inner, name, fields)?;
         Ok(SimpleStructWriter {
             writer: self.writer,
+            fields: fields.iter(),
             inner,
         })
     }
@@ -408,15 +410,15 @@ impl<'w, T: SimpleWriter> TupleStructWriter<'w, SimpleWriterAdapter<T>>
 
 pub struct SimpleStructWriter<'w, T: SimpleWriter> {
     writer: &'w mut T,
+    fields: slice::Iter<'static, &'static str>,
     inner: T::StructWriter,
 }
 
 impl<'w, T: SimpleWriter> StructWriter<'w, SimpleWriterAdapter<T>> for SimpleStructWriter<'w, T> {
-    fn write_field(
-        &mut self,
-        key: &'static str,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        let inner = self.writer.struct_write_field(&mut self.inner, key)?;
+    fn write_field(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
+        let inner = self
+            .writer
+            .struct_write_field(&mut self.inner, self.fields.next().unwrap())?;
         Ok(SimpleAnyWriter {
             writer: self.writer,
             inner,

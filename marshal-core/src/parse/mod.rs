@@ -248,11 +248,14 @@ pub struct TypeMismatch {
 
 impl Display for TypeMismatch {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Actual type did not match expected type")
+        write!(
+            f,
+            "Actual type `{}' did not match expected type `{}'",
+            self.found, self.expected
+        )
     }
 }
 impl Error for TypeMismatch {}
-
 
 impl<'p, 'de, P: Parser<'de>> ParserView<'p, 'de, P> {
     pub fn try_into_seq(self) -> anyhow::Result<P::SeqParser<'p>> {
@@ -273,36 +276,76 @@ impl<'p, 'de, P: Parser<'de>> ParserView<'p, 'de, P> {
             unexpected => unexpected.mismatch("string")?,
         }
     }
+    pub fn kind(&self) -> &'static str {
+        match self {
+            ParserView::Primitive(p) => p.kind(),
+            ParserView::String(_) => "string",
+            ParserView::Bytes(_) => "bytes",
+            ParserView::None => "none",
+            ParserView::Some(_) => "some",
+            ParserView::Seq(_) => "seq",
+            ParserView::Map(_) => "map",
+            ParserView::Enum(_) => "enum",
+        }
+    }
     pub fn mismatch(&self, expected: &'static str) -> anyhow::Result<!> {
         Err(TypeMismatch {
-            found: match self {
-                ParserView::Primitive(p) => match p {
-                    Primitive::Unit => "unit",
-                    Primitive::Bool(_) => "bool",
-                    Primitive::I8(_) => "i8",
-                    Primitive::I16(_) => "i16",
-                    Primitive::I32(_) => "i32",
-                    Primitive::I64(_) => "i64",
-                    Primitive::I128(_) => "i128",
-                    Primitive::U8(_) => "u8",
-                    Primitive::U16(_) => "u16",
-                    Primitive::U32(_) => "u32",
-                    Primitive::U64(_) => "u64",
-                    Primitive::U128(_) => "u128",
-                    Primitive::F32(_) => "f32",
-                    Primitive::F64(_) => "f64",
-                    Primitive::Char(_) => "char",
-                },
-                ParserView::String(_) => "string",
-                ParserView::Bytes(_) => "bytes",
-                ParserView::None => "none",
-                ParserView::Some(_) => "some",
-                ParserView::Seq(_) => "seq",
-                ParserView::Map(_) => "map",
-                ParserView::Enum(_) => "enum",
-            },
+            found: self.kind(),
             expected,
         }
         .into())
+    }
+}
+
+impl Primitive {
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Primitive::Unit => "unit",
+            Primitive::Bool(_) => "bool",
+            Primitive::I8(_) => "i8",
+            Primitive::I16(_) => "i16",
+            Primitive::I32(_) => "i32",
+            Primitive::I64(_) => "i64",
+            Primitive::I128(_) => "i128",
+            Primitive::U8(_) => "u8",
+            Primitive::U16(_) => "u16",
+            Primitive::U32(_) => "u32",
+            Primitive::U64(_) => "u64",
+            Primitive::U128(_) => "u128",
+            Primitive::F32(_) => "f32",
+            Primitive::F64(_) => "f64",
+            Primitive::Char(_) => "char",
+        }
+    }
+    pub fn mismatch(&self, expected: &'static str) -> anyhow::Result<!> {
+        Err(TypeMismatch {
+            found: self.kind(),
+            expected,
+        }
+        .into())
+    }
+}
+
+impl TryFrom<Primitive> for usize {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Primitive) -> Result<Self, Self::Error> {
+        Ok(match value {
+            Primitive::Unit => 0,
+            Primitive::Bool(x) => x as Self,
+            Primitive::I8(x) => Self::try_from(x)?,
+            Primitive::I16(x) => Self::try_from(x)?,
+            Primitive::I32(x) => Self::try_from(x)?,
+            Primitive::I64(x) => Self::try_from(x)?,
+            Primitive::I128(x) => Self::try_from(x)?,
+            Primitive::U8(x) => Self::try_from(x)?,
+            Primitive::U16(x) => Self::try_from(x)?,
+            Primitive::U32(x) => Self::try_from(x)?,
+            Primitive::U64(x) => Self::try_from(x)?,
+            Primitive::U128(x) => Self::try_from(x)?,
+            Primitive::F32(x) => value.mismatch("u8")?,
+            Primitive::F64(x) => value.mismatch("u8")?,
+            Primitive::Char(x) => Self::try_from(x as u32)?,
+        })
     }
 }

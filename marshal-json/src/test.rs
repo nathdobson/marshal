@@ -34,8 +34,17 @@ fn test_rt() -> anyhow::Result<()> {
     struct Struct1 {
         x: u32,
     }
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+    struct Struct2 {
+        x: u32,
+        y: u32,
+    }
 
     test_round_trip(Struct0 {}, "{}")?;
     test_round_trip(Struct1 { x: 123 }, "{\n  \"x\": 123\n}")?;
+    test_round_trip(
+        Struct2 { x: 123, y: 234 },
+        "{\n  \"x\": 123,\n  \"y\": 234\n}",
+    )?;
     Ok(())
 }

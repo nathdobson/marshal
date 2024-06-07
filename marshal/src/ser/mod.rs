@@ -6,6 +6,7 @@ mod tuple;
 mod vec;
 mod map;
 mod number;
+mod string;
 
 pub trait Serialize<W: Writer> {
     fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()>;
