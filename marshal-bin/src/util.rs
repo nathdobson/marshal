@@ -1,12 +1,6 @@
-use lock_api::{Mutex, RawMutex};
-use safe_once::api::raw::RawFused;
 use safe_once::cell::{OnceCell, RawFusedCell};
 use safe_once_map::util::index_arena::IndexArena;
-use std::borrow::{Borrow, Cow};
 use std::cell::Cell;
-use std::collections::HashMap;
-use std::hash::{BuildHasher, Hash};
-use std::ops::Index;
 
 pub struct StableCellVec<T> {
     arena: IndexArena<RawFusedCell, OnceCell<T>>,

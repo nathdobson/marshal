@@ -3,7 +3,6 @@ pub mod full;
 use by_address::ByAddress;
 use marshal_core::write::simple::SimpleWriter;
 use marshal_core::Primitive;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
@@ -73,14 +72,14 @@ impl<'s> SimpleBinWriter<'s> {
     pub fn write_usize(&mut self, value: usize) -> anyhow::Result<()> {
         self.write_vu128(value as u64)
     }
-    pub fn write_bytes(&mut self, value: &[u8]) -> anyhow::Result<()> {
+    pub fn write_byte_slice(&mut self, value: &[u8]) -> anyhow::Result<()> {
         self.write_usize(value.len())?;
         self.write_raw(value)?;
         Ok(())
     }
 
-    pub fn write_str(&mut self, value: &str) -> anyhow::Result<()> {
-        self.write_bytes(value.as_bytes())
+    pub fn write_str_slice(&mut self, value: &str) -> anyhow::Result<()> {
+        self.write_byte_slice(value.as_bytes())
     }
     pub fn get_or_write_enum_def(
         &mut self,
@@ -92,7 +91,7 @@ impl<'s> SimpleBinWriter<'s> {
         self.write_tag(TypeTag::EnumDef)?;
         self.write_usize(variants.len())?;
         for x in variants {
-            self.write_str(x)?;
+            self.write_str_slice(x)?;
         }
         let new_index = self.schema.enum_def_indexes.len();
         self.schema
@@ -115,7 +114,7 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
     type TupleVariantWriter = ();
     type StructVariantWriter = ();
 
-    fn write_prim(&mut self, any: Self::AnyWriter, prim: Primitive) -> anyhow::Result<()> {
+    fn write_prim(&mut self, _any: Self::AnyWriter, prim: Primitive) -> anyhow::Result<()> {
         match prim {
             Primitive::Unit => {
                 self.write_tag(TypeTag::Unit)?;
@@ -180,39 +179,43 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         Ok(())
     }
 
-    fn write_str(&mut self, any: Self::AnyWriter, s: &str) -> anyhow::Result<()> {
+    fn write_str(&mut self, _any: Self::AnyWriter, s: &str) -> anyhow::Result<()> {
         self.write_tag(TypeTag::String)?;
-        self.write_str(s)?;
+        self.write_str_slice(s)?;
         Ok(())
     }
 
-    fn write_bytes(&mut self, any: Self::AnyWriter, s: &[u8]) -> anyhow::Result<()> {
-        todo!()
+    fn write_bytes(&mut self, _any: Self::AnyWriter, s: &[u8]) -> anyhow::Result<()> {
+        self.write_tag(TypeTag::Bytes)?;
+        self.write_byte_slice(s)?;
+        Ok(())
     }
 
-    fn write_none(&mut self, any: Self::AnyWriter) -> anyhow::Result<()> {
-        todo!()
+    fn write_none(&mut self, _any: Self::AnyWriter) -> anyhow::Result<()> {
+        self.write_tag(TypeTag::None)?;
+        Ok(())
     }
 
     fn write_some(
         &mut self,
-        any: Self::AnyWriter,
+        _any: Self::AnyWriter,
     ) -> anyhow::Result<(Self::AnyWriter, Self::SomeCloser)> {
-        todo!()
+        self.write_tag(TypeTag::Some)?;
+        Ok(((), ()))
     }
 
     fn write_unit_struct(
         &mut self,
-        any: Self::AnyWriter,
-        name: &'static str,
+        _any: Self::AnyWriter,
+        _name: &'static str,
     ) -> anyhow::Result<()> {
         self.write_tag(TypeTag::UnitStruct)
     }
 
     fn write_tuple_struct(
         &mut self,
-        any: Self::AnyWriter,
-        name: &'static str,
+        _any: Self::AnyWriter,
+        _name: &'static str,
         len: usize,
     ) -> anyhow::Result<Self::TupleStructWriter> {
         self.write_tag(TypeTag::TupleStruct)?;
@@ -222,8 +225,8 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
 
     fn write_struct(
         &mut self,
-        any: Self::AnyWriter,
-        name: &'static str,
+        _any: Self::AnyWriter,
+        _name: &'static str,
         fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructWriter> {
         let def = self.get_or_write_enum_def(fields)?;
@@ -234,8 +237,8 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
 
     fn write_unit_variant(
         &mut self,
-        any: Self::AnyWriter,
-        name: &'static str,
+        _any: Self::AnyWriter,
+        _name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
     ) -> anyhow::Result<()> {
@@ -249,13 +252,13 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
 
     fn write_tuple_variant(
         &mut self,
-        any: Self::AnyWriter,
-        name: &'static str,
+        _any: Self::AnyWriter,
+        _name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
         len: usize,
     ) -> anyhow::Result<Self::TupleVariantWriter> {
-        let enum_def=self.get_or_write_enum_def(variants)?;
+        let enum_def = self.get_or_write_enum_def(variants)?;
         self.write_tag(TypeTag::Enum)?;
         self.write_usize(enum_def)?;
         self.write_vu128(variant_index)?;
@@ -266,8 +269,8 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
 
     fn write_struct_variant(
         &mut self,
-        any: Self::AnyWriter,
-        name: &'static str,
+        _any: Self::AnyWriter,
+        _name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
         fields: &'static [&'static str],
@@ -284,7 +287,7 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
 
     fn write_seq(
         &mut self,
-        any: Self::AnyWriter,
+        _any: Self::AnyWriter,
         len: Option<usize>,
     ) -> anyhow::Result<Self::SeqWriter> {
         let len = len.ok_or(BinWriterError::MissingLen)?;
@@ -295,7 +298,7 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
 
     fn write_tuple(
         &mut self,
-        any: Self::AnyWriter,
+        _any: Self::AnyWriter,
         len: usize,
     ) -> anyhow::Result<Self::TupleWriter> {
         self.write_tag(TypeTag::Tuple)?;
@@ -305,100 +308,102 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
 
     fn write_map(
         &mut self,
-        any: Self::AnyWriter,
+        _any: Self::AnyWriter,
         len: Option<usize>,
     ) -> anyhow::Result<Self::MapWriter> {
-        todo!()
+        self.write_tag(TypeTag::Map)?;
+        self.write_usize(len.ok_or(BinWriterError::MissingLen)?)?;
+        Ok(())
     }
 
-    fn some_end(&mut self, some: Self::SomeCloser) -> anyhow::Result<()> {
-        todo!()
+    fn some_end(&mut self, _some: Self::SomeCloser) -> anyhow::Result<()> {
+        Ok(())
     }
 
     fn tuple_write_element(
         &mut self,
-        tuple: &mut Self::TupleWriter,
+        _tuple: &mut Self::TupleWriter,
     ) -> anyhow::Result<Self::AnyWriter> {
         Ok(())
     }
 
-    fn tuple_end(&mut self, tuple: Self::TupleWriter) -> anyhow::Result<()> {
+    fn tuple_end(&mut self, _tuple: Self::TupleWriter) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn seq_write_element(&mut self, seq: &mut Self::SeqWriter) -> anyhow::Result<Self::AnyWriter> {
+    fn seq_write_element(&mut self, _seq: &mut Self::SeqWriter) -> anyhow::Result<Self::AnyWriter> {
         Ok(())
     }
 
-    fn seq_end(&mut self, tuple: Self::SeqWriter) -> anyhow::Result<()> {
+    fn seq_end(&mut self, _tuple: Self::SeqWriter) -> anyhow::Result<()> {
         Ok(())
     }
 
     fn map_write_element(
         &mut self,
-        map: &mut Self::MapWriter,
+        _map: &mut Self::MapWriter,
     ) -> anyhow::Result<(Self::AnyWriter, Self::ValueWriter)> {
-        todo!()
+        Ok(((), ()))
     }
 
-    fn map_end(&mut self, map: Self::MapWriter) -> anyhow::Result<()> {
-        todo!()
+    fn map_end(&mut self, _map: Self::MapWriter) -> anyhow::Result<()> {
+        Ok(())
     }
 
     fn entry_write_value(
         &mut self,
-        value: Self::ValueWriter,
+        _value: Self::ValueWriter,
     ) -> anyhow::Result<(Self::AnyWriter, Self::EntryCloser)> {
-        todo!()
+        Ok(((), ()))
     }
 
-    fn entry_end(&mut self, closer: Self::EntryCloser) -> anyhow::Result<()> {
-        todo!()
+    fn entry_end(&mut self, _closer: Self::EntryCloser) -> anyhow::Result<()> {
+        Ok(())
     }
 
     fn tuple_struct_write_field(
         &mut self,
-        tuple: &mut Self::TupleStructWriter,
+        _tuple: &mut Self::TupleStructWriter,
     ) -> anyhow::Result<Self::AnyWriter> {
         Ok(())
     }
 
-    fn tuple_struct_end(&mut self, map: Self::TupleStructWriter) -> anyhow::Result<()> {
+    fn tuple_struct_end(&mut self, _map: Self::TupleStructWriter) -> anyhow::Result<()> {
         Ok(())
     }
 
     fn struct_write_field(
         &mut self,
-        map: &mut Self::StructWriter,
-        field: &'static str,
+        _map: &mut Self::StructWriter,
+        _field: &'static str,
     ) -> anyhow::Result<Self::AnyWriter> {
         Ok(())
     }
 
-    fn struct_end(&mut self, map: Self::StructWriter) -> anyhow::Result<()> {
+    fn struct_end(&mut self, _map: Self::StructWriter) -> anyhow::Result<()> {
         Ok(())
     }
 
     fn tuple_variant_write_field(
         &mut self,
-        map: &mut Self::TupleVariantWriter,
+        _map: &mut Self::TupleVariantWriter,
     ) -> anyhow::Result<Self::AnyWriter> {
         Ok(())
     }
 
-    fn tuple_variant_end(&mut self, map: Self::TupleVariantWriter) -> anyhow::Result<()> {
+    fn tuple_variant_end(&mut self, _map: Self::TupleVariantWriter) -> anyhow::Result<()> {
         Ok(())
     }
 
     fn struct_variant_write_field(
         &mut self,
-        map: &mut Self::StructVariantWriter,
-        key: &'static str,
+        _map: &mut Self::StructVariantWriter,
+        _key: &'static str,
     ) -> anyhow::Result<Self::AnyWriter> {
         Ok(())
     }
 
-    fn struct_variant_end(&mut self, map: Self::StructVariantWriter) -> anyhow::Result<()> {
+    fn struct_variant_end(&mut self, _map: Self::StructVariantWriter) -> anyhow::Result<()> {
         Ok(())
     }
 }

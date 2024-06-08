@@ -5,6 +5,8 @@
 #![allow(dead_code)]
 #![feature(never_type)]
 #![feature(try_blocks)]
+#![feature(specialization)]
+#![allow(incomplete_features)]
 
 pub mod context;
 pub mod de;

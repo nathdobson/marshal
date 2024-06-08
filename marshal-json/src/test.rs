@@ -7,7 +7,6 @@ use marshal_derive::{Deserialize, Serialize};
 
 use crate::parse::full::{JsonParser, JsonParserBuilder};
 use crate::write::full::{JsonWriter, JsonWriterBuilder};
-use crate::write::SimpleJsonWriter;
 
 fn test_round_trip<
     T: Debug + Eq + Serialize<JsonWriter> + for<'de> Deserialize<'de, JsonParser<'de>>,

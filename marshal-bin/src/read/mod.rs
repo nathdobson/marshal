@@ -2,10 +2,8 @@ pub mod full;
 
 use by_address::ByAddress;
 use num_traits::FromPrimitive;
-use safe_once::cell::{OnceCell, RawFusedCell};
 use safe_once_map::cell::OnceCellMap;
 use std::borrow::Cow;
-use std::cell::Cell;
 use std::fmt::{Debug, Display, Formatter};
 
 use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
@@ -15,8 +13,6 @@ use marshal_core::{Primitive, PrimitiveType};
 use crate::to_from_vu128::{Array, ToFromVu128};
 use crate::util::StableCellVec;
 use crate::{TypeTag, VU128_MAX_PADDING};
-use safe_once_map::util::index_arena::IndexArena;
-use safe_once_map::util::StableMap;
 
 type EnumDefNative = &'static [&'static str];
 
@@ -89,33 +85,33 @@ impl<'de, 's> SimpleBinParser<'de, 's> {
 }
 
 impl<'de, 's> SimpleBinParser<'de, 's> {
-    pub fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
+    fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
         Ok(self.content.take(..count).ok_or(BinParserError::Eof)?)
     }
-    pub fn read_vu128<T: ToFromVu128 + Display>(&mut self) -> anyhow::Result<T> {
+    fn read_vu128<T: ToFromVu128 + Display>(&mut self) -> anyhow::Result<T> {
         let (value, count) = T::decode_vu128(T::Buffer::try_from_slice(
             &self.content[..T::Buffer::ARRAY_LEN],
         )?);
         self.content.take(..count).ok_or(BinParserError::Eof)?;
         Ok(value)
     }
-    pub fn read_usize(&mut self) -> anyhow::Result<usize> {
+    fn read_usize(&mut self) -> anyhow::Result<usize> {
         Ok(usize::try_from(self.read_vu128::<u64>()?)?)
     }
-    pub fn parse_type_tag(&mut self) -> anyhow::Result<TypeTag> {
+    fn parse_type_tag(&mut self) -> anyhow::Result<TypeTag> {
         Ok(TypeTag::from_u8(self.read_count(1)?[0]).ok_or(BinParserError::BadTag)?)
     }
-    pub fn read_bytes(&mut self) -> anyhow::Result<&'de [u8]> {
+    fn read_bytes(&mut self) -> anyhow::Result<&'de [u8]> {
         let len = self.read_usize()?;
         self.read_count(len)
     }
-    pub fn read_str(&mut self) -> anyhow::Result<&'de str> {
+    fn read_str(&mut self) -> anyhow::Result<&'de str> {
         Ok(std::str::from_utf8(self.read_bytes()?)?)
     }
-    pub fn read_enum_def(&mut self) -> anyhow::Result<()> {
+    fn read_enum_def(&mut self) -> anyhow::Result<()> {
         let count = self.read_usize()?;
         let fields = (0..count)
-            .map(|x| Ok(self.read_str()?.to_string()))
+            .map(|_| Ok(self.read_str()?.to_string()))
             .collect::<anyhow::Result<Vec<_>>>()?;
         let def = EnumDefForeign {
             fields,
@@ -126,7 +122,7 @@ impl<'de, 's> SimpleBinParser<'de, 's> {
         println!("at index {}", index);
         Ok(())
     }
-    pub fn read_enum_def_ref(&mut self) -> anyhow::Result<&'s EnumDefForeign> {
+    fn read_enum_def_ref(&mut self) -> anyhow::Result<&'s EnumDefForeign> {
         let index = self.read_usize()?;
         Ok(self
             .schema
@@ -282,7 +278,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                 TypeTag::Struct => {
                     let enum_def = self.read_enum_def_ref()?;
                     let fields = match hint {
-                        ParseHint::Struct { name, fields } => Some(fields),
+                        ParseHint::Struct { name: _, fields } => Some(fields),
                         _ => None,
                     };
                     let trans = enum_def.get_translation(fields);
@@ -298,7 +294,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                     let enum_def = self.read_enum_def_ref()?;
                     let variant = self.read_usize()?;
                     let variants = match hint {
-                        ParseHint::Enum { variants, name } => Some(variants),
+                        ParseHint::Enum { name: _, variants } => Some(variants),
                         _ => None,
                     };
                     let variant = &enum_def.get_translation(variants).keys[variant];
@@ -318,6 +314,9 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                 TypeTag::EnumDef => self.read_enum_def()?,
                 TypeTag::String => return Ok(SimpleParserView::String(self.read_str()?.into())),
                 TypeTag::UnitStruct => return Ok(SimpleParserView::Primitive(Primitive::Unit)),
+                TypeTag::Bytes => return Ok(SimpleParserView::Bytes(self.read_bytes()?.into())),
+                TypeTag::None => todo!(),
+                TypeTag::Some => todo!(),
             };
         }
     }
@@ -367,7 +366,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         }
     }
 
-    fn parse_entry_value(&mut self, value: Self::ValueParser) -> anyhow::Result<Self::AnyParser> {
+    fn parse_entry_value(&mut self, _: Self::ValueParser) -> anyhow::Result<Self::AnyParser> {
         Ok(BinAnyParser::Read)
     }
 
@@ -386,7 +385,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
 
     fn parse_enum_variant(
         &mut self,
-        e: Self::VariantParser,
+        _: Self::VariantParser,
         hint: ParseVariantHint,
     ) -> anyhow::Result<SimpleParserView<'de, Self>> {
         self.parse(

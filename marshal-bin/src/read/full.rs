@@ -1,5 +1,4 @@
 use crate::read::{BinAnyParser, BinParserSchema, SimpleBinParser};
-use crate::write::SimpleBinWriter;
 use marshal_core::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
 use marshal_core::parse::Parser;
 

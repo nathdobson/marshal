@@ -1,4 +1,4 @@
-use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriter, SimpleWriterAdapter};
+use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriterAdapter};
 use marshal_core::write::Writer;
 
 use crate::write::{JsonAnyWriter, SimpleJsonWriter};

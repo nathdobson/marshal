@@ -6,7 +6,7 @@ use marshal_core::Primitive;
 macro_rules! derive_number {
     ($t:ty, $v:ident) => {
         impl<W: Writer> Serialize<W> for $t {
-            fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize(&self, w: W::AnyWriter<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
                 w.write_prim(Primitive::$v(*self))
             }
         }

@@ -63,8 +63,8 @@ impl TryFrom<Primitive> for usize {
             Primitive::U32(x) => Self::try_from(x)?,
             Primitive::U64(x) => Self::try_from(x)?,
             Primitive::U128(x) => Self::try_from(x)?,
-            Primitive::F32(x) => value.mismatch("u8")?,
-            Primitive::F64(x) => value.mismatch("u8")?,
+            Primitive::F32(_) => value.mismatch("u8")?,
+            Primitive::F64(_) => value.mismatch("u8")?,
             Primitive::Char(x) => Self::try_from(x as u32)?,
         })
     }

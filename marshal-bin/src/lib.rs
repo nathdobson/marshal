@@ -43,4 +43,7 @@ pub enum TypeTag {
     Map = 20,
     EnumDef = 21,
     String = 22,
+    Bytes = 24,
+    None = 25,
+    Some = 26,
 }

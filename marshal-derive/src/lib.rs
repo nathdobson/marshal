@@ -1,3 +1,6 @@
+#![deny(unused_must_use)]
+#![deny(warnings)]
+
 extern crate proc_macro;
 
 use proc_macro2::{Ident, TokenStream};
@@ -19,16 +22,15 @@ fn ident_to_lit(ident: &Ident) -> LitStr {
 
 fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error> {
     let DeriveInput {
-        attrs: type_attrs,
-        vis: type_vis,
+        attrs: _,
+        vis: _,
         ident: type_ident,
-        generics: type_generics,
+        generics: _,
         data,
     } = input;
     let output: TokenStream2;
     let parser_trait = quote!(::marshal::reexports::marshal_core::parse::Parser);
     let primitive_type = quote!(::marshal::reexports::marshal_core::Primitive);
-    let primitive_type_type = quote!(::marshal::reexports::marshal_core::PrimitiveType);
 
     let any_parser_trait = quote!(::marshal::reexports::marshal_core::parse::AnyParser);
     let any_parser_type = quote!(<P as #parser_trait<'de>>::AnyParser<'_>);
@@ -63,9 +65,9 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
     match data {
         Data::Struct(data) => {
             let DataStruct {
-                struct_token,
+                struct_token: _,
                 fields,
-                semi_token,
+                semi_token: _,
             } = data;
 
             match fields {
@@ -83,6 +85,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                     let field_name_indexes = (0..fields.named.len()).collect::<Vec<_>>();
                     output = quote! {
                         impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                            #[allow(unreachable_code)]
                             fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
                                 let hint = #parse_hint_type::Struct{
                                     fields: &[
@@ -180,8 +183,8 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
         }
         Data::Enum(data) => {
             let DataEnum {
-                enum_token,
-                brace_token,
+                enum_token: _,
+                brace_token: _,
                 variants,
             } = data;
             let mut variant_names: Vec<LitStr> = vec![];
@@ -191,12 +194,12 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
             let mut matches: Vec<TokenStream> = vec![];
             for (variant_index, variant) in variants.iter().enumerate() {
                 let Variant {
-                    attrs,
+                    attrs: _,
                     ident: variant_ident,
                     fields,
-                    discriminant,
+                    discriminant: _,
                 } = variant;
-                match &variant.fields {
+                match &fields {
                     Fields::Named(fields) => {
                         let field_idents:Vec<_>=fields.named.iter().map(|x|x.ident.as_ref().unwrap()).collect();
                         let field_types:Vec<_> =fields.named.iter().map(|x|&x.ty).collect();
@@ -345,10 +348,10 @@ pub fn derive_serialize(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
 fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error> {
     let DeriveInput {
-        attrs: type_attrs,
-        vis: type_vis,
+        attrs: _,
+        vis: _,
         ident: type_ident,
-        generics: type_generics,
+        generics: _,
         data,
     } = input;
     let output: TokenStream2;
@@ -385,9 +388,9 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
     match data {
         Data::Struct(data) => {
             let DataStruct {
-                struct_token,
+                struct_token: _,
                 fields,
-                semi_token,
+                semi_token: _,
             } = data;
             match fields {
                 Fields::Unit => {
@@ -400,7 +403,6 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     }
                 }
                 Fields::Named(fields) => {
-                    let field_count = fields.named.len();
                     let field_names = fields
                         .named
                         .iter()
@@ -430,7 +432,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 }
                 Fields::Unnamed(fields) => {
                     let field_count = fields.unnamed.len();
-                    let field_index = 0..field_count;
+                    let field_index: Vec<_> = (0..field_count).map(syn::Index::from).collect();
                     output = quote! {
                         impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
                             fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
@@ -448,20 +450,19 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
         }
         Data::Enum(data) => {
             let DataEnum {
-                enum_token,
-                brace_token,
+                enum_token: _,
+                brace_token: _,
                 variants,
             } = data;
             let mut matches = vec![];
             let variant_names: Vec<_> = variants.iter().map(|x| ident_to_lit(&x.ident)).collect();
             for (variant_index, variant) in variants.iter().enumerate() {
                 let Variant {
-                    attrs: variant_attrs,
+                    attrs: _,
                     ident: variant_ident,
-                    fields: variant_fields,
-                    discriminant: variant_discriminant,
+                    fields: _,
+                    discriminant: _,
                 } = variant;
-                let variant_name = ident_to_lit(&variant_ident);
                 let variant_index = variant_index as u32;
                 match &variant.fields {
                     Fields::Named(fields) => {
