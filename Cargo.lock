@@ -267,6 +267,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "marshal-structural"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "marshal",
+ "marshal-core",
+ "marshal-json",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

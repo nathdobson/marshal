@@ -1,0 +1,12 @@
+[package]
+name = "marshal-structural"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = {workspace=true}
+marshal = {workspace=true}
+marshal-core = {workspace=true}
+
+[dev-dependencies]
+marshal-json = {workspace=true}

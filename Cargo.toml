@@ -2,7 +2,7 @@
 resolver = "2"
 
 members = [
-    "marshal", "marshal-bin", "marshal-core", "marshal-derive", "marshal-json",
+    "marshal", "marshal-bin", "marshal-core", "marshal-derive", "marshal-json", "marshal-structural",
 ]
 
 [workspace.dependencies]

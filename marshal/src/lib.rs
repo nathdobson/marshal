@@ -12,7 +12,6 @@
 pub mod context;
 pub mod de;
 pub mod ser;
-mod structural;
 
 #[doc(hidden)]
 pub mod reexports {

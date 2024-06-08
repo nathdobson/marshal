@@ -36,7 +36,7 @@ impl<'de> JsonDecoderBuilder<'de> {
             ),
         )
     }
-    pub fn decode<T: Deserialize<'de, JsonDecoder<'de>>>(
+    pub fn deserialize<T: Deserialize<'de, JsonDecoder<'de>>>(
         mut self,
         ctx: &mut Context,
     ) -> anyhow::Result<T> {
@@ -49,11 +49,4 @@ impl<'de> JsonDecoderBuilder<'de> {
         self.decoder.end_parsing()?;
         Ok(())
     }
-}
-
-pub fn decode_json<'de, T: Deserialize<'de, JsonDecoder<'de>>>(
-    data: &'de [u8],
-    ctx: &mut Context,
-) -> anyhow::Result<T> {
-    JsonDecoderBuilder::new(data).decode(ctx)
 }

@@ -5,8 +5,8 @@
 #![allow(dead_code)]
 #![feature(never_type)]
 
-mod decode;
-mod encode;
-mod value;
+pub mod decode;
+pub mod encode;
+pub mod value;
 #[cfg(test)]
 mod test;
