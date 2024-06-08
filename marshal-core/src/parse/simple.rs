@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::marker::PhantomData;
 
 use crate::parse::{
-    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, Parser, ParserView, ParseVariantHint,
+    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, ParseVariantHint, Parser, ParserView,
     SeqParser, SomeParser,
 };
 use crate::Primitive;
@@ -30,7 +30,9 @@ pub trait SimpleParser<'de> {
     type ValueParser;
     type DiscriminantParser;
     type VariantParser;
+    type EnumCloser;
     type SomeParser;
+    type SomeCloser;
 
     fn parse(
         &mut self,
@@ -65,7 +67,16 @@ pub trait SimpleParser<'de> {
         &mut self,
         e: Self::VariantParser,
         hint: ParseVariantHint,
-    ) -> anyhow::Result<SimpleParserView<'de, Self>>;
+    ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)>;
+
+    fn parse_enum_end(&mut self, e: Self::EnumCloser) -> anyhow::Result<()>;
+
+    fn parse_some_inner(
+        &mut self,
+        e: Self::SomeParser,
+    ) -> anyhow::Result<(Self::AnyParser, Self::SomeCloser)>;
+
+    fn parse_some_end(&mut self, p: Self::SomeCloser) -> anyhow::Result<()>;
 }
 
 pub struct SimpleAnyParser<'p, 'de, T: SimpleParser<'de>> {
@@ -93,11 +104,13 @@ pub struct SimpleEnumParser<'p, 'de, T: SimpleParser<'de>> {
     this: &'p mut T,
     discriminant: Option<T::DiscriminantParser>,
     variant: Option<T::VariantParser>,
+    closer: Option<T::EnumCloser>,
 }
 
 pub struct SimpleSomeParser<'p, 'de, T: SimpleParser<'de>> {
     this: &'p mut T,
-    some: Option<T::SomeParser>,
+    some_parser: Option<T::SomeParser>,
+    some_closer: Option<T::SomeCloser>,
 }
 
 impl<'de, T> Parser<'de> for SimpleParserAdapter<T>
@@ -121,7 +134,8 @@ impl<'de, T: SimpleParser<'de>> SimpleParserView<'de, T> {
             SimpleParserView::None => ParserView::None,
             SimpleParserView::Some(some) => ParserView::Some(SimpleSomeParser {
                 this,
-                some: Some(some),
+                some_parser: Some(some),
+                some_closer: None,
             }),
             SimpleParserView::Seq(seq) => ParserView::Seq(SimpleSeqParser { this, seq }),
             SimpleParserView::Map(map) => ParserView::Map(SimpleMapParser { this, map }),
@@ -129,6 +143,7 @@ impl<'de, T: SimpleParser<'de>> SimpleParserView<'de, T> {
                 this,
                 discriminant: Some(data),
                 variant: None,
+                closer: None,
             }),
         }
     }
@@ -221,14 +236,15 @@ where
         &'p2 mut self,
         hint: ParseVariantHint,
     ) -> anyhow::Result<ParserView<'p2, 'de, SimpleParserAdapter<T>>> {
-        let data = self
+        let (data, closer) = self
             .this
             .parse_enum_variant(self.variant.take().unwrap(), hint)?;
+        self.closer = Some(closer);
         Ok(data.wrap(self.this))
     }
 
     fn parse_end(mut self) -> anyhow::Result<()> {
-        todo!()
+        self.this.parse_enum_end(self.closer.take().unwrap())
     }
 }
 
@@ -237,11 +253,15 @@ where
     T: SimpleParser<'de>,
 {
     fn parse_some<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
-        todo!()
+        let (any, closer) = self
+            .this
+            .parse_some_inner(self.some_parser.take().unwrap())?;
+        self.some_closer = Some(closer);
+        Ok(SimpleAnyParser::new(self.this, any))
     }
 
     fn parse_end(mut self) -> anyhow::Result<()> {
-        todo!()
+        self.this.parse_some_end(self.some_closer.take().unwrap())
     }
 }
 

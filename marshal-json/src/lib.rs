@@ -3,6 +3,7 @@
 #![deny(unused_must_use)]
 #![allow(unused_mut)]
 #![allow(dead_code)]
+#![feature(never_type)]
 
 mod parse;
 mod write;

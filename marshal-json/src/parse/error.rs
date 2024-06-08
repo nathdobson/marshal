@@ -18,7 +18,7 @@ pub enum JsonError {
     FromUtf8Error,
     StringContainsControl,
     StringBadEscape,
-    UnexpectedIdentifer,
+    UnexpectedIdentifer { found: Vec<u8> },
     UnexpectedInitialCharacter { found: char },
     BadState,
     ExpectedString,
@@ -28,6 +28,7 @@ pub enum JsonError {
     TooManyChars,
     SchemaMismatch { hint: ParseHint, found: PeekType },
     UnexpectedNull,
+    BadOption,
 }
 
 impl Display for JsonError {

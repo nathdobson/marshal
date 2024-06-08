@@ -35,6 +35,11 @@ pub enum JsonSomeParser {
     Struct,
 }
 
+pub enum JsonSomeCloser {
+    Transparent,
+    Struct,
+}
+
 #[derive(Default)]
 pub struct JsonSeqParser {
     started: bool,
@@ -53,7 +58,9 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
     type ValueParser = ();
     type DiscriminantParser = ();
     type VariantParser = ();
+    type EnumCloser = ();
     type SomeParser = JsonSomeParser;
+    type SomeCloser = JsonSomeCloser;
 
     fn parse(
         &mut self,
@@ -72,7 +79,21 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             }
             (ParseHint::Option, PeekType::Map) if context.cannot_be_null => {
                 self.read_exact(b'{')?;
-                Ok(SimpleParserView::Some(JsonSomeParser::Struct))
+                let key=self.read_string()?;
+                match &*key{
+                    "None"=>{
+                        self.read_exact(b':')?;
+                        self.read_null()?;
+                        self.read_exact(b'}')?;
+                        Ok(SimpleParserView::None)
+                    },
+                    "Some"=>{
+                        self.read_exact(b':')?;
+                        Ok(SimpleParserView::Some(JsonSomeParser::Struct))
+                    },
+                    _=>return Err(JsonError::BadOption.into()),
+                }
+
             }
             (ParseHint::Option, PeekType::Null) => {
                 self.read_null()?;
@@ -309,15 +330,76 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
         &mut self,
         _: Self::DiscriminantParser,
     ) -> anyhow::Result<(Self::AnyParser, Self::VariantParser)> {
-        todo!()
+        Ok((
+            JsonAnyParser {
+                must_be_string: true,
+                cannot_be_null: false,
+            },
+            (),
+        ))
     }
 
     fn parse_enum_variant(
         &mut self,
         _: Self::VariantParser,
-        _: ParseVariantHint,
-    ) -> anyhow::Result<SimpleParserView<'de, Self>> {
-        todo!()
+        hint: ParseVariantHint,
+    ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)> {
+        self.read_exact(b':')?;
+        let hint = match hint {
+            ParseVariantHint::UnitVariant => ParseHint::Primitive(PrimitiveType::Unit),
+            ParseVariantHint::TupleVariant { len } => ParseHint::TupleStruct {
+                name: "<enum>",
+                len,
+            },
+            ParseVariantHint::StructVariant { fields } => ParseHint::Struct {
+                name: "<enum>",
+                fields,
+            },
+            ParseVariantHint::Ignore => ParseHint::Ignore,
+        };
+        Ok((
+            self.parse(
+                JsonAnyParser {
+                    must_be_string: false,
+                    cannot_be_null: false,
+                },
+                hint,
+            )?,
+            (),
+        ))
+    }
+
+    fn parse_enum_end(&mut self, e: Self::EnumCloser) -> anyhow::Result<()> {
+        self.read_exact(b'}')
+    }
+
+    fn parse_some_inner(
+        &mut self,
+        e: Self::SomeParser,
+    ) -> anyhow::Result<(Self::AnyParser, Self::SomeCloser)> {
+        match e {
+            JsonSomeParser::Transparent { must_be_string } => Ok((
+                JsonAnyParser {
+                    must_be_string,
+                    cannot_be_null: true,
+                },
+                JsonSomeCloser::Transparent,
+            )),
+            JsonSomeParser::Struct => Ok((
+                JsonAnyParser {
+                    must_be_string: false,
+                    cannot_be_null: false,
+                },
+                JsonSomeCloser::Struct,
+            )),
+        }
+    }
+
+    fn parse_some_end(&mut self, p: Self::SomeCloser) -> anyhow::Result<()> {
+        match p {
+            JsonSomeCloser::Transparent => Ok(()),
+            JsonSomeCloser::Struct => self.read_exact(b'}'),
+        }
     }
 }
 

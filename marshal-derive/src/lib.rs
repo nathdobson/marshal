@@ -158,7 +158,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 },
                                             )*
                                         );
-
+                                        #as_seq_parser::ignore(parser)?;
                                         Ok(result)
                                     },
                                     _ => todo!("b")
@@ -188,6 +188,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 variants,
             } = data;
             let mut variant_names: Vec<LitStr> = vec![];
+            let variant_indexes: Vec<usize> = (0..variants.len()).collect();
             for variant in variants {
                 variant_names.push(ident_to_lit(&variant.ident));
             }
@@ -276,6 +277,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 },
                                             )*
                                         );
+                                        #as_seq_parser::ignore(parser)?;
                                         result
                                     },
                                     _ => todo!("b")
@@ -312,7 +314,12 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                     let disc = #as_any_parser::parse(disc, #parse_hint_type::Identifier)?;
                                     match disc {
                                         #parser_view_type::Primitive(variant_index) => usize::try_from(variant_index)?,
-                                        #parser_view_type::String(_) => todo!("y"),
+                                        #parser_view_type::String(disc) => match &*disc {
+                                            #(
+                                                #variant_names => #variant_indexes,
+                                            )*
+                                            _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
+                                        },
                                         _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
                                     }
                                 };
@@ -320,6 +327,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                     #(#matches)*
                                     _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
                                 };
+                                #as_enum_parser::parse_end(parser)?;
                                 Ok(result)
                             },
                             _ => todo!("expected enum, but got something else"),

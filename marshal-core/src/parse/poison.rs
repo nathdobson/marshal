@@ -1,30 +1,30 @@
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::parse::{
-    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, Parser, ParserView, ParseVariantHint,
+    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, ParseVariantHint, Parser, ParserView,
     SeqParser, SomeParser,
 };
 
 pub struct PoisonParser<T>(PhantomData<T>);
 
 pub struct PoisonState {
-    poisoned: bool,
+    poisoned: Result<(), PoisonError>,
 }
 
 impl PoisonState {
     pub fn new() -> PoisonState {
-        PoisonState { poisoned: false }
+        PoisonState { poisoned: Ok(()) }
     }
 }
 
-#[derive(Debug)]
-pub struct PoisonError;
+#[derive(Copy, Clone, Debug)]
+pub struct PoisonError(&'static str);
 
 impl Display for PoisonError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "parser dropped before being fully consumed")
+        Debug::fmt(self, f)
     }
 }
 
@@ -32,21 +32,21 @@ impl Error for PoisonError {}
 
 pub struct PoisonGuard<'p> {
     state: Option<&'p mut PoisonState>,
+    message: &'static str,
 }
 
 impl PoisonState {
     pub fn check(self) -> Result<(), PoisonError> {
-        if self.poisoned {
-            Err(PoisonError)
-        } else {
-            Ok(())
-        }
+        self.poisoned
     }
 }
 
 impl<'p> PoisonGuard<'p> {
-    pub fn new(state: &'p mut PoisonState) -> Self {
-        PoisonGuard { state: Some(state) }
+    pub fn new(state: &'p mut PoisonState, message: &'static str) -> Self {
+        PoisonGuard {
+            state: Some(state),
+            message,
+        }
     }
     pub fn defuse(&mut self) -> &'p mut PoisonState {
         self.state.take().unwrap()
@@ -55,11 +55,7 @@ impl<'p> PoisonGuard<'p> {
         self.state.take().unwrap()
     }
     pub fn check(&self) -> Result<(), PoisonError> {
-        if self.state.as_ref().unwrap().poisoned {
-            Err(PoisonError)
-        } else {
-            Ok(())
-        }
+        self.state.as_ref().unwrap().poisoned
     }
     pub fn state<'p2>(&'p2 mut self) -> &'p2 mut PoisonState {
         self.state.as_mut().unwrap()
@@ -69,7 +65,8 @@ impl<'p> PoisonGuard<'p> {
 impl<'p> Drop for PoisonGuard<'p> {
     fn drop(&mut self) {
         if let Some(state) = self.state.take() {
-            state.poisoned = true;
+            println!("poisoned");
+            state.poisoned = Err(PoisonError(self.message));
         }
     }
 }
@@ -121,7 +118,7 @@ impl<'de, T: Parser<'de>> Parser<'de> for PoisonParser<T> {
 impl<'p, 'de, T: Parser<'de>> PoisonAnyParser<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::AnyParser<'p>) -> Self {
         PoisonAnyParser {
-            guard: PoisonGuard::new(state),
+            guard: PoisonGuard::new(state, "Did not call AnyParser::parse"),
             inner,
         }
     }
@@ -155,7 +152,7 @@ impl<'p, 'de, T: Parser<'de>> AnyParser<'p, 'de, PoisonParser<T>> for PoisonAnyP
 impl<'p, 'de, T: Parser<'de>> PoisonSeqParser<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::SeqParser<'p>) -> Self {
         PoisonSeqParser {
-            guard: PoisonGuard::new(state),
+            guard: PoisonGuard::new(state, "Did not finish consuming seq"),
             inner,
         }
     }
@@ -177,7 +174,7 @@ impl<'p, 'de, T: Parser<'de>> SeqParser<'p, 'de, PoisonParser<T>> for PoisonSeqP
 impl<'p, 'de, T: Parser<'de>> PoisonMapParser<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::MapParser<'p>) -> Self {
         PoisonMapParser {
-            guard: PoisonGuard::new(state),
+            guard: PoisonGuard::new(state, "Did not finish consuming map"),
             inner,
         }
     }
@@ -199,7 +196,7 @@ impl<'p, 'de, T: Parser<'de>> MapParser<'p, 'de, PoisonParser<T>> for PoisonMapP
 impl<'p, 'de, T: Parser<'de>> PoisonEntryParser<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::EntryParser<'p>) -> Self {
         PoisonEntryParser {
-            guard: PoisonGuard::new(state),
+            guard: PoisonGuard::new(state, "Did not finish consuming entry"),
             inner,
             read_key: false,
             read_value: false,
@@ -212,7 +209,7 @@ impl<'p, 'de, T: Parser<'de>> EntryParser<'p, 'de, PoisonParser<T>>
 {
     fn parse_key<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyParser<'p2, 'de, T>> {
         if self.read_key {
-            return Err(PoisonError.into());
+            return Err(PoisonError("already read key").into());
         }
         self.read_key = true;
         self.guard.check()?;
@@ -223,7 +220,7 @@ impl<'p, 'de, T: Parser<'de>> EntryParser<'p, 'de, PoisonParser<T>>
 
     fn parse_value<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyParser<'p2, 'de, T>> {
         if !self.read_key || self.read_value {
-            return Err(PoisonError.into());
+            return Err(PoisonError("already read value").into());
         }
         self.read_value = true;
         self.guard.check()?;
@@ -234,7 +231,7 @@ impl<'p, 'de, T: Parser<'de>> EntryParser<'p, 'de, PoisonParser<T>>
 
     fn parse_end(mut self) -> anyhow::Result<()> {
         if !self.read_value {
-            return Err(PoisonError.into());
+            return Err(PoisonError("did not read value").into());
         }
         self.guard.check()?;
         self.guard.defuse();
@@ -245,7 +242,7 @@ impl<'p, 'de, T: Parser<'de>> EntryParser<'p, 'de, PoisonParser<T>>
 impl<'p, 'de, T: Parser<'de>> PoisonEnumParser<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::EnumParser<'p>) -> Self {
         PoisonEnumParser {
-            guard: PoisonGuard::new(state),
+            guard: PoisonGuard::new(state, "Did not finish reading enum"),
             inner,
             read_discriminant: false,
             read_variant: false,
@@ -257,8 +254,9 @@ impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, PoisonParser<T>>
     for PoisonEnumParser<'p, 'de, T>
 {
     fn parse_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyParser<'p2, 'de, T>> {
+        println!("Reading discriminant");
         if self.read_discriminant {
-            return Err(PoisonError.into());
+            return Err(PoisonError("already read discriminant").into());
         }
         self.read_discriminant = true;
         self.guard.check()?;
@@ -271,8 +269,12 @@ impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, PoisonParser<T>>
         &'p2 mut self,
         hint: ParseVariantHint,
     ) -> anyhow::Result<ParserView<'p2, 'de, PoisonParser<T>>> {
-        if !self.read_discriminant || self.read_variant {
-            return Err(PoisonError.into());
+        println!("Reading variant");
+        if !self.read_discriminant {
+            return Err(PoisonError("did not read discriminant").into());
+        }
+        if self.read_variant {
+            return Err(PoisonError("already read variant").into());
         }
         self.read_variant = true;
         self.guard.check()?;
@@ -282,10 +284,12 @@ impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, PoisonParser<T>>
     }
 
     fn parse_end(mut self) -> anyhow::Result<()> {
+        println!("Ending enum");
         if !self.read_variant {
-            return Err(PoisonError.into());
+            return Err(PoisonError("Did not read variant").into());
         }
         self.guard.check()?;
+        self.inner.parse_end()?;
         self.guard.defuse();
         Ok(())
     }
@@ -294,7 +298,7 @@ impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, PoisonParser<T>>
 impl<'p, 'de, T: Parser<'de>> PoisonSomeParser<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::SomeParser<'p>) -> Self {
         PoisonSomeParser {
-            guard: PoisonGuard::new(state),
+            guard: PoisonGuard::new(state, "Did not finish reading some"),
             inner,
             read_some: false,
         }
@@ -306,7 +310,7 @@ impl<'p, 'de, T: Parser<'de>> SomeParser<'p, 'de, PoisonParser<T>>
 {
     fn parse_some<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyParser<'p2, 'de, T>> {
         if self.read_some {
-            return Err(PoisonError.into());
+            return Err(PoisonError("already read some").into());
         }
         self.read_some = true;
         self.guard.check()?;
@@ -316,9 +320,10 @@ impl<'p, 'de, T: Parser<'de>> SomeParser<'p, 'de, PoisonParser<T>>
 
     fn parse_end(mut self) -> anyhow::Result<()> {
         if !self.read_some {
-            return Err(PoisonError.into());
+            return Err(PoisonError("did not read some").into());
         }
         self.guard.check()?;
+        self.inner.parse_end()?;
         self.guard.defuse();
         Ok(())
     }

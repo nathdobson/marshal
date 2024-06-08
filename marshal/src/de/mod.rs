@@ -4,11 +4,13 @@ use marshal_core::parse::Parser;
 
 use crate::context::Context;
 
-mod hash_map;
+mod map;
 mod number;
 mod string;
 mod tuple;
 mod vec;
+mod never;
+mod option;
 
 pub trait Deserialize<'de, P: Parser<'de>>: Sized {
     fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &mut Context) -> anyhow::Result<Self>;
@@ -19,6 +21,7 @@ pub enum SchemaError {
     MissingField { field_name: &'static str },
     UnknownVariant,
     TupleTooShort,
+    Never
 }
 
 impl Display for SchemaError {

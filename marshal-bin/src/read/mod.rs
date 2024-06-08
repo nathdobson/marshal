@@ -167,14 +167,15 @@ pub struct BinSeqParser {
     len: usize,
 }
 
-pub struct BinMapParser<'s> {
-    schema: Option<&'s [EnumDefKey]>,
+pub enum BinMapParser<'s> {
+    WithSchema(&'s [EnumDefKey]),
+    WithLength(usize),
 }
 
 pub enum BinKeyParser<'s> {
     Foreign(&'s str),
     Native(usize),
-    Raw,
+    Read,
 }
 
 pub struct BinDiscriminantParser<'s> {
@@ -189,7 +190,9 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
     type ValueParser = ();
     type DiscriminantParser = BinDiscriminantParser<'s>;
     type VariantParser = ();
+    type EnumCloser = ();
     type SomeParser = ();
+    type SomeCloser = ();
 
     fn parse(
         &mut self,
@@ -282,9 +285,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                         _ => None,
                     };
                     let trans = enum_def.get_translation(fields);
-                    return Ok(SimpleParserView::Map(BinMapParser {
-                        schema: Some(&trans.keys),
-                    }));
+                    return Ok(SimpleParserView::Map(BinMapParser::WithSchema(&trans.keys)));
                 }
                 TypeTag::TupleStruct => {
                     let len = self.read_usize()?;
@@ -304,7 +305,10 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                     let len = self.read_usize()?;
                     return Ok(SimpleParserView::Seq(BinSeqParser { len }));
                 }
-                TypeTag::Map => todo!(),
+                TypeTag::Map => {
+                    let len = self.read_usize()?;
+                    return Ok(SimpleParserView::Map(BinMapParser::WithLength(len)));
+                }
                 TypeTag::Tuple => {
                     let len = self.read_vu128::<u64>()?;
                     return Ok(SimpleParserView::Seq(BinSeqParser {
@@ -315,8 +319,8 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                 TypeTag::String => return Ok(SimpleParserView::String(self.read_str()?.into())),
                 TypeTag::UnitStruct => return Ok(SimpleParserView::Primitive(Primitive::Unit)),
                 TypeTag::Bytes => return Ok(SimpleParserView::Bytes(self.read_bytes()?.into())),
-                TypeTag::None => todo!(),
-                TypeTag::Some => todo!(),
+                TypeTag::None => return Ok(SimpleParserView::None),
+                TypeTag::Some => return Ok(SimpleParserView::Some(())),
             };
         }
     }
@@ -341,17 +345,25 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         &mut self,
         map: &mut Self::MapParser,
     ) -> anyhow::Result<Option<Self::KeyParser>> {
-        if let Some(schema) = &mut map.schema {
-            if let Some(key) = schema.take_first() {
-                match key {
-                    EnumDefKey::Native(x) => Ok(Some(BinKeyParser::Native(*x))),
-                    EnumDefKey::Foreign(x) => Ok(Some(BinKeyParser::Foreign(x))),
+        match map {
+            BinMapParser::WithSchema(schema) => {
+                if let Some(key) = schema.take_first() {
+                    match key {
+                        EnumDefKey::Native(x) => Ok(Some(BinKeyParser::Native(*x))),
+                        EnumDefKey::Foreign(x) => Ok(Some(BinKeyParser::Foreign(x))),
+                    }
+                } else {
+                    Ok(None)
                 }
-            } else {
-                Ok(None)
             }
-        } else {
-            todo!()
+            BinMapParser::WithLength(len) => {
+                if let Some(l2) = len.checked_sub(1) {
+                    *len = l2;
+                    Ok(Some(BinKeyParser::Read))
+                } else {
+                    Ok(None)
+                }
+            }
         }
     }
 
@@ -362,7 +374,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         match key {
             BinKeyParser::Foreign(x) => Ok((BinAnyParser::Str(x), ())),
             BinKeyParser::Native(x) => Ok((BinAnyParser::U32(u32::try_from(x)?), ())),
-            BinKeyParser::Raw => Ok((BinAnyParser::Read, ())),
+            BinKeyParser::Read => Ok((BinAnyParser::Read, ())),
         }
     }
 
@@ -387,8 +399,8 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         &mut self,
         _: Self::VariantParser,
         hint: ParseVariantHint,
-    ) -> anyhow::Result<SimpleParserView<'de, Self>> {
-        self.parse(
+    ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)> {
+        Ok((self.parse(
             BinAnyParser::Read,
             match hint {
                 ParseVariantHint::UnitVariant => ParseHint::Primitive(PrimitiveType::Unit),
@@ -402,6 +414,21 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                 },
                 ParseVariantHint::Ignore => ParseHint::Ignore,
             },
-        )
+        )?,()))
+    }
+
+    fn parse_enum_end(&mut self, e: Self::EnumCloser) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn parse_some_inner(
+        &mut self,
+        e: Self::SomeParser,
+    ) -> anyhow::Result<(Self::AnyParser, Self::SomeCloser)> {
+        Ok((BinAnyParser::Read, ()))
+    }
+
+    fn parse_some_end(&mut self, p: Self::SomeCloser) -> anyhow::Result<()> {
+        Ok(())
     }
 }

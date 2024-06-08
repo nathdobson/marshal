@@ -64,12 +64,14 @@ impl<'de> SimpleJsonParser<'de> {
             return Err(JsonError::ExpectedToken {
                 expected: char::from(expected),
                 found: self.cursor.get(0).map(|x| char::from(*x)),
-            }.into());
+            }
+            .into());
         }
         Ok(())
     }
 
     pub fn read_token(&mut self) -> anyhow::Result<&'de [u8]> {
+        self.read_whitespace()?;
         Ok(self.read_matches(|x| x.is_ascii_alphabetic())?)
     }
 
@@ -77,14 +79,14 @@ impl<'de> SimpleJsonParser<'de> {
         match self.read_token()? {
             b"false" => Ok(false),
             b"true" => Ok(true),
-            _ => Err(JsonError::UnexpectedIdentifer.into()),
+            x => Err(JsonError::UnexpectedIdentifer { found: x.to_vec() }.into()),
         }
     }
 
     pub fn read_null(&mut self) -> anyhow::Result<()> {
         match self.read_token()? {
             b"null" => Ok(()),
-            _ => Err(JsonError::UnexpectedIdentifer.into()),
+            x => Err(JsonError::UnexpectedIdentifer { found: x.to_vec() }.into()),
         }
     }
 

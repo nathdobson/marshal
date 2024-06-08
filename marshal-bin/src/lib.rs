@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 #![feature(test)]
 #![feature(cell_update)]
+#![feature(never_type)]
 
 use num_derive::FromPrimitive;
 

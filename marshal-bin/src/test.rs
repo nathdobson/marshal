@@ -7,6 +7,7 @@ use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Debug;
 #[track_caller]
 fn test_round_trip<
@@ -28,6 +29,7 @@ fn test_round_trip<
     let mut parser_schema = BinParserSchema::new();
     let mut p = BinParserBuilder::new(&found, &mut parser_schema);
     let f = T::deserialize(p.build(), &mut c)?;
+    p.end()?;
     assert_eq!(input, f);
     Ok(())
 }
@@ -59,6 +61,7 @@ fn test_unit() -> anyhow::Result<()> {
     test_round_trip((), &[0])?;
     Ok(())
 }
+
 #[test]
 fn test_int() -> anyhow::Result<()> {
     test_round_trip(123u8, &[7, 123])?;
@@ -68,6 +71,15 @@ fn test_int() -> anyhow::Result<()> {
 #[test]
 fn test_tuple() -> anyhow::Result<()> {
     test_round_trip((123u8, 124u16), &[15, 2, 7, 123, 8, 124])?;
+    Ok(())
+}
+
+#[test]
+fn test_vec() -> anyhow::Result<()> {
+    test_round_trip(
+        vec![Some(1), Some(2), Some(3)],
+        &[19, 3, 26, 4, 2, 26, 4, 4, 26, 4, 6],
+    )?;
     Ok(())
 }
 
@@ -170,6 +182,32 @@ fn test_enum_variants() -> anyhow::Result<()> {
         V { x: u32, y: u64, z: u128 },
     }
     test_round_trip(
+        AllVariants::U,
+        &[
+            21, 3, 1, b'U', 1, b'T', 1, b'V', //
+            18, 0, 0, 0, //
+        ],
+    )?;
+    test_round_trip(
+        AllVariants::T(51, 52),
+        &[
+            21, 3, 1, b'U', 1, b'T', 1, b'V', //
+            18, 0, 1, 17, 2, 7, 51, 8, 52, //
+        ],
+    )?;
+    test_round_trip(
+        AllVariants::V {
+            x: 53,
+            y: 54,
+            z: 55,
+        },
+        &[
+            21, 3, 1, b'U', 1, b'T', 1, b'V', //
+            21, 3, 1, b'x', 1, b'y', 1, b'z', //
+            18, 0, 2, 16, 1, 9, 53, 10, 54, 11, 55, //
+        ],
+    )?;
+    test_round_trip(
         vec![
             AllVariants::U,
             AllVariants::T(51, 52),
@@ -221,5 +259,26 @@ fn test_enum_reorder() -> anyhow::Result<()> {
         ],
     )?;
 
+    Ok(())
+}
+
+#[test]
+fn test_map() -> anyhow::Result<()> {
+    test_round_trip::<BTreeMap<u8, u8>>(
+        [(51, 52), (53, 54)].into_iter().collect(),
+        &[20, 2, 7, 51, 7, 52, 7, 53, 7, 54],
+    )?;
+    Ok(())
+}
+
+#[test]
+fn test_none() -> anyhow::Result<()> {
+    test_round_trip::<Option<!>>(None, &[25])?;
+    Ok(())
+}
+
+#[test]
+fn test_some() -> anyhow::Result<()> {
+    test_round_trip(Some(()), &[26, 0])?;
     Ok(())
 }

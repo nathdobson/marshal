@@ -44,7 +44,7 @@ impl<'de> JsonParserBuilder<'de> {
         self.end()?;
         Ok(result)
     }
-    fn end(self) -> anyhow::Result<()> {
+    pub fn end(self) -> anyhow::Result<()> {
         self.poison.check()?;
         self.parser.end_parsing()?;
         Ok(())
