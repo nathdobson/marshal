@@ -167,7 +167,8 @@ pub struct BinSeqParser {
     len: usize,
 }
 
-pub enum BinMapParser<'s> {
+pub struct BinMapParser<'s>(BinMapParserInner<'s>);
+enum BinMapParserInner<'s> {
     WithSchema(&'s [EnumDefKey]),
     WithLength(usize),
 }
@@ -285,7 +286,9 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                         _ => None,
                     };
                     let trans = enum_def.get_translation(fields);
-                    return Ok(SimpleParserView::Map(BinMapParser::WithSchema(&trans.keys)));
+                    return Ok(SimpleParserView::Map(BinMapParser(
+                        BinMapParserInner::WithSchema(&trans.keys),
+                    )));
                 }
                 TypeTag::TupleStruct => {
                     let len = self.read_usize()?;
@@ -307,7 +310,9 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                 }
                 TypeTag::Map => {
                     let len = self.read_usize()?;
-                    return Ok(SimpleParserView::Map(BinMapParser::WithLength(len)));
+                    return Ok(SimpleParserView::Map(BinMapParser(
+                        BinMapParserInner::WithLength(len),
+                    )));
                 }
                 TypeTag::Tuple => {
                     let len = self.read_vu128::<u64>()?;
@@ -345,8 +350,8 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         &mut self,
         map: &mut Self::MapParser,
     ) -> anyhow::Result<Option<Self::KeyParser>> {
-        match map {
-            BinMapParser::WithSchema(schema) => {
+        match &mut map.0 {
+            BinMapParserInner::WithSchema(schema) => {
                 if let Some(key) = schema.take_first() {
                     match key {
                         EnumDefKey::Native(x) => Ok(Some(BinKeyParser::Native(*x))),
@@ -356,7 +361,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                     Ok(None)
                 }
             }
-            BinMapParser::WithLength(len) => {
+            BinMapParserInner::WithLength(len) => {
                 if let Some(l2) = len.checked_sub(1) {
                     *len = l2;
                     Ok(Some(BinKeyParser::Read))
@@ -400,21 +405,24 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         _: Self::VariantParser,
         hint: ParseVariantHint,
     ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)> {
-        Ok((self.parse(
-            BinAnyParser::Read,
-            match hint {
-                ParseVariantHint::UnitVariant => ParseHint::Primitive(PrimitiveType::Unit),
-                ParseVariantHint::TupleVariant { len } => ParseHint::TupleStruct {
-                    name: "<enum>",
-                    len,
+        Ok((
+            self.parse(
+                BinAnyParser::Read,
+                match hint {
+                    ParseVariantHint::UnitVariant => ParseHint::Primitive(PrimitiveType::Unit),
+                    ParseVariantHint::TupleVariant { len } => ParseHint::TupleStruct {
+                        name: "<enum>",
+                        len,
+                    },
+                    ParseVariantHint::StructVariant { fields } => ParseHint::Struct {
+                        name: "<enum>",
+                        fields,
+                    },
+                    ParseVariantHint::Ignore => ParseHint::Ignore,
                 },
-                ParseVariantHint::StructVariant { fields } => ParseHint::Struct {
-                    name: "<enum>",
-                    fields,
-                },
-                ParseVariantHint::Ignore => ParseHint::Ignore,
-            },
-        )?,()))
+            )?,
+            (),
+        ))
     }
 
     fn parse_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {

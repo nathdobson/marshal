@@ -7,7 +7,7 @@ use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 #[track_caller]
 fn test_round_trip<
