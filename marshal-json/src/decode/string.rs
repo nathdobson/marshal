@@ -1,6 +1,6 @@
 use std::char::decode_utf16;
 
-use crate::decode::error::JsonError;
+use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
 
 impl<'de> SimpleJsonDecoder<'de> {
@@ -16,7 +16,7 @@ impl<'de> SimpleJsonDecoder<'de> {
         loop {
             let c = self.read_unicode()?;
             if c as u32 <= 0x1F {
-                return Err(JsonError::StringContainsControl.into());
+                return Err(JsonDecoderError::StringContainsControl.into());
             }
             match c {
                 '"' => break,
@@ -39,12 +39,12 @@ impl<'de> SimpleJsonDecoder<'de> {
                                 let n2 = self.read_hex_u16()?;
                                 decode_utf16([n1, n2])
                                     .next()
-                                    .ok_or(JsonError::StringBadEscape)??
+                                    .ok_or(JsonDecoderError::StringBadEscape)??
                             } else {
                                 char::try_from(n1 as u32)?
                             }
                         }
-                        _ => return Err(JsonError::StringBadEscape.into()),
+                        _ => return Err(JsonDecoderError::StringBadEscape.into()),
                     };
                     result.push(escaped);
                 }
@@ -59,7 +59,7 @@ impl<'de> SimpleJsonDecoder<'de> {
         let c = std::str::from_utf8(slice)?
             .chars()
             .next()
-            .ok_or(JsonError::Utf8Error)?;
+            .ok_or(JsonDecoderError::Utf8Error)?;
         Ok(c)
     }
 }

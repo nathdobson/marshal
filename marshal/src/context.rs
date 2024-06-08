@@ -29,10 +29,13 @@ impl Context {
     }
 }
 
+#[derive(Debug)]
 pub struct GetError(&'static str);
 
 impl Display for GetError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Could not find {} in DeserializeContext", self.0)
+        write!(f, "Could not find `{}' in DeserializeContext", self.0)
     }
 }
+
+impl std::error::Error for GetError{}

@@ -9,7 +9,7 @@ use marshal_core::decode::{DecodeHint, DecodeVariantHint};
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::decode::any::PeekType;
-use crate::decode::error::JsonError;
+use crate::decode::error::JsonDecoderError;
 
 mod any;
 mod error;
@@ -70,12 +70,12 @@ impl<'de> SimpleDecoder<'de> for SimpleJsonDecoder<'de> {
         let found = self.peek_type()?;
         if context.must_be_string {
             if found != PeekType::String {
-                return Err(JsonError::ExpectedString.into());
+                return Err(JsonDecoderError::ExpectedString.into());
             }
         }
         match (hint, found) {
             (_, PeekType::Null) if context.cannot_be_null => {
-                Err(JsonError::UnexpectedNull.into())
+                Err(JsonDecoderError::UnexpectedNull.into())
             }
             (DecodeHint::Option, PeekType::Map) if context.cannot_be_null => {
                 self.read_exact(b'{')?;
@@ -91,7 +91,7 @@ impl<'de> SimpleDecoder<'de> for SimpleJsonDecoder<'de> {
                         self.read_exact(b':')?;
                         Ok(SimpleDecoderView::Some(JsonSomeDecoder::Struct))
                     },
-                    _=>return Err(JsonError::BadOption.into()),
+                    _=>return Err(JsonDecoderError::BadOption.into()),
                 }
 
             }
@@ -137,7 +137,7 @@ impl<'de> SimpleDecoder<'de> for SimpleJsonDecoder<'de> {
                         .chars()
                         .exactly_one()
                         .ok()
-                        .ok_or(JsonError::TooManyChars)?,
+                        .ok_or(JsonDecoderError::TooManyChars)?,
                 )))
             }
             (
@@ -242,7 +242,7 @@ impl<'de> SimpleDecoder<'de> for SimpleJsonDecoder<'de> {
             (DecodeHint::Primitive(PrimitiveType::F32), PeekType::Number) => {
                 let n = self.read_number::<f32>()?;
                 if !n.is_finite() {
-                    return Err(JsonError::BadNumber.into());
+                    return Err(JsonDecoderError::BadNumber.into());
                 }
                 Ok(SimpleDecoderView::Primitive(Primitive::F32(n)))
             }
@@ -269,7 +269,7 @@ impl<'de> SimpleDecoder<'de> for SimpleJsonDecoder<'de> {
             ) => {
                 let n = self.read_number::<f64>()?;
                 if !n.is_finite() {
-                    return Err(JsonError::BadNumber.into());
+                    return Err(JsonDecoderError::BadNumber.into());
                 }
                 Ok(SimpleDecoderView::Primitive(Primitive::F64(n)))
             }

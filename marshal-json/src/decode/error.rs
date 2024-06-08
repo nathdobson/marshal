@@ -6,7 +6,7 @@ use marshal_core::decode::DecodeHint;
 use crate::decode::any::PeekType;
 
 #[derive(Debug)]
-pub enum JsonError {
+pub enum JsonDecoderError {
     Eof,
     ExpectedToken { expected: char, found: Option<char> },
     UnexpectedInput,
@@ -18,7 +18,7 @@ pub enum JsonError {
     FromUtf8Error,
     StringContainsControl,
     StringBadEscape,
-    UnexpectedIdentifer { found: Vec<u8> },
+    UnexpectedIdentifier { found: Vec<u8> },
     UnexpectedInitialCharacter { found: char },
     BadState,
     ExpectedString,
@@ -31,10 +31,10 @@ pub enum JsonError {
     BadOption,
 }
 
-impl Display for JsonError {
+impl Display for JsonDecoderError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(self, f)
     }
 }
 
-impl Error for JsonError {}
+impl Error for JsonDecoderError {}

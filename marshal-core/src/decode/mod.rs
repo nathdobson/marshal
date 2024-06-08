@@ -281,7 +281,7 @@ impl Display for TypeMismatch {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Actual type `{}' did not match expected type `{}'",
+            "found type `{}', expected type `{}'",
             self.found, self.expected
         )
     }

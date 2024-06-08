@@ -3,8 +3,8 @@ use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::decode::{
-    AnyDecoder, EntryDecoder, EnumDecoder, MapDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView,
-    SeqDecoder, SomeDecoder,
+    AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView, EntryDecoder, EnumDecoder,
+    MapDecoder, SeqDecoder, SomeDecoder,
 };
 
 pub struct PoisonDecoder<T>(PhantomData<T>);
@@ -20,7 +20,24 @@ impl PoisonState {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct PoisonError(&'static str);
+pub enum PoisonError {
+    AnyDecoder,
+    SeqDecoder,
+    MapDecoder,
+    EntryDecoder,
+    EntryDecoderRereadKey,
+    EntryDecoderRereadValue,
+    EntryDecoderForgotKey,
+    EntryDecoderForgotValue,
+    EnumDecoder,
+    EnumDecoderRereadDiscriminant,
+    EnumDecoderForgotDiscriminant,
+    EnumDecoderRereadVariant,
+    EnumDecoderForgotVariant,
+    SomeDecoder,
+    SomeDecoderRereadSome,
+    SomeDecoderForgotSome,
+}
 
 impl Display for PoisonError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -32,7 +49,7 @@ impl Error for PoisonError {}
 
 pub struct PoisonGuard<'p> {
     state: Option<&'p mut PoisonState>,
-    message: &'static str,
+    message: PoisonError,
 }
 
 impl PoisonState {
@@ -42,7 +59,7 @@ impl PoisonState {
 }
 
 impl<'p> PoisonGuard<'p> {
-    pub fn new(state: &'p mut PoisonState, message: &'static str) -> Self {
+    pub fn new(state: &'p mut PoisonState, message: PoisonError) -> Self {
         PoisonGuard {
             state: Some(state),
             message,
@@ -65,7 +82,7 @@ impl<'p> PoisonGuard<'p> {
 impl<'p> Drop for PoisonGuard<'p> {
     fn drop(&mut self) {
         if let Some(state) = self.state.take() {
-            state.poisoned = Err(PoisonError(self.message));
+            state.poisoned = Err(self.message);
         }
     }
 }
@@ -117,7 +134,7 @@ impl<'de, T: Decoder<'de>> Decoder<'de> for PoisonDecoder<T> {
 impl<'p, 'de, T: Decoder<'de>> PoisonAnyDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::AnyDecoder<'p>) -> Self {
         PoisonAnyDecoder {
-            guard: PoisonGuard::new(state, "Did not call AnyDecoder::decode"),
+            guard: PoisonGuard::new(state, PoisonError::AnyDecoder),
             inner,
         }
     }
@@ -139,8 +156,13 @@ fn annotate_view<'p, 'de, T: Decoder<'de>>(
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, PoisonDecoder<T>> for PoisonAnyDecoder<'p, 'de, T> {
-    fn decode(mut self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, PoisonDecoder<T>>> {
+impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, PoisonDecoder<T>>
+    for PoisonAnyDecoder<'p, 'de, T>
+{
+    fn decode(
+        mut self,
+        hint: DecodeHint,
+    ) -> anyhow::Result<DecoderView<'p, 'de, PoisonDecoder<T>>> {
         self.guard.check()?;
         let inner = self.inner.decode(hint)?;
         let state = self.guard.defuse();
@@ -151,13 +173,15 @@ impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, PoisonDecoder<T>> for PoisonA
 impl<'p, 'de, T: Decoder<'de>> PoisonSeqDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::SeqDecoder<'p>) -> Self {
         PoisonSeqDecoder {
-            guard: PoisonGuard::new(state, "Did not finish consuming seq"),
+            guard: PoisonGuard::new(state, PoisonError::SeqDecoder),
             inner,
         }
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, PoisonDecoder<T>> for PoisonSeqDecoder<'p, 'de, T> {
+impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, PoisonDecoder<T>>
+    for PoisonSeqDecoder<'p, 'de, T>
+{
     fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<PoisonAnyDecoder<'p2, 'de, T>>> {
         self.guard.check()?;
         if let Some(result) = self.inner.decode_next()? {
@@ -173,13 +197,15 @@ impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, PoisonDecoder<T>> for PoisonS
 impl<'p, 'de, T: Decoder<'de>> PoisonMapDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::MapDecoder<'p>) -> Self {
         PoisonMapDecoder {
-            guard: PoisonGuard::new(state, "Did not finish consuming map"),
+            guard: PoisonGuard::new(state, PoisonError::MapDecoder),
             inner,
         }
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, PoisonDecoder<T>> for PoisonMapDecoder<'p, 'de, T> {
+impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, PoisonDecoder<T>>
+    for PoisonMapDecoder<'p, 'de, T>
+{
     fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<PoisonEntryDecoder<'p2, 'de, T>>> {
         self.guard.check()?;
         if let Some(result) = self.inner.decode_next()? {
@@ -195,7 +221,7 @@ impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, PoisonDecoder<T>> for PoisonM
 impl<'p, 'de, T: Decoder<'de>> PoisonEntryDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::EntryDecoder<'p>) -> Self {
         PoisonEntryDecoder {
-            guard: PoisonGuard::new(state, "Did not finish consuming entry"),
+            guard: PoisonGuard::new(state, PoisonError::EntryDecoder),
             inner,
             read_key: false,
             read_value: false,
@@ -208,7 +234,7 @@ impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonDecoder<T>>
 {
     fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if self.read_key {
-            return Err(PoisonError("already read key").into());
+            return Err(PoisonError::EntryDecoderRereadKey.into());
         }
         self.read_key = true;
         self.guard.check()?;
@@ -218,8 +244,11 @@ impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonDecoder<T>>
     }
 
     fn decode_value<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
-        if !self.read_key || self.read_value {
-            return Err(PoisonError("already read value").into());
+        if !self.read_key {
+            return Err(PoisonError::EntryDecoderForgotKey.into());
+        }
+        if self.read_value {
+            return Err(PoisonError::EntryDecoderRereadValue.into());
         }
         self.read_value = true;
         self.guard.check()?;
@@ -230,7 +259,7 @@ impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonDecoder<T>>
 
     fn decode_end(mut self) -> anyhow::Result<()> {
         if !self.read_value {
-            return Err(PoisonError("did not read value").into());
+            return Err(PoisonError::EntryDecoderForgotValue.into());
         }
         self.guard.check()?;
         self.guard.defuse();
@@ -241,7 +270,7 @@ impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonDecoder<T>>
 impl<'p, 'de, T: Decoder<'de>> PoisonEnumDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::EnumDecoder<'p>) -> Self {
         PoisonEnumDecoder {
-            guard: PoisonGuard::new(state, "Did not finish reading enum"),
+            guard: PoisonGuard::new(state, PoisonError::EnumDecoder),
             inner,
             read_discriminant: false,
             read_variant: false,
@@ -254,7 +283,7 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
 {
     fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if self.read_discriminant {
-            return Err(PoisonError("already read discriminant").into());
+            return Err(PoisonError::EnumDecoderRereadDiscriminant.into());
         }
         self.read_discriminant = true;
         self.guard.check()?;
@@ -268,10 +297,10 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
         hint: DecodeVariantHint,
     ) -> anyhow::Result<DecoderView<'p2, 'de, PoisonDecoder<T>>> {
         if !self.read_discriminant {
-            return Err(PoisonError("did not read discriminant").into());
+            return Err(PoisonError::EnumDecoderForgotDiscriminant.into());
         }
         if self.read_variant {
-            return Err(PoisonError("already read variant").into());
+            return Err(PoisonError::EnumDecoderRereadVariant.into());
         }
         self.read_variant = true;
         self.guard.check()?;
@@ -282,7 +311,7 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
 
     fn decode_end(mut self) -> anyhow::Result<()> {
         if !self.read_variant {
-            return Err(PoisonError("Did not read variant").into());
+            return Err(PoisonError::EnumDecoderForgotVariant.into());
         }
         self.guard.check()?;
         self.inner.decode_end()?;
@@ -294,7 +323,7 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
 impl<'p, 'de, T: Decoder<'de>> PoisonSomeDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::SomeDecoder<'p>) -> Self {
         PoisonSomeDecoder {
-            guard: PoisonGuard::new(state, "Did not finish reading some"),
+            guard: PoisonGuard::new(state, PoisonError::SomeDecoder),
             inner,
             read_some: false,
         }
@@ -306,7 +335,7 @@ impl<'p, 'de, T: Decoder<'de>> SomeDecoder<'p, 'de, PoisonDecoder<T>>
 {
     fn decode_some<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if self.read_some {
-            return Err(PoisonError("already read some").into());
+            return Err(PoisonError::SomeDecoderRereadSome.into());
         }
         self.read_some = true;
         self.guard.check()?;
@@ -316,7 +345,7 @@ impl<'p, 'de, T: Decoder<'de>> SomeDecoder<'p, 'de, PoisonDecoder<T>>
 
     fn decode_end(mut self) -> anyhow::Result<()> {
         if !self.read_some {
-            return Err(PoisonError("did not read some").into());
+            return Err(PoisonError::SomeDecoderForgotSome.into());
         }
         self.guard.check()?;
         self.inner.decode_end()?;

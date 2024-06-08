@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::decode::error::JsonError;
+use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
 
 struct SliceDecoder<'p, 'de> {
@@ -46,7 +46,7 @@ impl<'de> SimpleJsonDecoder<'de> {
         slice.try_consume_char(|x| x == b'-')?;
         match slice
             .try_consume_digit()?
-            .ok_or(JsonError::UnexpectedInput)?
+            .ok_or(JsonDecoderError::UnexpectedInput)?
         {
             b'0' => {}
             _ => while slice.try_consume_digit()?.is_some() {},
@@ -54,7 +54,7 @@ impl<'de> SimpleJsonDecoder<'de> {
         if slice.try_consume_char(|x| x == b'.')?.is_some() {
             slice
                 .try_consume_digit()?
-                .ok_or(JsonError::UnexpectedInput)?;
+                .ok_or(JsonDecoderError::UnexpectedInput)?;
             while slice.try_consume_digit()?.is_some() {}
         }
         if slice
@@ -64,7 +64,7 @@ impl<'de> SimpleJsonDecoder<'de> {
             slice.try_consume_char(|x| x == b'-' || x == b'+')?;
             slice
                 .try_consume_digit()?
-                .ok_or(JsonError::UnexpectedInput)?;
+                .ok_or(JsonDecoderError::UnexpectedInput)?;
             while slice.try_consume_digit()?.is_some() {}
         }
         let result = std::str::from_utf8(slice.end()?)?;

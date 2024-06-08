@@ -16,9 +16,10 @@ pub struct WithDepthBudget<T> {
 
 #[derive(Debug)]
 pub struct OverflowError;
+
 impl Display for OverflowError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "insufficient depth budget while parsing")
+        write!(f, "parsing depth limit exceeded")
     }
 }
 

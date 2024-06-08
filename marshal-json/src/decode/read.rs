@@ -1,4 +1,4 @@
-use crate::decode::error::JsonError;
+use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
 
 impl<'de> SimpleJsonDecoder<'de> {
@@ -6,13 +6,13 @@ impl<'de> SimpleJsonDecoder<'de> {
         Ok(self.cursor.get(0).cloned())
     }
     pub fn peek_char(&self) -> anyhow::Result<u8> {
-        Ok(self.try_peek_char()?.ok_or(JsonError::Eof)?)
+        Ok(self.try_peek_char()?.ok_or(JsonDecoderError::Eof)?)
     }
     pub fn try_peek_ahead(&self, n: usize) -> anyhow::Result<Option<u8>> {
         Ok(self.cursor.get(n).cloned())
     }
     pub fn peek_count(&self, count: usize) -> anyhow::Result<&'de [u8]> {
-        Ok(self.cursor.get(..count).ok_or(JsonError::Eof)?)
+        Ok(self.cursor.get(..count).ok_or(JsonDecoderError::Eof)?)
     }
     pub fn try_read_char(&mut self) -> anyhow::Result<Option<u8>> {
         if let Some(a) = self.cursor.take(..1) {
@@ -22,7 +22,7 @@ impl<'de> SimpleJsonDecoder<'de> {
         }
     }
     pub fn read_char(&mut self) -> anyhow::Result<u8> {
-        Ok(self.try_read_char()?.ok_or(JsonError::Eof)?)
+        Ok(self.try_read_char()?.ok_or(JsonDecoderError::Eof)?)
     }
     pub fn try_read_match(&mut self, expected: impl FnOnce(u8) -> bool) -> anyhow::Result<bool> {
         if let Some((a, b)) = self.cursor.split_at_checked(1) {
@@ -33,7 +33,7 @@ impl<'de> SimpleJsonDecoder<'de> {
                 Ok(false)
             }
         } else {
-            Err(JsonError::Eof.into())
+            Err(JsonDecoderError::Eof.into())
         }
     }
     pub fn read_matches(&mut self, expected: impl Fn(u8) -> bool) -> anyhow::Result<&'de [u8]> {
@@ -45,7 +45,7 @@ impl<'de> SimpleJsonDecoder<'de> {
         Ok(self.cursor.take(..limit).unwrap())
     }
     pub fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
-        Ok(self.cursor.take(..count).ok_or(JsonError::Eof)?)
+        Ok(self.cursor.take(..count).ok_or(JsonDecoderError::Eof)?)
     }
     pub fn read_whitespace(&mut self) -> anyhow::Result<()> {
         self.read_matches(|x| matches!(x, b' ' | b'\n' | b'\r' | b'\t'))?;
@@ -61,7 +61,7 @@ impl<'de> SimpleJsonDecoder<'de> {
     pub fn read_exact(&mut self, expected: u8) -> anyhow::Result<()> {
         self.read_whitespace()?;
         if !self.try_read_match(|x| x == expected)? {
-            return Err(JsonError::ExpectedToken {
+            return Err(JsonDecoderError::ExpectedToken {
                 expected: char::from(expected),
                 found: self.cursor.get(0).map(|x| char::from(*x)),
             }
@@ -79,21 +79,21 @@ impl<'de> SimpleJsonDecoder<'de> {
         match self.read_token()? {
             b"false" => Ok(false),
             b"true" => Ok(true),
-            x => Err(JsonError::UnexpectedIdentifer { found: x.to_vec() }.into()),
+            x => Err(JsonDecoderError::UnexpectedIdentifier { found: x.to_vec() }.into()),
         }
     }
 
     pub fn read_null(&mut self) -> anyhow::Result<()> {
         match self.read_token()? {
             b"null" => Ok(()),
-            x => Err(JsonError::UnexpectedIdentifer { found: x.to_vec() }.into()),
+            x => Err(JsonDecoderError::UnexpectedIdentifier { found: x.to_vec() }.into()),
         }
     }
 
     pub fn end_parsing(mut self) -> anyhow::Result<()> {
         self.read_whitespace()?;
         if !self.cursor.is_empty() {
-            Err(JsonError::TrailingText.into())
+            Err(JsonDecoderError::TrailingText.into())
         } else {
             Ok(())
         }

@@ -50,17 +50,24 @@ pub struct SimpleBinDecoder<'de, 's> {
 
 #[derive(Debug)]
 pub enum BinDecoderError {
-    TooMuchPadding,
+    TrailingData,
     NonZeroPadding,
     Eof,
-    BadTag,
+    BadTag(u8),
     NoSuchEnumDef,
-    NoMoreStructKeys,
+    MissingField(&'static str),
 }
 
 impl Display for BinDecoderError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(self, f)
+        match self{
+            BinDecoderError::TrailingData => write!(f,"input contains excessive trailing bytes"),
+            BinDecoderError::NonZeroPadding => write!(f,"final padding is not zero"),
+            BinDecoderError::Eof => write!(f,"unexpected end of file"),
+            BinDecoderError::BadTag(x) => write!(f,"unknown type tag {}",x),
+            BinDecoderError::NoSuchEnumDef => write!(f, "reference to unknown enum definition (did you remember to reuse the BinDecoderSchema?)"),
+            BinDecoderError::MissingField(field)=> write!(f,"attempted to deserialize struct with missing field `{}'",field),
+        }
     }
 }
 
@@ -75,7 +82,7 @@ impl<'de, 's> SimpleBinDecoder<'de, 's> {
     }
     pub fn end(self) -> anyhow::Result<()> {
         if self.content.len() > VU128_MAX_PADDING {
-            return Err(BinDecoderError::TooMuchPadding.into());
+            return Err(BinDecoderError::TrailingData.into());
         }
         if self.content.iter().any(|x| *x != 0) {
             return Err(BinDecoderError::NonZeroPadding.into());
@@ -99,7 +106,8 @@ impl<'de, 's> SimpleBinDecoder<'de, 's> {
         Ok(usize::try_from(self.read_vu128::<u64>()?)?)
     }
     fn decode_type_tag(&mut self) -> anyhow::Result<TypeTag> {
-        Ok(TypeTag::from_u8(self.read_count(1)?[0]).ok_or(BinDecoderError::BadTag)?)
+        let tag_num = self.read_count(1)?[0];
+        Ok(TypeTag::from_u8(tag_num).ok_or(BinDecoderError::BadTag(tag_num))?)
     }
     fn read_bytes(&mut self) -> anyhow::Result<&'de [u8]> {
         let len = self.read_usize()?;
@@ -201,7 +209,9 @@ impl<'de, 's> SimpleDecoder<'de> for SimpleBinDecoder<'de, 's> {
     ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
         match any {
             BinAnyDecoder::U32(x) => return Ok(SimpleDecoderView::Primitive(Primitive::U32(x))),
-            BinAnyDecoder::Str(x) => return Ok(SimpleDecoderView::String(Cow::Owned(x.to_string()))),
+            BinAnyDecoder::Str(x) => {
+                return Ok(SimpleDecoderView::String(Cow::Owned(x.to_string())))
+            }
             BinAnyDecoder::Read => {}
         }
         loop {

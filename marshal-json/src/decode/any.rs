@@ -1,4 +1,4 @@
-use crate::decode::error::JsonError;
+use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
 
 #[derive(Eq, Ord, PartialEq, PartialOrd, Copy, Clone, Debug, Hash)]
@@ -22,7 +22,7 @@ impl<'de> SimpleJsonDecoder<'de> {
             b'n' => PeekType::Null,
             x if x.is_ascii_digit() || x == b'-' || x == b'.' => PeekType::Number,
             c => {
-                return Err(JsonError::UnexpectedInitialCharacter {
+                return Err(JsonDecoderError::UnexpectedInitialCharacter {
                     found: char::from(c),
                 }
                     .into());

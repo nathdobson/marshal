@@ -28,7 +28,9 @@ pub enum BinEncoderError {
 
 impl Display for BinEncoderError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(self, f)
+        match self {
+            BinEncoderError::MissingLen => write!(f, "cannot encode repeated data without length"),
+        }
     }
 }
 
@@ -331,7 +333,10 @@ impl<'s> SimpleEncoder for SimpleBinEncoder<'s> {
         Ok(())
     }
 
-    fn seq_encode_element(&mut self, _seq: &mut Self::SeqEncoder) -> anyhow::Result<Self::AnyEncoder> {
+    fn seq_encode_element(
+        &mut self,
+        _seq: &mut Self::SeqEncoder,
+    ) -> anyhow::Result<Self::AnyEncoder> {
         Ok(())
     }
 

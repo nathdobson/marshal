@@ -21,7 +21,8 @@ pub enum SchemaError {
     MissingField { field_name: &'static str },
     UnknownVariant,
     TupleTooShort,
-    Never
+    UninhabitedType,
+    TupleTooLong,
 }
 
 impl Display for SchemaError {
