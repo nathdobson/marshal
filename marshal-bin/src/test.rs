@@ -1,5 +1,5 @@
-use crate::read::full::{BinParser, BinParserBuilder};
-use crate::read::BinParserSchema;
+use crate::read::full::{BinDecoder, BinDecoderBuilder};
+use crate::read::BinDecoderSchema;
 use crate::write::full::{BinWriter, BinWriterBuilder};
 use crate::write::BinWriterSchema;
 use crate::VU128_MAX_PADDING;
@@ -14,7 +14,7 @@ fn test_round_trip<
     T: Debug
         + Eq
         + for<'s> Serialize<BinWriter<'s>>
-        + for<'de, 's> Deserialize<'de, BinParser<'de, 's>>,
+        + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
 >(
     input: T,
     expected: &[u8],
@@ -26,8 +26,8 @@ fn test_round_trip<
     input.serialize(w.build(), &mut c)?;
     let found = w.end()?;
     assert_eq!(&found[0..found.len() - VU128_MAX_PADDING], expected);
-    let mut parser_schema = BinParserSchema::new();
-    let mut p = BinParserBuilder::new(&found, &mut parser_schema);
+    let mut decoder_schema = BinDecoderSchema::new();
+    let mut p = BinDecoderBuilder::new(&found, &mut decoder_schema);
     let f = T::deserialize(p.build(), &mut c)?;
     p.end()?;
     assert_eq!(input, f);
@@ -36,7 +36,7 @@ fn test_round_trip<
 
 fn test_transmute<
     T1: Debug + for<'s> Serialize<BinWriter<'s>>,
-    T2: Debug + Eq + for<'de, 's> Deserialize<'de, BinParser<'de, 's>>,
+    T2: Debug + Eq + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
 >(
     input: T1,
     output: T2,
@@ -49,8 +49,8 @@ fn test_transmute<
     input.serialize(w.build(), &mut c)?;
     let found = w.end()?;
     assert_eq!(&found[0..found.len() - VU128_MAX_PADDING], expected);
-    let mut parser_schema = BinParserSchema::new();
-    let mut p = BinParserBuilder::new(&found, &mut parser_schema);
+    let mut decoder_schema = BinDecoderSchema::new();
+    let mut p = BinDecoderBuilder::new(&found, &mut decoder_schema);
     let f = T2::deserialize(p.build(), &mut c)?;
     assert_eq!(output, f);
     Ok(())

@@ -5,12 +5,12 @@ use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
 
-use crate::parse::full::{JsonParser, JsonParserBuilder};
+use crate::decode::full::{JsonDecoder, JsonDecoderBuilder};
 use crate::write::full::{JsonWriter, JsonWriterBuilder};
 
 #[track_caller]
 fn test_round_trip<
-    T: Debug + Eq + Serialize<JsonWriter> + for<'de> Deserialize<'de, JsonParser<'de>>,
+    T: Debug + Eq + Serialize<JsonWriter> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
 >(
     input: T,
     expected: &str,
@@ -21,7 +21,7 @@ fn test_round_trip<
     input.serialize(w.build(), &mut c)?;
     let found = w.end()?;
     assert_eq!(expected.trim_start(), found);
-    let mut p = JsonParserBuilder::new(found.as_bytes());
+    let mut p = JsonDecoderBuilder::new(found.as_bytes());
     let f = T::deserialize(p.build(), &mut c)?;
     p.end()?;
     assert_eq!(input, f);

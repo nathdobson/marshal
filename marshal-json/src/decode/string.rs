@@ -1,9 +1,9 @@
 use std::char::decode_utf16;
 
-use crate::parse::error::JsonError;
-use crate::parse::SimpleJsonParser;
+use crate::decode::error::JsonError;
+use crate::decode::SimpleJsonDecoder;
 
-impl<'de> SimpleJsonParser<'de> {
+impl<'de> SimpleJsonDecoder<'de> {
     pub fn read_hex_u16(&mut self) -> anyhow::Result<u16> {
         Ok(u16::from_str_radix(
             std::str::from_utf8(self.read_count(4)?)?,

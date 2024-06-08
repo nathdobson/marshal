@@ -1,15 +1,15 @@
 use std::str::FromStr;
 
-use crate::parse::error::JsonError;
-use crate::parse::SimpleJsonParser;
+use crate::decode::error::JsonError;
+use crate::decode::SimpleJsonDecoder;
 
 struct SliceParser<'p, 'de> {
-    parser: &'p mut SimpleJsonParser<'de>,
+    parser: &'p mut SimpleJsonDecoder<'de>,
     index: usize,
 }
 
 impl<'p, 'de> SliceParser<'p, 'de> {
-    pub fn new(parser: &'p mut SimpleJsonParser<'de>) -> Self {
+    pub fn new(parser: &'p mut SimpleJsonDecoder<'de>) -> Self {
         SliceParser { parser, index: 0 }
     }
     pub fn try_consume_char(
@@ -37,7 +37,7 @@ impl<'p, 'de> SliceParser<'p, 'de> {
     }
 }
 
-impl<'de> SimpleJsonParser<'de> {
+impl<'de> SimpleJsonDecoder<'de> {
     pub fn read_number<T: FromStr>(&mut self) -> anyhow::Result<T>
         where
             <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,

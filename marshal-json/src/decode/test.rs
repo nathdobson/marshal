@@ -4,17 +4,17 @@ use std::fs::read_dir;
 use marshal::context::Context;
 use marshal_core::{Primitive, PrimitiveType};
 use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, SeqDecoder};
-use marshal_core::decode::simple::SimpleAnyParser;
+use marshal_core::decode::simple::SimpleAnyDecoder;
 
-use crate::parse::{JsonAnyParser, SimpleJsonParser};
-use crate::parse::full::parse_json;
+use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};
+use crate::decode::full::decode_json;
 use crate::value::JsonValue;
 
 #[test]
 fn test() -> anyhow::Result<()> {
     let input = b"[1,23]";
-    let mut p = SimpleJsonParser::new(input);
-    let p = SimpleAnyParser::new(&mut p, JsonAnyParser::default());
+    let mut p = SimpleJsonDecoder::new(input);
+    let p = SimpleAnyDecoder::new(&mut p, JsonAnyDecoder::default());
     match p.decode(DecodeHint::Any)? {
         DecoderView::Seq(mut p) => {
             match p.decode_next()?.unwrap().decode(DecodeHint::Primitive(PrimitiveType::U64))? {
@@ -51,7 +51,7 @@ fn test_parsing() {
         // } else {
         //     println!("<err>");
         // }
-        let output = parse_json::<JsonValue>(&contents, &mut Context::new());
+        let output = decode_json::<JsonValue>(&contents, &mut Context::new());
         match expected {
             'i' => {}
             'n' => {

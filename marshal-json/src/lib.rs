@@ -5,7 +5,7 @@
 #![allow(dead_code)]
 #![feature(never_type)]
 
-mod parse;
+mod decode;
 mod write;
 mod value;
 #[cfg(test)]

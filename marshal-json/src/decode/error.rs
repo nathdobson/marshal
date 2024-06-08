@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 use marshal_core::decode::DecodeHint;
 
-use crate::parse::any::PeekType;
+use crate::decode::any::PeekType;
 
 #[derive(Debug)]
 pub enum JsonError {

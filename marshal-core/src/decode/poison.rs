@@ -7,7 +7,7 @@ use crate::decode::{
     SeqDecoder, SomeDecoder,
 };
 
-pub struct PoisonParser<T>(PhantomData<T>);
+pub struct PoisonDecoder<T>(PhantomData<T>);
 
 pub struct PoisonState {
     poisoned: Result<(), PoisonError>,
@@ -70,54 +70,54 @@ impl<'p> Drop for PoisonGuard<'p> {
     }
 }
 
-pub struct PoisonAnyParser<'p, 'de, T: 'p + Decoder<'de>> {
+pub struct PoisonAnyDecoder<'p, 'de, T: 'p + Decoder<'de>> {
     guard: PoisonGuard<'p>,
     inner: T::AnyDecoder<'p>,
 }
 
-pub struct PoisonSeqParser<'p, 'de, T: 'p + Decoder<'de>> {
+pub struct PoisonSeqDecoder<'p, 'de, T: 'p + Decoder<'de>> {
     guard: PoisonGuard<'p>,
     inner: T::SeqDecoder<'p>,
 }
 
-pub struct PoisonMapParser<'p, 'de, T: 'p + Decoder<'de>> {
+pub struct PoisonMapDecoder<'p, 'de, T: 'p + Decoder<'de>> {
     guard: PoisonGuard<'p>,
     inner: T::MapDecoder<'p>,
 }
 
-pub struct PoisonEntryParser<'p, 'de, T: 'p + Decoder<'de>> {
+pub struct PoisonEntryDecoder<'p, 'de, T: 'p + Decoder<'de>> {
     guard: PoisonGuard<'p>,
     inner: T::EntryDecoder<'p>,
     read_key: bool,
     read_value: bool,
 }
 
-pub struct PoisonEnumParser<'p, 'de, T: 'p + Decoder<'de>> {
+pub struct PoisonEnumDecoder<'p, 'de, T: 'p + Decoder<'de>> {
     guard: PoisonGuard<'p>,
     inner: T::EnumDecoder<'p>,
     read_discriminant: bool,
     read_variant: bool,
 }
 
-pub struct PoisonSomeParser<'p, 'de, T: 'p + Decoder<'de>> {
+pub struct PoisonSomeDecoder<'p, 'de, T: 'p + Decoder<'de>> {
     guard: PoisonGuard<'p>,
     inner: T::SomeDecoder<'p>,
     read_some: bool,
 }
 
-impl<'de, T: Decoder<'de>> Decoder<'de> for PoisonParser<T> {
-    type AnyDecoder<'p> = PoisonAnyParser<'p, 'de, T> where Self: 'p;
-    type SeqDecoder<'p> = PoisonSeqParser<'p, 'de, T> where Self: 'p;
-    type MapDecoder<'p> = PoisonMapParser<'p, 'de, T> where Self: 'p;
-    type EntryDecoder<'p> = PoisonEntryParser<'p, 'de, T> where Self: 'p;
-    type EnumDecoder<'p> = PoisonEnumParser<'p, 'de, T> where Self: 'p;
-    type SomeDecoder<'p> = PoisonSomeParser<'p,'de,T> where Self: 'p;
+impl<'de, T: Decoder<'de>> Decoder<'de> for PoisonDecoder<T> {
+    type AnyDecoder<'p> = PoisonAnyDecoder<'p, 'de, T> where Self: 'p;
+    type SeqDecoder<'p> = PoisonSeqDecoder<'p, 'de, T> where Self: 'p;
+    type MapDecoder<'p> = PoisonMapDecoder<'p, 'de, T> where Self: 'p;
+    type EntryDecoder<'p> = PoisonEntryDecoder<'p, 'de, T> where Self: 'p;
+    type EnumDecoder<'p> = PoisonEnumDecoder<'p, 'de, T> where Self: 'p;
+    type SomeDecoder<'p> = PoisonSomeDecoder<'p,'de,T> where Self: 'p;
 }
 
-impl<'p, 'de, T: Decoder<'de>> PoisonAnyParser<'p, 'de, T> {
+impl<'p, 'de, T: Decoder<'de>> PoisonAnyDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::AnyDecoder<'p>) -> Self {
-        PoisonAnyParser {
-            guard: PoisonGuard::new(state, "Did not call AnyParser::decode"),
+        PoisonAnyDecoder {
+            guard: PoisonGuard::new(state, "Did not call AnyDecoder::decode"),
             inner,
         }
     }
@@ -126,21 +126,21 @@ impl<'p, 'de, T: Decoder<'de>> PoisonAnyParser<'p, 'de, T> {
 fn annotate_view<'p, 'de, T: Decoder<'de>>(
     state: &'p mut PoisonState,
     view: DecoderView<'p, 'de, T>,
-) -> DecoderView<'p, 'de, PoisonParser<T>> {
+) -> DecoderView<'p, 'de, PoisonDecoder<T>> {
     match view {
         DecoderView::Primitive(x) => DecoderView::Primitive(x),
         DecoderView::String(x) => DecoderView::String(x),
         DecoderView::Bytes(x) => DecoderView::Bytes(x),
         DecoderView::None => DecoderView::None,
-        DecoderView::Some(x) => DecoderView::Some(PoisonSomeParser::new(state, x)),
-        DecoderView::Seq(x) => DecoderView::Seq(PoisonSeqParser::new(state, x)),
-        DecoderView::Map(x) => DecoderView::Map(PoisonMapParser::new(state, x)),
-        DecoderView::Enum(x) => DecoderView::Enum(PoisonEnumParser::new(state, x)),
+        DecoderView::Some(x) => DecoderView::Some(PoisonSomeDecoder::new(state, x)),
+        DecoderView::Seq(x) => DecoderView::Seq(PoisonSeqDecoder::new(state, x)),
+        DecoderView::Map(x) => DecoderView::Map(PoisonMapDecoder::new(state, x)),
+        DecoderView::Enum(x) => DecoderView::Enum(PoisonEnumDecoder::new(state, x)),
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, PoisonParser<T>> for PoisonAnyParser<'p, 'de, T> {
-    fn decode(mut self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, PoisonParser<T>>> {
+impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, PoisonDecoder<T>> for PoisonAnyDecoder<'p, 'de, T> {
+    fn decode(mut self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, PoisonDecoder<T>>> {
         self.guard.check()?;
         let inner = self.inner.decode(hint)?;
         let state = self.guard.defuse();
@@ -148,21 +148,21 @@ impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, PoisonParser<T>> for PoisonAn
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> PoisonSeqParser<'p, 'de, T> {
+impl<'p, 'de, T: Decoder<'de>> PoisonSeqDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::SeqDecoder<'p>) -> Self {
-        PoisonSeqParser {
+        PoisonSeqDecoder {
             guard: PoisonGuard::new(state, "Did not finish consuming seq"),
             inner,
         }
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, PoisonParser<T>> for PoisonSeqParser<'p, 'de, T> {
-    fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<PoisonAnyParser<'p2, 'de, T>>> {
+impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, PoisonDecoder<T>> for PoisonSeqDecoder<'p, 'de, T> {
+    fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<PoisonAnyDecoder<'p2, 'de, T>>> {
         self.guard.check()?;
         if let Some(result) = self.inner.decode_next()? {
             let state = self.guard.state();
-            Ok(Some(PoisonAnyParser::new(state, result)))
+            Ok(Some(PoisonAnyDecoder::new(state, result)))
         } else {
             self.guard.defuse();
             Ok(None)
@@ -170,21 +170,21 @@ impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, PoisonParser<T>> for PoisonSe
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> PoisonMapParser<'p, 'de, T> {
+impl<'p, 'de, T: Decoder<'de>> PoisonMapDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::MapDecoder<'p>) -> Self {
-        PoisonMapParser {
+        PoisonMapDecoder {
             guard: PoisonGuard::new(state, "Did not finish consuming map"),
             inner,
         }
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, PoisonParser<T>> for PoisonMapParser<'p, 'de, T> {
-    fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<PoisonEntryParser<'p2, 'de, T>>> {
+impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, PoisonDecoder<T>> for PoisonMapDecoder<'p, 'de, T> {
+    fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<PoisonEntryDecoder<'p2, 'de, T>>> {
         self.guard.check()?;
         if let Some(result) = self.inner.decode_next()? {
             let state = self.guard.state();
-            Ok(Some(PoisonEntryParser::new(state, result)))
+            Ok(Some(PoisonEntryDecoder::new(state, result)))
         } else {
             self.guard.defuse();
             Ok(None)
@@ -192,9 +192,9 @@ impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, PoisonParser<T>> for PoisonMa
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> PoisonEntryParser<'p, 'de, T> {
+impl<'p, 'de, T: Decoder<'de>> PoisonEntryDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::EntryDecoder<'p>) -> Self {
-        PoisonEntryParser {
+        PoisonEntryDecoder {
             guard: PoisonGuard::new(state, "Did not finish consuming entry"),
             inner,
             read_key: false,
@@ -203,10 +203,10 @@ impl<'p, 'de, T: Decoder<'de>> PoisonEntryParser<'p, 'de, T> {
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonParser<T>>
-    for PoisonEntryParser<'p, 'de, T>
+impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonDecoder<T>>
+    for PoisonEntryDecoder<'p, 'de, T>
 {
-    fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyParser<'p2, 'de, T>> {
+    fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if self.read_key {
             return Err(PoisonError("already read key").into());
         }
@@ -214,10 +214,10 @@ impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonParser<T>>
         self.guard.check()?;
         let result = self.inner.decode_key()?;
         let state = self.guard.state();
-        Ok(PoisonAnyParser::new(state, result))
+        Ok(PoisonAnyDecoder::new(state, result))
     }
 
-    fn decode_value<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyParser<'p2, 'de, T>> {
+    fn decode_value<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if !self.read_key || self.read_value {
             return Err(PoisonError("already read value").into());
         }
@@ -225,7 +225,7 @@ impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonParser<T>>
         self.guard.check()?;
         let result = self.inner.decode_value()?;
         let state = self.guard.state();
-        Ok(PoisonAnyParser::new(state, result))
+        Ok(PoisonAnyDecoder::new(state, result))
     }
 
     fn decode_end(mut self) -> anyhow::Result<()> {
@@ -238,9 +238,9 @@ impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonParser<T>>
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> PoisonEnumParser<'p, 'de, T> {
+impl<'p, 'de, T: Decoder<'de>> PoisonEnumDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::EnumDecoder<'p>) -> Self {
-        PoisonEnumParser {
+        PoisonEnumDecoder {
             guard: PoisonGuard::new(state, "Did not finish reading enum"),
             inner,
             read_discriminant: false,
@@ -249,10 +249,10 @@ impl<'p, 'de, T: Decoder<'de>> PoisonEnumParser<'p, 'de, T> {
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonParser<T>>
-    for PoisonEnumParser<'p, 'de, T>
+impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
+    for PoisonEnumDecoder<'p, 'de, T>
 {
-    fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyParser<'p2, 'de, T>> {
+    fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         println!("Reading discriminant");
         if self.read_discriminant {
             return Err(PoisonError("already read discriminant").into());
@@ -261,13 +261,13 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonParser<T>>
         self.guard.check()?;
         let result = self.inner.decode_discriminant()?;
         let state = self.guard.state();
-        Ok(PoisonAnyParser::new(state, result))
+        Ok(PoisonAnyDecoder::new(state, result))
     }
 
     fn decode_variant<'p2>(
         &'p2 mut self,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<DecoderView<'p2, 'de, PoisonParser<T>>> {
+    ) -> anyhow::Result<DecoderView<'p2, 'de, PoisonDecoder<T>>> {
         println!("Reading variant");
         if !self.read_discriminant {
             return Err(PoisonError("did not read discriminant").into());
@@ -294,9 +294,9 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonParser<T>>
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> PoisonSomeParser<'p, 'de, T> {
+impl<'p, 'de, T: Decoder<'de>> PoisonSomeDecoder<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::SomeDecoder<'p>) -> Self {
-        PoisonSomeParser {
+        PoisonSomeDecoder {
             guard: PoisonGuard::new(state, "Did not finish reading some"),
             inner,
             read_some: false,
@@ -304,17 +304,17 @@ impl<'p, 'de, T: Decoder<'de>> PoisonSomeParser<'p, 'de, T> {
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> SomeDecoder<'p, 'de, PoisonParser<T>>
-    for PoisonSomeParser<'p, 'de, T>
+impl<'p, 'de, T: Decoder<'de>> SomeDecoder<'p, 'de, PoisonDecoder<T>>
+    for PoisonSomeDecoder<'p, 'de, T>
 {
-    fn decode_some<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyParser<'p2, 'de, T>> {
+    fn decode_some<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if self.read_some {
             return Err(PoisonError("already read some").into());
         }
         self.read_some = true;
         self.guard.check()?;
         let inner = self.inner.decode_some()?;
-        Ok(PoisonAnyParser::new(self.guard.state(), inner))
+        Ok(PoisonAnyDecoder::new(self.guard.state(), inner))
     }
 
     fn decode_end(mut self) -> anyhow::Result<()> {

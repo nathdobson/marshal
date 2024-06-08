@@ -6,7 +6,7 @@ use safe_once_map::cell::OnceCellMap;
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
 
-use marshal_core::decode::simple::{SimpleParser, SimpleParserView};
+use marshal_core::decode::simple::{SimpleDecoder, SimpleDecoderView};
 use marshal_core::decode::{DecodeHint, DecodeVariantHint};
 use marshal_core::{Primitive, PrimitiveType};
 
@@ -31,25 +31,25 @@ struct EnumDefForeign {
     custom_translation: OnceCellMap<ByAddress<EnumDefNative>, EnumDefTranslation>,
 }
 
-pub struct BinParserSchema {
+pub struct BinDecoderSchema {
     enum_defs: StableCellVec<EnumDefForeign>,
 }
 
-impl BinParserSchema {
+impl BinDecoderSchema {
     pub fn new() -> Self {
-        BinParserSchema {
+        BinDecoderSchema {
             enum_defs: StableCellVec::new(),
         }
     }
 }
 
-pub struct SimpleBinParser<'de, 's> {
+pub struct SimpleBinDecoder<'de, 's> {
     content: &'de [u8],
-    schema: &'s BinParserSchema,
+    schema: &'s BinDecoderSchema,
 }
 
 #[derive(Debug)]
-pub enum BinParserError {
+pub enum BinDecoderError {
     TooMuchPadding,
     NonZeroPadding,
     Eof,
@@ -58,48 +58,48 @@ pub enum BinParserError {
     NoMoreStructKeys,
 }
 
-impl Display for BinParserError {
+impl Display for BinDecoderError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(self, f)
     }
 }
 
-impl std::error::Error for BinParserError {}
+impl std::error::Error for BinDecoderError {}
 
-impl<'de, 's> SimpleBinParser<'de, 's> {
-    pub fn new(data: &'de [u8], schema: &'s mut BinParserSchema) -> SimpleBinParser<'de, 's> {
-        SimpleBinParser {
+impl<'de, 's> SimpleBinDecoder<'de, 's> {
+    pub fn new(data: &'de [u8], schema: &'s mut BinDecoderSchema) -> SimpleBinDecoder<'de, 's> {
+        SimpleBinDecoder {
             content: data,
             schema,
         }
     }
     pub fn end(self) -> anyhow::Result<()> {
         if self.content.len() > VU128_MAX_PADDING {
-            return Err(BinParserError::TooMuchPadding.into());
+            return Err(BinDecoderError::TooMuchPadding.into());
         }
         if self.content.iter().any(|x| *x != 0) {
-            return Err(BinParserError::NonZeroPadding.into());
+            return Err(BinDecoderError::NonZeroPadding.into());
         }
         Ok(())
     }
 }
 
-impl<'de, 's> SimpleBinParser<'de, 's> {
+impl<'de, 's> SimpleBinDecoder<'de, 's> {
     fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
-        Ok(self.content.take(..count).ok_or(BinParserError::Eof)?)
+        Ok(self.content.take(..count).ok_or(BinDecoderError::Eof)?)
     }
     fn read_vu128<T: ToFromVu128 + Display>(&mut self) -> anyhow::Result<T> {
         let (value, count) = T::decode_vu128(T::Buffer::try_from_slice(
             &self.content[..T::Buffer::ARRAY_LEN],
         )?);
-        self.content.take(..count).ok_or(BinParserError::Eof)?;
+        self.content.take(..count).ok_or(BinDecoderError::Eof)?;
         Ok(value)
     }
     fn read_usize(&mut self) -> anyhow::Result<usize> {
         Ok(usize::try_from(self.read_vu128::<u64>()?)?)
     }
-    fn parse_type_tag(&mut self) -> anyhow::Result<TypeTag> {
-        Ok(TypeTag::from_u8(self.read_count(1)?[0]).ok_or(BinParserError::BadTag)?)
+    fn decode_type_tag(&mut self) -> anyhow::Result<TypeTag> {
+        Ok(TypeTag::from_u8(self.read_count(1)?[0]).ok_or(BinDecoderError::BadTag)?)
     }
     fn read_bytes(&mut self) -> anyhow::Result<&'de [u8]> {
         let len = self.read_usize()?;
@@ -128,7 +128,7 @@ impl<'de, 's> SimpleBinParser<'de, 's> {
             .schema
             .enum_defs
             .get(index)
-            .ok_or(BinParserError::NoSuchEnumDef)?)
+            .ok_or(BinDecoderError::NoSuchEnumDef)?)
     }
 }
 
@@ -157,125 +157,125 @@ impl EnumDefForeign {
     }
 }
 
-pub enum BinAnyParser<'s> {
+pub enum BinAnyDecoder<'s> {
     U32(u32),
     Str(&'s str),
     Read,
 }
 
-pub struct BinSeqParser {
+pub struct BinSeqDecoder {
     len: usize,
 }
 
-pub struct BinMapParser<'s>(BinMapParserInner<'s>);
-enum BinMapParserInner<'s> {
+pub struct BinMapDecoder<'s>(BinMapDecoderInner<'s>);
+enum BinMapDecoderInner<'s> {
     WithSchema(&'s [EnumDefKey]),
     WithLength(usize),
 }
 
-pub enum BinKeyParser<'s> {
+pub enum BinKeyDecoder<'s> {
     Foreign(&'s str),
     Native(usize),
     Read,
 }
 
-pub struct BinDiscriminantParser<'s> {
+pub struct BinDiscriminantDecoder<'s> {
     variant: &'s EnumDefKey,
 }
 
-impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
-    type AnyParser = BinAnyParser<'s>;
-    type SeqParser = BinSeqParser;
-    type MapParser = BinMapParser<'s>;
-    type KeyParser = BinKeyParser<'s>;
-    type ValueParser = ();
-    type DiscriminantParser = BinDiscriminantParser<'s>;
-    type VariantParser = ();
+impl<'de, 's> SimpleDecoder<'de> for SimpleBinDecoder<'de, 's> {
+    type AnyDecoder = BinAnyDecoder<'s>;
+    type SeqDecoder = BinSeqDecoder;
+    type MapDecoder = BinMapDecoder<'s>;
+    type KeyDecoder = BinKeyDecoder<'s>;
+    type ValueDecoder = ();
+    type DiscriminantDecoder = BinDiscriminantDecoder<'s>;
+    type VariantDecoder = ();
     type EnumCloser = ();
-    type SomeParser = ();
+    type SomeDecoder = ();
     type SomeCloser = ();
 
-    fn parse(
+    fn decode(
         &mut self,
-        any: Self::AnyParser,
+        any: Self::AnyDecoder,
         hint: DecodeHint,
-    ) -> anyhow::Result<SimpleParserView<'de, Self>> {
+    ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
         match any {
-            BinAnyParser::U32(x) => return Ok(SimpleParserView::Primitive(Primitive::U32(x))),
-            BinAnyParser::Str(x) => return Ok(SimpleParserView::String(Cow::Owned(x.to_string()))),
-            BinAnyParser::Read => {}
+            BinAnyDecoder::U32(x) => return Ok(SimpleDecoderView::Primitive(Primitive::U32(x))),
+            BinAnyDecoder::Str(x) => return Ok(SimpleDecoderView::String(Cow::Owned(x.to_string()))),
+            BinAnyDecoder::Read => {}
         }
         loop {
-            let tag = self.parse_type_tag()?;
+            let tag = self.decode_type_tag()?;
             let () = match tag {
-                TypeTag::Unit => return Ok(SimpleParserView::Primitive(Primitive::Unit)),
+                TypeTag::Unit => return Ok(SimpleDecoderView::Primitive(Primitive::Unit)),
                 TypeTag::Bool => {
-                    return Ok(SimpleParserView::Primitive(Primitive::Bool(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::Bool(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::I8 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::I8(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::I8(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::I16 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::I16(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::I16(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::I32 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::I32(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::I32(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::I64 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::I64(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::I64(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::I128 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::I128(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::I128(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::U8 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::U8(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::U8(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::U16 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::U16(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::U16(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::U32 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::U32(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::U32(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::U64 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::U64(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::U64(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::U128 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::U128(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::U128(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::F32 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::F32(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::F32(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::F64 => {
-                    return Ok(SimpleParserView::Primitive(Primitive::F32(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::F32(
                         self.read_vu128()?,
                     )))
                 }
                 TypeTag::Char => {
-                    return Ok(SimpleParserView::Primitive(Primitive::Char(
+                    return Ok(SimpleDecoderView::Primitive(Primitive::Char(
                         self.read_vu128::<u32>()?.try_into()?,
                     )))
                 }
@@ -286,13 +286,13 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                         _ => None,
                     };
                     let trans = enum_def.get_translation(fields);
-                    return Ok(SimpleParserView::Map(BinMapParser(
-                        BinMapParserInner::WithSchema(&trans.keys),
+                    return Ok(SimpleDecoderView::Map(BinMapDecoder(
+                        BinMapDecoderInner::WithSchema(&trans.keys),
                     )));
                 }
                 TypeTag::TupleStruct => {
                     let len = self.read_usize()?;
-                    return Ok(SimpleParserView::Seq(BinSeqParser { len }));
+                    return Ok(SimpleDecoderView::Seq(BinSeqDecoder { len }));
                 }
                 TypeTag::Enum => {
                     let enum_def = self.read_enum_def_ref()?;
@@ -302,30 +302,30 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                         _ => None,
                     };
                     let variant = &enum_def.get_translation(variants).keys[variant];
-                    return Ok(SimpleParserView::Enum(BinDiscriminantParser { variant }));
+                    return Ok(SimpleDecoderView::Enum(BinDiscriminantDecoder { variant }));
                 }
                 TypeTag::Seq => {
                     let len = self.read_usize()?;
-                    return Ok(SimpleParserView::Seq(BinSeqParser { len }));
+                    return Ok(SimpleDecoderView::Seq(BinSeqDecoder { len }));
                 }
                 TypeTag::Map => {
                     let len = self.read_usize()?;
-                    return Ok(SimpleParserView::Map(BinMapParser(
-                        BinMapParserInner::WithLength(len),
+                    return Ok(SimpleDecoderView::Map(BinMapDecoder(
+                        BinMapDecoderInner::WithLength(len),
                     )));
                 }
                 TypeTag::Tuple => {
                     let len = self.read_vu128::<u64>()?;
-                    return Ok(SimpleParserView::Seq(BinSeqParser {
+                    return Ok(SimpleDecoderView::Seq(BinSeqDecoder {
                         len: usize::try_from(len)?,
                     }));
                 }
                 TypeTag::EnumDef => self.read_enum_def()?,
-                TypeTag::String => return Ok(SimpleParserView::String(self.read_str()?.into())),
-                TypeTag::UnitStruct => return Ok(SimpleParserView::Primitive(Primitive::Unit)),
-                TypeTag::Bytes => return Ok(SimpleParserView::Bytes(self.read_bytes()?.into())),
-                TypeTag::None => return Ok(SimpleParserView::None),
-                TypeTag::Some => return Ok(SimpleParserView::Some(())),
+                TypeTag::String => return Ok(SimpleDecoderView::String(self.read_str()?.into())),
+                TypeTag::UnitStruct => return Ok(SimpleDecoderView::Primitive(Primitive::Unit)),
+                TypeTag::Bytes => return Ok(SimpleDecoderView::Bytes(self.read_bytes()?.into())),
+                TypeTag::None => return Ok(SimpleDecoderView::None),
+                TypeTag::Some => return Ok(SimpleDecoderView::Some(())),
             };
         }
     }
@@ -334,37 +334,37 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         todo!()
     }
 
-    fn parse_seq_next(
+    fn decode_seq_next(
         &mut self,
-        seq: &mut Self::SeqParser,
-    ) -> anyhow::Result<Option<Self::AnyParser>> {
+        seq: &mut Self::SeqDecoder,
+    ) -> anyhow::Result<Option<Self::AnyDecoder>> {
         if let Some(len2) = seq.len.checked_sub(1) {
             seq.len = len2;
-            Ok(Some(BinAnyParser::Read))
+            Ok(Some(BinAnyDecoder::Read))
         } else {
             Ok(None)
         }
     }
 
-    fn parse_map_next(
+    fn decode_map_next(
         &mut self,
-        map: &mut Self::MapParser,
-    ) -> anyhow::Result<Option<Self::KeyParser>> {
+        map: &mut Self::MapDecoder,
+    ) -> anyhow::Result<Option<Self::KeyDecoder>> {
         match &mut map.0 {
-            BinMapParserInner::WithSchema(schema) => {
+            BinMapDecoderInner::WithSchema(schema) => {
                 if let Some(key) = schema.take_first() {
                     match key {
-                        EnumDefKey::Native(x) => Ok(Some(BinKeyParser::Native(*x))),
-                        EnumDefKey::Foreign(x) => Ok(Some(BinKeyParser::Foreign(x))),
+                        EnumDefKey::Native(x) => Ok(Some(BinKeyDecoder::Native(*x))),
+                        EnumDefKey::Foreign(x) => Ok(Some(BinKeyDecoder::Foreign(x))),
                     }
                 } else {
                     Ok(None)
                 }
             }
-            BinMapParserInner::WithLength(len) => {
+            BinMapDecoderInner::WithLength(len) => {
                 if let Some(l2) = len.checked_sub(1) {
                     *len = l2;
-                    Ok(Some(BinKeyParser::Read))
+                    Ok(Some(BinKeyDecoder::Read))
                 } else {
                     Ok(None)
                 }
@@ -372,42 +372,42 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         }
     }
 
-    fn parse_entry_key(
+    fn decode_entry_key(
         &mut self,
-        key: Self::KeyParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::ValueParser)> {
+        key: Self::KeyDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::ValueDecoder)> {
         match key {
-            BinKeyParser::Foreign(x) => Ok((BinAnyParser::Str(x), ())),
-            BinKeyParser::Native(x) => Ok((BinAnyParser::U32(u32::try_from(x)?), ())),
-            BinKeyParser::Read => Ok((BinAnyParser::Read, ())),
+            BinKeyDecoder::Foreign(x) => Ok((BinAnyDecoder::Str(x), ())),
+            BinKeyDecoder::Native(x) => Ok((BinAnyDecoder::U32(u32::try_from(x)?), ())),
+            BinKeyDecoder::Read => Ok((BinAnyDecoder::Read, ())),
         }
     }
 
-    fn parse_entry_value(&mut self, _: Self::ValueParser) -> anyhow::Result<Self::AnyParser> {
-        Ok(BinAnyParser::Read)
+    fn decode_entry_value(&mut self, _: Self::ValueDecoder) -> anyhow::Result<Self::AnyDecoder> {
+        Ok(BinAnyDecoder::Read)
     }
 
-    fn parse_enum_discriminant(
+    fn decode_enum_discriminant(
         &mut self,
-        e: Self::DiscriminantParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::VariantParser)> {
+        e: Self::DiscriminantDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::VariantDecoder)> {
         Ok((
             match e.variant {
-                EnumDefKey::Native(x) => BinAnyParser::U32(u32::try_from(*x)?),
-                EnumDefKey::Foreign(y) => BinAnyParser::Str(y),
+                EnumDefKey::Native(x) => BinAnyDecoder::U32(u32::try_from(*x)?),
+                EnumDefKey::Foreign(y) => BinAnyDecoder::Str(y),
             },
             (),
         ))
     }
 
-    fn parse_enum_variant(
+    fn decode_enum_variant(
         &mut self,
-        _: Self::VariantParser,
+        _: Self::VariantDecoder,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)> {
+    ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
         Ok((
-            self.parse(
-                BinAnyParser::Read,
+            self.decode(
+                BinAnyDecoder::Read,
                 match hint {
                     DecodeVariantHint::UnitVariant => DecodeHint::Primitive(PrimitiveType::Unit),
                     DecodeVariantHint::TupleVariant { len } => DecodeHint::TupleStruct {
@@ -425,18 +425,18 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         ))
     }
 
-    fn parse_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
+    fn decode_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn parse_some_inner(
+    fn decode_some_inner(
         &mut self,
-        _: Self::SomeParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::SomeCloser)> {
-        Ok((BinAnyParser::Read, ()))
+        _: Self::SomeDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::SomeCloser)> {
+        Ok((BinAnyDecoder::Read, ()))
     }
 
-    fn parse_some_end(&mut self, _: Self::SomeCloser) -> anyhow::Result<()> {
+    fn decode_some_end(&mut self, _: Self::SomeCloser) -> anyhow::Result<()> {
         Ok(())
     }
 }

@@ -7,139 +7,139 @@ use crate::decode::{
 };
 use crate::Primitive;
 
-pub struct SimpleParserAdapter<T> {
+pub struct SimpleDecoderAdapter<T> {
     inner: PhantomData<T>,
 }
 
-pub enum SimpleParserView<'de, P: ?Sized + SimpleParser<'de>> {
+pub enum SimpleDecoderView<'de, P: ?Sized + SimpleDecoder<'de>> {
     Primitive(Primitive),
     String(Cow<'de, str>),
     Bytes(Cow<'de, [u8]>),
     None,
-    Some(P::SomeParser),
-    Seq(P::SeqParser),
-    Map(P::MapParser),
-    Enum(P::DiscriminantParser),
+    Some(P::SomeDecoder),
+    Seq(P::SeqDecoder),
+    Map(P::MapDecoder),
+    Enum(P::DiscriminantDecoder),
 }
 
-pub trait SimpleParser<'de> {
-    type AnyParser;
-    type SeqParser;
-    type MapParser;
-    type KeyParser;
-    type ValueParser;
-    type DiscriminantParser;
-    type VariantParser;
+pub trait SimpleDecoder<'de> {
+    type AnyDecoder;
+    type SeqDecoder;
+    type MapDecoder;
+    type KeyDecoder;
+    type ValueDecoder;
+    type DiscriminantDecoder;
+    type VariantDecoder;
     type EnumCloser;
-    type SomeParser;
+    type SomeDecoder;
     type SomeCloser;
 
-    fn parse(
+    fn decode(
         &mut self,
-        any: Self::AnyParser,
+        any: Self::AnyDecoder,
         hint: DecodeHint,
-    ) -> anyhow::Result<SimpleParserView<'de, Self>>;
+    ) -> anyhow::Result<SimpleDecoderView<'de, Self>>;
     fn is_human_readable(&self) -> bool;
 
-    fn parse_seq_next(
+    fn decode_seq_next(
         &mut self,
-        seq: &mut Self::SeqParser,
-    ) -> anyhow::Result<Option<Self::AnyParser>>;
+        seq: &mut Self::SeqDecoder,
+    ) -> anyhow::Result<Option<Self::AnyDecoder>>;
 
-    fn parse_map_next(
+    fn decode_map_next(
         &mut self,
-        map: &mut Self::MapParser,
-    ) -> anyhow::Result<Option<Self::KeyParser>>;
+        map: &mut Self::MapDecoder,
+    ) -> anyhow::Result<Option<Self::KeyDecoder>>;
 
-    fn parse_entry_key(
+    fn decode_entry_key(
         &mut self,
-        key: Self::KeyParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::ValueParser)>;
+        key: Self::KeyDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::ValueDecoder)>;
 
-    fn parse_entry_value(&mut self, value: Self::ValueParser) -> anyhow::Result<Self::AnyParser>;
+    fn decode_entry_value(&mut self, value: Self::ValueDecoder) -> anyhow::Result<Self::AnyDecoder>;
 
-    fn parse_enum_discriminant(
+    fn decode_enum_discriminant(
         &mut self,
-        e: Self::DiscriminantParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::VariantParser)>;
+        e: Self::DiscriminantDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::VariantDecoder)>;
 
-    fn parse_enum_variant(
+    fn decode_enum_variant(
         &mut self,
-        e: Self::VariantParser,
+        e: Self::VariantDecoder,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)>;
+    ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)>;
 
-    fn parse_enum_end(&mut self, e: Self::EnumCloser) -> anyhow::Result<()>;
+    fn decode_enum_end(&mut self, e: Self::EnumCloser) -> anyhow::Result<()>;
 
-    fn parse_some_inner(
+    fn decode_some_inner(
         &mut self,
-        e: Self::SomeParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::SomeCloser)>;
+        e: Self::SomeDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::SomeCloser)>;
 
-    fn parse_some_end(&mut self, p: Self::SomeCloser) -> anyhow::Result<()>;
+    fn decode_some_end(&mut self, p: Self::SomeCloser) -> anyhow::Result<()>;
 }
 
-pub struct SimpleAnyParser<'p, 'de, T: SimpleParser<'de>> {
+pub struct SimpleAnyDecoder<'p, 'de, T: SimpleDecoder<'de>> {
     this: &'p mut T,
-    any: T::AnyParser,
+    any: T::AnyDecoder,
 }
 
-pub struct SimpleSeqParser<'p, 'de, T: SimpleParser<'de>> {
+pub struct SimpleSeqDecoder<'p, 'de, T: SimpleDecoder<'de>> {
     this: &'p mut T,
-    seq: T::SeqParser,
+    seq: T::SeqDecoder,
 }
 
-pub struct SimpleMapParser<'p, 'de, T: SimpleParser<'de>> {
+pub struct SimpleMapDecoder<'p, 'de, T: SimpleDecoder<'de>> {
     this: &'p mut T,
-    map: T::MapParser,
+    map: T::MapDecoder,
 }
 
-pub struct SimpleEntryParser<'p, 'de, T: SimpleParser<'de>> {
+pub struct SimpleEntryDecoder<'p, 'de, T: SimpleDecoder<'de>> {
     this: &'p mut T,
-    key: Option<T::KeyParser>,
-    value: Option<T::ValueParser>,
+    key: Option<T::KeyDecoder>,
+    value: Option<T::ValueDecoder>,
 }
 
-pub struct SimpleEnumParser<'p, 'de, T: SimpleParser<'de>> {
+pub struct SimpleEnumDecoder<'p, 'de, T: SimpleDecoder<'de>> {
     this: &'p mut T,
-    discriminant: Option<T::DiscriminantParser>,
-    variant: Option<T::VariantParser>,
+    discriminant: Option<T::DiscriminantDecoder>,
+    variant: Option<T::VariantDecoder>,
     closer: Option<T::EnumCloser>,
 }
 
-pub struct SimpleSomeParser<'p, 'de, T: SimpleParser<'de>> {
+pub struct SimpleSomeDecoder<'p, 'de, T: SimpleDecoder<'de>> {
     this: &'p mut T,
-    some_parser: Option<T::SomeParser>,
+    some_decoder: Option<T::SomeDecoder>,
     some_closer: Option<T::SomeCloser>,
 }
 
-impl<'de, T> Decoder<'de> for SimpleParserAdapter<T>
+impl<'de, T> Decoder<'de> for SimpleDecoderAdapter<T>
 where
-    T: SimpleParser<'de>,
+    T: SimpleDecoder<'de>,
 {
-    type AnyDecoder<'p> = SimpleAnyParser<'p, 'de,T> where T:'p;
-    type SeqDecoder<'p> = SimpleSeqParser<'p, 'de, T> where T:'p;
-    type MapDecoder<'p> = SimpleMapParser<'p, 'de, T> where Self: 'p;
-    type EntryDecoder<'p> = SimpleEntryParser<'p, 'de, T> where Self: 'p;
-    type EnumDecoder<'p> = SimpleEnumParser<'p,'de, T> where Self: 'p;
-    type SomeDecoder<'p> = SimpleSomeParser<'p,'de,T> where Self:'p;
+    type AnyDecoder<'p> = SimpleAnyDecoder<'p, 'de,T> where T:'p;
+    type SeqDecoder<'p> = SimpleSeqDecoder<'p, 'de, T> where T:'p;
+    type MapDecoder<'p> = SimpleMapDecoder<'p, 'de, T> where Self: 'p;
+    type EntryDecoder<'p> = SimpleEntryDecoder<'p, 'de, T> where Self: 'p;
+    type EnumDecoder<'p> = SimpleEnumDecoder<'p,'de, T> where Self: 'p;
+    type SomeDecoder<'p> = SimpleSomeDecoder<'p,'de,T> where Self:'p;
 }
 
-impl<'de, T: SimpleParser<'de>> SimpleParserView<'de, T> {
-    fn wrap<'p>(self, this: &'p mut T) -> DecoderView<'p, 'de, SimpleParserAdapter<T>> {
+impl<'de, T: SimpleDecoder<'de>> SimpleDecoderView<'de, T> {
+    fn wrap<'p>(self, this: &'p mut T) -> DecoderView<'p, 'de, SimpleDecoderAdapter<T>> {
         match self {
-            SimpleParserView::Primitive(x) => DecoderView::Primitive(x),
-            SimpleParserView::String(x) => DecoderView::String(x),
-            SimpleParserView::Bytes(x) => DecoderView::Bytes(x),
-            SimpleParserView::None => DecoderView::None,
-            SimpleParserView::Some(some) => DecoderView::Some(SimpleSomeParser {
+            SimpleDecoderView::Primitive(x) => DecoderView::Primitive(x),
+            SimpleDecoderView::String(x) => DecoderView::String(x),
+            SimpleDecoderView::Bytes(x) => DecoderView::Bytes(x),
+            SimpleDecoderView::None => DecoderView::None,
+            SimpleDecoderView::Some(some) => DecoderView::Some(SimpleSomeDecoder {
                 this,
-                some_parser: Some(some),
+                some_decoder: Some(some),
                 some_closer: None,
             }),
-            SimpleParserView::Seq(seq) => DecoderView::Seq(SimpleSeqParser { this, seq }),
-            SimpleParserView::Map(map) => DecoderView::Map(SimpleMapParser { this, map }),
-            SimpleParserView::Enum(data) => DecoderView::Enum(SimpleEnumParser {
+            SimpleDecoderView::Seq(seq) => DecoderView::Seq(SimpleSeqDecoder { this, seq }),
+            SimpleDecoderView::Map(map) => DecoderView::Map(SimpleMapDecoder { this, map }),
+            SimpleDecoderView::Enum(data) => DecoderView::Enum(SimpleEnumDecoder {
                 this,
                 discriminant: Some(data),
                 variant: None,
@@ -149,22 +149,22 @@ impl<'de, T: SimpleParser<'de>> SimpleParserView<'de, T> {
     }
 }
 
-impl<'p, 'de, T> AnyDecoder<'p, 'de, SimpleParserAdapter<T>> for SimpleAnyParser<'p, 'de, T>
+impl<'p, 'de, T> AnyDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleAnyDecoder<'p, 'de, T>
 where
-    T: SimpleParser<'de>,
+    T: SimpleDecoder<'de>,
 {
-    fn decode(self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, SimpleParserAdapter<T>>> {
-        Ok(self.this.parse(self.any, hint)?.wrap(self.this))
+    fn decode(self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, SimpleDecoderAdapter<T>>> {
+        Ok(self.this.decode(self.any, hint)?.wrap(self.this))
     }
 }
 
-impl<'p, 'de, T> SeqDecoder<'p, 'de, SimpleParserAdapter<T>> for SimpleSeqParser<'p, 'de, T>
+impl<'p, 'de, T> SeqDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleSeqDecoder<'p, 'de, T>
 where
-    T: SimpleParser<'de>,
+    T: SimpleDecoder<'de>,
 {
-    fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<SimpleAnyParser<'p2, 'de, T>>> {
-        if let Some(any) = self.this.parse_seq_next(&mut self.seq)? {
-            Ok(Some(SimpleAnyParser {
+    fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<SimpleAnyDecoder<'p2, 'de, T>>> {
+        if let Some(any) = self.this.decode_seq_next(&mut self.seq)? {
+            Ok(Some(SimpleAnyDecoder {
                 this: self.this,
                 any,
             }))
@@ -174,13 +174,13 @@ where
     }
 }
 
-impl<'p, 'de, T> MapDecoder<'p, 'de, SimpleParserAdapter<T>> for SimpleMapParser<'p, 'de, T>
+impl<'p, 'de, T> MapDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleMapDecoder<'p, 'de, T>
 where
-    T: SimpleParser<'de>,
+    T: SimpleDecoder<'de>,
 {
-    fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<SimpleEntryParser<'p2, 'de, T>>> {
-        if let Some(data) = self.this.parse_map_next(&mut self.map)? {
-            Ok(Some(SimpleEntryParser {
+    fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<SimpleEntryDecoder<'p2, 'de, T>>> {
+        if let Some(data) = self.this.decode_map_next(&mut self.map)? {
+            Ok(Some(SimpleEntryDecoder {
                 this: self.this,
                 key: Some(data),
                 value: None,
@@ -190,23 +190,23 @@ where
         }
     }
 }
-impl<'p, 'de, T> EntryDecoder<'p, 'de, SimpleParserAdapter<T>> for SimpleEntryParser<'p, 'de, T>
+impl<'p, 'de, T> EntryDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleEntryDecoder<'p, 'de, T>
 where
-    T: SimpleParser<'de>,
+    T: SimpleDecoder<'de>,
 {
-    fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
-        let (key, value) = self.this.parse_entry_key(self.key.take().unwrap())?;
+    fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyDecoder<'p2, 'de, T>> {
+        let (key, value) = self.this.decode_entry_key(self.key.take().unwrap())?;
         self.value = Some(value);
-        Ok(SimpleAnyParser {
+        Ok(SimpleAnyDecoder {
             this: self.this,
             any: key,
         })
     }
 
-    fn decode_value<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
+    fn decode_value<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyDecoder<'p2, 'de, T>> {
         let value = self.value.take().unwrap();
-        let value = self.this.parse_entry_value(value)?;
-        Ok(SimpleAnyParser {
+        let value = self.this.decode_entry_value(value)?;
+        Ok(SimpleAnyDecoder {
             this: self.this,
             any: value,
         })
@@ -217,16 +217,16 @@ where
     }
 }
 
-impl<'p, 'de, T> EnumDecoder<'p, 'de, SimpleParserAdapter<T>> for SimpleEnumParser<'p, 'de, T>
+impl<'p, 'de, T> EnumDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleEnumDecoder<'p, 'de, T>
 where
-    T: SimpleParser<'de>,
+    T: SimpleDecoder<'de>,
 {
-    fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
+    fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyDecoder<'p2, 'de, T>> {
         let (discriminant, variant) = self
             .this
-            .parse_enum_discriminant(self.discriminant.take().unwrap())?;
+            .decode_enum_discriminant(self.discriminant.take().unwrap())?;
         self.variant = Some(variant);
-        Ok(SimpleAnyParser {
+        Ok(SimpleAnyDecoder {
             this: self.this,
             any: discriminant,
         })
@@ -235,38 +235,38 @@ where
     fn decode_variant<'p2>(
         &'p2 mut self,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<DecoderView<'p2, 'de, SimpleParserAdapter<T>>> {
+    ) -> anyhow::Result<DecoderView<'p2, 'de, SimpleDecoderAdapter<T>>> {
         let (data, closer) = self
             .this
-            .parse_enum_variant(self.variant.take().unwrap(), hint)?;
+            .decode_enum_variant(self.variant.take().unwrap(), hint)?;
         self.closer = Some(closer);
         Ok(data.wrap(self.this))
     }
 
     fn decode_end(mut self) -> anyhow::Result<()> {
-        self.this.parse_enum_end(self.closer.take().unwrap())
+        self.this.decode_enum_end(self.closer.take().unwrap())
     }
 }
 
-impl<'p, 'de, T> SomeDecoder<'p, 'de, SimpleParserAdapter<T>> for SimpleSomeParser<'p, 'de, T>
+impl<'p, 'de, T> SomeDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleSomeDecoder<'p, 'de, T>
 where
-    T: SimpleParser<'de>,
+    T: SimpleDecoder<'de>,
 {
-    fn decode_some<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyParser<'p2, 'de, T>> {
+    fn decode_some<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyDecoder<'p2, 'de, T>> {
         let (any, closer) = self
             .this
-            .parse_some_inner(self.some_parser.take().unwrap())?;
+            .decode_some_inner(self.some_decoder.take().unwrap())?;
         self.some_closer = Some(closer);
-        Ok(SimpleAnyParser::new(self.this, any))
+        Ok(SimpleAnyDecoder::new(self.this, any))
     }
 
     fn decode_end(mut self) -> anyhow::Result<()> {
-        self.this.parse_some_end(self.some_closer.take().unwrap())
+        self.this.decode_some_end(self.some_closer.take().unwrap())
     }
 }
 
-impl<'p, 'de, T: SimpleParser<'de>> SimpleAnyParser<'p, 'de, T> {
-    pub fn new(parser: &'p mut T, any: T::AnyParser) -> Self {
-        SimpleAnyParser { this: parser, any }
+impl<'p, 'de, T: SimpleDecoder<'de>> SimpleAnyDecoder<'p, 'de, T> {
+    pub fn new(decoder: &'p mut T, any: T::AnyDecoder) -> Self {
+        SimpleAnyDecoder { this: decoder, any }
     }
 }

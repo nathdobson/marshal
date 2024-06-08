@@ -4,12 +4,12 @@ use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
 use itertools::Itertools;
 
-use marshal_core::decode::simple::{SimpleParser, SimpleParserView};
+use marshal_core::decode::simple::{SimpleDecoder, SimpleDecoderView};
 use marshal_core::decode::{DecodeHint, DecodeVariantHint};
 use marshal_core::{Primitive, PrimitiveType};
 
-use crate::parse::any::PeekType;
-use crate::parse::error::JsonError;
+use crate::decode::any::PeekType;
+use crate::decode::error::JsonError;
 
 mod any;
 mod error;
@@ -20,17 +20,17 @@ mod string;
 #[cfg(test)]
 mod test;
 
-pub struct SimpleJsonParser<'de> {
+pub struct SimpleJsonDecoder<'de> {
     cursor: &'de [u8],
 }
 
 #[derive(Default)]
-pub struct JsonAnyParser {
+pub struct JsonAnyDecoder {
     must_be_string: bool,
     cannot_be_null: bool,
 }
 
-pub enum JsonSomeParser {
+pub enum JsonSomeDecoder {
     Transparent { must_be_string: bool },
     Struct,
 }
@@ -41,32 +41,32 @@ pub enum JsonSomeCloser {
 }
 
 #[derive(Default)]
-pub struct JsonSeqParser {
+pub struct JsonSeqDecoder {
     started: bool,
 }
 
 #[derive(Default)]
-pub struct JsonMapParser {
+pub struct JsonMapDecoder {
     started: bool,
 }
 
-impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
-    type AnyParser = JsonAnyParser;
-    type SeqParser = JsonSeqParser;
-    type MapParser = JsonMapParser;
-    type KeyParser = ();
-    type ValueParser = ();
-    type DiscriminantParser = ();
-    type VariantParser = ();
+impl<'de> SimpleDecoder<'de> for SimpleJsonDecoder<'de> {
+    type AnyDecoder = JsonAnyDecoder;
+    type SeqDecoder = JsonSeqDecoder;
+    type MapDecoder = JsonMapDecoder;
+    type KeyDecoder = ();
+    type ValueDecoder = ();
+    type DiscriminantDecoder = ();
+    type VariantDecoder = ();
     type EnumCloser = ();
-    type SomeParser = JsonSomeParser;
+    type SomeDecoder = JsonSomeDecoder;
     type SomeCloser = JsonSomeCloser;
 
-    fn parse(
+    fn decode(
         &mut self,
-        context: Self::AnyParser,
+        context: Self::AnyDecoder,
         hint: DecodeHint,
-    ) -> anyhow::Result<SimpleParserView<'de, Self>> {
+    ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
         let found = self.peek_type()?;
         if context.must_be_string {
             if found != PeekType::String {
@@ -85,11 +85,11 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                         self.read_exact(b':')?;
                         self.read_null()?;
                         self.read_exact(b'}')?;
-                        Ok(SimpleParserView::None)
+                        Ok(SimpleDecoderView::None)
                     },
                     "Some"=>{
                         self.read_exact(b':')?;
-                        Ok(SimpleParserView::Some(JsonSomeParser::Struct))
+                        Ok(SimpleDecoderView::Some(JsonSomeDecoder::Struct))
                     },
                     _=>return Err(JsonError::BadOption.into()),
                 }
@@ -97,10 +97,10 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             }
             (DecodeHint::Option, PeekType::Null) => {
                 self.read_null()?;
-                Ok(SimpleParserView::None)
+                Ok(SimpleDecoderView::None)
             }
             (DecodeHint::Option, _) => {
-                Ok(SimpleParserView::Some(JsonSomeParser::Transparent {
+                Ok(SimpleDecoderView::Some(JsonSomeDecoder::Transparent {
                     must_be_string: context.must_be_string,
                 }))
             }
@@ -126,13 +126,13 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 , PeekType::Null
             ) => {
                 self.read_null()?;
-                Ok(SimpleParserView::Primitive(Primitive::Unit))
+                Ok(SimpleDecoderView::Primitive(Primitive::Unit))
             }
             (DecodeHint::Bytes, PeekType::String) => {
-                Ok(SimpleParserView::Bytes(BASE64_STANDARD_NO_PAD.decode(self.read_string()?)?.into()))
+                Ok(SimpleDecoderView::Bytes(BASE64_STANDARD_NO_PAD.decode(self.read_string()?)?.into()))
             }
             (DecodeHint::Primitive(PrimitiveType::Char), PeekType::String) => {
-                Ok(SimpleParserView::Primitive(Primitive::Char(
+                Ok(SimpleDecoderView::Primitive(Primitive::Char(
                     self.read_string()?
                         .chars()
                         .exactly_one()
@@ -171,15 +171,15 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 | DecodeHint::Enum { .. },
                 PeekType::String,
             ) => {
-                Ok(SimpleParserView::String(Cow::Owned(self.read_string()?)))
+                Ok(SimpleDecoderView::String(Cow::Owned(self.read_string()?)))
             }
             (_, PeekType::Seq) => {
                 self.read_exact(b'[')?;
-                Ok(SimpleParserView::Seq(JsonSeqParser { started: false }))
+                Ok(SimpleDecoderView::Seq(JsonSeqDecoder { started: false }))
             }
             (DecodeHint::Enum { .. }, PeekType::Map) => {
                 self.read_exact(b'{')?;
-                Ok(SimpleParserView::Enum(()))
+                Ok(SimpleDecoderView::Enum(()))
             }
             (
                 DecodeHint::Any
@@ -198,45 +198,45 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 PeekType::Map,
             ) => {
                 self.read_exact(b'{')?;
-                Ok(SimpleParserView::Map(JsonMapParser { started: false }))
+                Ok(SimpleDecoderView::Map(JsonMapDecoder { started: false }))
             }
             (_, PeekType::Bool) => Ok(
-                SimpleParserView::Primitive(Primitive::Bool(self.read_bool()?)),
+                SimpleDecoderView::Primitive(Primitive::Bool(self.read_bool()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::I8), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::I8(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::I8(self.read_number()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::I16), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::I16(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::I16(self.read_number()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::I32), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::I32(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::I32(self.read_number()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::I64), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::I64(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::I64(self.read_number()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::I128), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::I128(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::I128(self.read_number()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::U8), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::U8(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::U8(self.read_number()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::U16), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::U16(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::U16(self.read_number()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::U32), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::U32(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::U32(self.read_number()?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::Char), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::Char(char::try_from(self.read_number::<u32>()?)?)),
+                SimpleDecoderView::Primitive(Primitive::Char(char::try_from(self.read_number::<u32>()?)?)),
             ),
             (DecodeHint::Primitive(PrimitiveType::U64), PeekType::Number) => Ok(
-                SimpleParserView::Primitive(Primitive::U64(self.read_number()?)),
+                SimpleDecoderView::Primitive(Primitive::U64(self.read_number()?)),
             ),
             (
                 DecodeHint::Primitive(PrimitiveType::U128) | DecodeHint::Identifier,
                 PeekType::Number,
-            ) => Ok(SimpleParserView::Primitive(Primitive::U128(
+            ) => Ok(SimpleDecoderView::Primitive(Primitive::U128(
                 self.read_number()?,
             ))),
             (DecodeHint::Primitive(PrimitiveType::F32), PeekType::Number) => {
@@ -244,7 +244,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 if !n.is_finite() {
                     return Err(JsonError::BadNumber.into());
                 }
-                Ok(SimpleParserView::Primitive(Primitive::F32(n)))
+                Ok(SimpleDecoderView::Primitive(Primitive::F32(n)))
             }
             (
                 DecodeHint::Primitive(PrimitiveType::F64)
@@ -271,7 +271,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 if !n.is_finite() {
                     return Err(JsonError::BadNumber.into());
                 }
-                Ok(SimpleParserView::Primitive(Primitive::F64(n)))
+                Ok(SimpleDecoderView::Primitive(Primitive::F64(n)))
             }
         }
     }
@@ -280,10 +280,10 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
         true
     }
 
-    fn parse_seq_next(
+    fn decode_seq_next(
         &mut self,
-        seq: &mut Self::SeqParser,
-    ) -> anyhow::Result<Option<Self::AnyParser>> {
+        seq: &mut Self::SeqDecoder,
+    ) -> anyhow::Result<Option<Self::AnyDecoder>> {
         if self.try_read_exact(b']')? {
             return Ok(None);
         }
@@ -291,13 +291,13 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             self.read_exact(b',')?;
         }
         seq.started = true;
-        Ok(Some(JsonAnyParser::default()))
+        Ok(Some(JsonAnyDecoder::default()))
     }
 
-    fn parse_map_next(
+    fn decode_map_next(
         &mut self,
-        map: &mut Self::MapParser,
-    ) -> anyhow::Result<Option<Self::KeyParser>> {
+        map: &mut Self::MapDecoder,
+    ) -> anyhow::Result<Option<Self::KeyDecoder>> {
         if self.try_read_exact(b'}')? {
             return Ok(None);
         }
@@ -308,30 +308,30 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
         Ok(Some(()))
     }
 
-    fn parse_entry_key(
+    fn decode_entry_key(
         &mut self,
-        _: Self::KeyParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::ValueParser)> {
+        _: Self::KeyDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::ValueDecoder)> {
         Ok((
-            JsonAnyParser {
+            JsonAnyDecoder {
                 must_be_string: true,
-                ..JsonAnyParser::default()
+                ..JsonAnyDecoder::default()
             },
             (),
         ))
     }
 
-    fn parse_entry_value(&mut self, _: Self::ValueParser) -> anyhow::Result<Self::AnyParser> {
+    fn decode_entry_value(&mut self, _: Self::ValueDecoder) -> anyhow::Result<Self::AnyDecoder> {
         self.read_exact(b':')?;
-        Ok(JsonAnyParser::default())
+        Ok(JsonAnyDecoder::default())
     }
 
-    fn parse_enum_discriminant(
+    fn decode_enum_discriminant(
         &mut self,
-        _: Self::DiscriminantParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::VariantParser)> {
+        _: Self::DiscriminantDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::VariantDecoder)> {
         Ok((
-            JsonAnyParser {
+            JsonAnyDecoder {
                 must_be_string: true,
                 cannot_be_null: false,
             },
@@ -339,11 +339,11 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
         ))
     }
 
-    fn parse_enum_variant(
+    fn decode_enum_variant(
         &mut self,
-        _: Self::VariantParser,
+        _: Self::VariantDecoder,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)> {
+    ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
         self.read_exact(b':')?;
         let hint = match hint {
             DecodeVariantHint::UnitVariant => DecodeHint::Primitive(PrimitiveType::Unit),
@@ -358,8 +358,8 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             DecodeVariantHint::Ignore => DecodeHint::Ignore,
         };
         Ok((
-            self.parse(
-                JsonAnyParser {
+            self.decode(
+                JsonAnyDecoder {
                     must_be_string: false,
                     cannot_be_null: false,
                 },
@@ -369,24 +369,24 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
         ))
     }
 
-    fn parse_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
+    fn decode_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
         self.read_exact(b'}')
     }
 
-    fn parse_some_inner(
+    fn decode_some_inner(
         &mut self,
-        e: Self::SomeParser,
-    ) -> anyhow::Result<(Self::AnyParser, Self::SomeCloser)> {
+        e: Self::SomeDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::SomeCloser)> {
         match e {
-            JsonSomeParser::Transparent { must_be_string } => Ok((
-                JsonAnyParser {
+            JsonSomeDecoder::Transparent { must_be_string } => Ok((
+                JsonAnyDecoder {
                     must_be_string,
                     cannot_be_null: true,
                 },
                 JsonSomeCloser::Transparent,
             )),
-            JsonSomeParser::Struct => Ok((
-                JsonAnyParser {
+            JsonSomeDecoder::Struct => Ok((
+                JsonAnyDecoder {
                     must_be_string: false,
                     cannot_be_null: false,
                 },
@@ -395,7 +395,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
         }
     }
 
-    fn parse_some_end(&mut self, p: Self::SomeCloser) -> anyhow::Result<()> {
+    fn decode_some_end(&mut self, p: Self::SomeCloser) -> anyhow::Result<()> {
         match p {
             JsonSomeCloser::Transparent => Ok(()),
             JsonSomeCloser::Struct => self.read_exact(b'}'),
@@ -403,8 +403,8 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
     }
 }
 
-impl<'de> SimpleJsonParser<'de> {
+impl<'de> SimpleJsonDecoder<'de> {
     pub fn new(input: &'de [u8]) -> Self {
-        SimpleJsonParser { cursor: input }
+        SimpleJsonDecoder { cursor: input }
     }
 }

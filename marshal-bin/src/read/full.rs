@@ -1,32 +1,32 @@
-use crate::read::{BinAnyParser, BinParserSchema, SimpleBinParser};
-use marshal_core::decode::depth_budget::{DepthBudgetParser, WithDepthBudget};
-use marshal_core::decode::poison::{PoisonAnyParser, PoisonParser, PoisonState};
-use marshal_core::decode::simple::{SimpleAnyParser, SimpleParserAdapter};
+use crate::read::{BinAnyDecoder, BinDecoderSchema, SimpleBinDecoder};
+use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
+use marshal_core::decode::poison::{PoisonAnyDecoder, PoisonDecoder, PoisonState};
+use marshal_core::decode::simple::{SimpleAnyDecoder, SimpleDecoderAdapter};
 use marshal_core::decode::Decoder;
 
-pub type BinParser<'de, 's> =
-    PoisonParser<DepthBudgetParser<SimpleParserAdapter<SimpleBinParser<'de, 's>>>>;
+pub type BinDecoder<'de, 's> =
+    PoisonDecoder<DepthBudgetDecoder<SimpleDecoderAdapter<SimpleBinDecoder<'de, 's>>>>;
 
-pub struct BinParserBuilder<'de, 's> {
-    inner: SimpleBinParser<'de, 's>,
+pub struct BinDecoderBuilder<'de, 's> {
+    inner: SimpleBinDecoder<'de, 's>,
     depth_budget: usize,
     poison: PoisonState,
 }
 
-impl<'de, 's> BinParserBuilder<'de, 's> {
-    pub fn new(input: &'de [u8], schema: &'s mut BinParserSchema) -> Self {
-        BinParserBuilder {
-            inner: SimpleBinParser::new(input, schema),
+impl<'de, 's> BinDecoderBuilder<'de, 's> {
+    pub fn new(input: &'de [u8], schema: &'s mut BinDecoderSchema) -> Self {
+        BinDecoderBuilder {
+            inner: SimpleBinDecoder::new(input, schema),
             depth_budget: 100,
             poison: PoisonState::new(),
         }
     }
-    pub fn build<'p>(&'p mut self) -> <BinParser<'de, 's> as Decoder<'de>>::AnyDecoder<'p> {
-        PoisonAnyParser::new(
+    pub fn build<'p>(&'p mut self) -> <BinDecoder<'de, 's> as Decoder<'de>>::AnyDecoder<'p> {
+        PoisonAnyDecoder::new(
             &mut self.poison,
             WithDepthBudget::new(
                 self.depth_budget,
-                SimpleAnyParser::new(&mut self.inner, BinAnyParser::Read),
+                SimpleAnyDecoder::new(&mut self.inner, BinAnyDecoder::Read),
             ),
         )
     }
