@@ -38,6 +38,10 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
     let map_parser_type = quote!(<P as #parser_trait<'de>>::MapParser<'_>);
     let as_map_parser = quote!(<#map_parser_type as #map_parser_trait<P>>);
 
+    let seq_parser_trait = quote!(::marshal::reexports::marshal_core::parse::SeqParser);
+    let seq_parser_type = quote!(<P as #parser_trait<'de>>::SeqParser<'_>);
+    let as_seq_parser = quote!(<#seq_parser_type as #seq_parser_trait<P>>);
+
     let entry_parser_trait = quote!(::marshal::reexports::marshal_core::parse::EntryParser);
     let entry_parser_type = quote!(<P as #parser_trait<'de>>::EntryParser<'_>);
     let as_entry_parser = quote!(<#entry_parser_type as #entry_parser_trait<P>>);
@@ -100,10 +104,10 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                     #(
                                                         #field_name_literals => #field_name_indexes,
                                                     )*
-                                                    _ => todo!("x"),
+                                                    _ => todo!("unexpected field name"),
                                                 },
                                                 #parser_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
-                                                _=>todo!("A")
+                                                _=> todo!("unexpected type instead of field name or index")
                                             };
                                             match field_index {
                                                 #(
@@ -112,12 +116,12 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                         #field_names = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
                                                     }
                                                 )*
-                                                _=>todo!("y"),
+                                                _=>todo!("unknown field index"),
                                             }
                                             #as_entry_parser::parse_end(entry)?;
                                         }
                                     },
-                                     _ => todo!("b"),
+                                     _ => todo!("expected map"),
                                 }
                                 #(
                                     let #field_names = #field_names.ok_or(#schema_error::MissingField{field_name:#field_name_literals})?;
@@ -131,8 +135,47 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         }
                     }
                 }
-                Fields::Unnamed(_) => todo!(),
-                Fields::Unit => todo!(),
+                Fields::Unnamed(fields) => {
+                    let field_count = fields.unnamed.len();
+                    let field_types = fields.unnamed.iter().map(|x| &x.ty).collect::<Vec<_>>();
+                    output = quote! {
+                        impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                            fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
+                                match #as_any_parser::parse(parser, #parse_hint_type::TupleStruct{name:#type_name, len:#field_count})?{
+                                    #parser_view_type::Seq(mut parser) => {
+                                        let result=#type_ident(
+                                            #(
+                                                {
+                                                    let x = <#field_types as #deserialize_trait<'de, P> >::deserialize(
+                                                        #as_seq_parser::parse_next(&mut parser)?
+                                                            .ok_or(#schema_error::TupleTooShort)?,
+                                                        ctx
+                                                    )?;
+                                                    x
+                                                },
+                                            )*
+                                        );
+
+                                        Ok(result)
+                                    },
+                                    _ => todo!("b")
+                                }
+                            }
+                        }
+                    }
+                }
+                Fields::Unit => {
+                    output = quote! {
+                        impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                            fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
+                                match #as_any_parser::parse(parser, #parse_hint_type::UnitStruct{name:#type_name})?{
+                                    #parser_view_type::Primitive(#primitive_type::Unit) => Ok(#type_ident),
+                                    _ => todo!(),
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         Data::Enum(data) => {
@@ -203,13 +246,18 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                     _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
                                 }
                             },
-                            _ => todo!("unknown"),
+                            _ => todo!("expected enum, but got something else"),
                         }
                     }
                 }
             };
         }
-        Data::Union(_) => todo!(),
+        Data::Union(u) => {
+            return Err(syn::Error::new(
+                u.union_token.span,
+                "Cannot derive Deserialize for for unions.",
+            ))?
+        }
     }
     Ok(output)
 }
@@ -234,13 +282,22 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
     let writer_trait = quote! { ::marshal::reexports::marshal_core::write::Writer };
     let any_writer_trait = quote! { ::marshal::reexports::marshal_core::write::AnyWriter };
     let struct_writer_trait = quote! { ::marshal::reexports::marshal_core::write::StructWriter };
+    let tuple_struct_writer_trait =
+        quote! { ::marshal::reexports::marshal_core::write::TupleStructWriter };
     let serialize_trait = quote! { ::marshal::ser::Serialize };
     let context_type = quote! { ::marshal::context::Context };
     let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());
     let any_writer_type = quote!(<W as #writer_trait>::AnyWriter<'_>);
+
     let struct_writer_type = quote!(<W as #writer_trait>::StructWriter<'_>);
     let as_any_writer = quote!(<#any_writer_type as #any_writer_trait<W>>);
     let as_struct_writer = quote!(<#struct_writer_type as #struct_writer_trait<W>>);
+
+    let tuple_struct_writer_type = quote!(<W as #writer_trait>::TupleStructWriter<'_>);
+    let as_tuple_struct_writer =
+        quote!(<#tuple_struct_writer_type as #tuple_struct_writer_trait<W>>);
+    let result_type = quote!(::marshal::reexports::anyhow::Result);
+
     match data {
         Data::Struct(data) => {
             let DataStruct {
@@ -249,7 +306,15 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 semi_token,
             } = data;
             match fields {
-                Fields::Unit => output = quote! {},
+                Fields::Unit => {
+                    output = quote! {
+                        impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
+                            fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                                #as_any_writer::write_unit_struct(writer,#type_name)
+                            }
+                        }
+                    }
+                }
                 Fields::Named(fields) => {
                     let field_count = fields.named.len();
                     let field_names = fields
@@ -279,7 +344,22 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                         }
                     }
                 }
-                Fields::Unnamed(_) => output = quote! {},
+                Fields::Unnamed(fields) => {
+                    let field_count = fields.unnamed.len();
+                    let field_index = 0..field_count;
+                    output = quote! {
+                        impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
+                            fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                                let mut writer=#as_any_writer::write_tuple_struct(writer, #type_name, #field_count)?;
+                                #(
+                                    #serialize_trait::<W>::serialize(&self.#field_index, #as_tuple_struct_writer::write_field(&mut writer)?, ctx)?;
+                                )*
+                                #as_tuple_struct_writer::end(writer)?;
+                                #result_type::Ok(())
+                            }
+                        }
+                    }
+                }
             }
         }
         Data::Enum(data) => {
@@ -300,8 +380,8 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 let variant_name = ident_to_lit(&variant_ident);
                 let variant_index = variant_index as u32;
                 match variant.fields {
-                    Fields::Named(_) => todo!(),
-                    Fields::Unnamed(_) => todo!(),
+                    Fields::Named(_) => todo!("struct variant"),
+                    Fields::Unnamed(_) => todo!("tuple variant"),
                     Fields::Unit => {
                         matches.push(quote!{
                             Self::#variant_ident => {
@@ -324,7 +404,12 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 }
             };
         }
-        Data::Union(_) => todo!(),
+        Data::Union(u) => {
+            return Err(syn::Error::new(
+                u.union_token.span,
+                "Cannot derive Deserialize for for unions.",
+            ))?
+        }
     }
     Ok(output)
 }

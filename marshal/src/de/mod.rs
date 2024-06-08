@@ -18,6 +18,7 @@ pub trait Deserialize<'de, P: Parser<'de>>: Sized {
 pub enum SchemaError {
     MissingField { field_name: &'static str },
     UnknownVariant,
+    TupleTooShort,
 }
 
 impl Display for SchemaError {

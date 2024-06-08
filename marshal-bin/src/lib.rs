@@ -12,8 +12,8 @@ mod read;
 #[cfg(test)]
 mod test;
 mod to_from_vu128;
-mod write;
 mod util;
+mod write;
 
 pub const VU128_MAX_PADDING: usize = 17;
 
@@ -35,11 +35,12 @@ pub enum TypeTag {
     F64 = 13,
     Char = 14,
     Tuple = 15,
-    Struct =16,
-    TupleStruct=17,
-    Enum=18,
-    Seq=19,
-    Map=20,
-    EnumDef=21,
-    String=22,
+    Struct = 16,
+    TupleStruct = 17,
+    UnitStruct = 23,
+    Enum = 18,
+    Seq = 19,
+    Map = 20,
+    EnumDef = 21,
+    String = 22,
 }

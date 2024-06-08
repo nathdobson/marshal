@@ -290,7 +290,10 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                         schema: Some(&trans.keys),
                     }));
                 }
-                TypeTag::TupleStruct => todo!(),
+                TypeTag::TupleStruct => {
+                    let len = self.read_usize()?;
+                    return Ok(SimpleParserView::Seq(BinSeqParser { len }));
+                }
                 TypeTag::Enum => {
                     let enum_def = self.read_enum_def_ref()?;
                     let variant = self.read_usize()?;
@@ -314,6 +317,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                 }
                 TypeTag::EnumDef => self.read_enum_def()?,
                 TypeTag::String => return Ok(SimpleParserView::String(self.read_str()?.into())),
+                TypeTag::UnitStruct => return Ok(SimpleParserView::Primitive(Primitive::Unit)),
             };
         }
     }

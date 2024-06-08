@@ -206,7 +206,7 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         any: Self::AnyWriter,
         name: &'static str,
     ) -> anyhow::Result<()> {
-        todo!()
+        self.write_tag(TypeTag::UnitStruct)
     }
 
     fn write_tuple_struct(
@@ -215,7 +215,9 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         name: &'static str,
         len: usize,
     ) -> anyhow::Result<Self::TupleStructWriter> {
-        todo!()
+        self.write_tag(TypeTag::TupleStruct)?;
+        self.write_usize(len)?;
+        Ok(())
     }
 
     fn write_struct(
@@ -343,13 +345,13 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
 
     fn tuple_struct_write_field(
         &mut self,
-        map: &mut Self::TupleStructWriter,
+        tuple: &mut Self::TupleStructWriter,
     ) -> anyhow::Result<Self::AnyWriter> {
-        todo!()
+        Ok(())
     }
 
     fn tuple_struct_end(&mut self, map: Self::TupleStructWriter) -> anyhow::Result<()> {
-        todo!()
+        Ok(())
     }
 
     fn struct_write_field(

@@ -142,29 +142,21 @@ fn test_struct() -> anyhow::Result<()> {
     )?;
     Ok(())
 }
+
 #[test]
-fn test_enum() -> anyhow::Result<()> {
+fn test_unit_struct() -> anyhow::Result<()> {
     #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-    pub enum Enum1 {
-        V0,
-        V1,
-    }
+    struct Foo;
+    test_round_trip(Foo, &[23])?;
+
+    Ok(())
+}
+
+#[test]
+fn test_tuple_struct() -> anyhow::Result<()> {
     #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-    pub enum Enum2 {
-        V2,
-        V3,
-    }
-    test_round_trip(
-        (Enum1::V0, Enum1::V1, Enum2::V2, Enum2::V3),
-        &[
-            15, 4, //
-            21, 2, 2, b'V', b'0', 2, b'V', b'1', //
-            18, 0, 0, 0, //
-            18, 0, 1, 0, //
-            21, 2, 2, b'V', b'2', 2, b'V', b'3', //
-            18, 1, 0, 0, //
-            18, 1, 1, 0, //
-        ],
-    )?;
+    struct Foo(u8, u16, u32);
+    test_round_trip(Foo(50, 51, 52), &[17, 3, 7, 50, 8, 51, 9, 52])?;
+
     Ok(())
 }
