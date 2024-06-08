@@ -1,5 +1,5 @@
-use marshal_core::Primitive;
 use marshal_core::write::{AnyWriter, TupleWriter, Writer};
+use marshal_core::Primitive;
 
 use crate::context::Context;
 use crate::ser::Serialize;
@@ -24,6 +24,32 @@ impl<W: Writer, T1: Serialize<W>, T2: Serialize<W>> Serialize<W> for (T1, T2) {
         let mut w = w.write_tuple(2)?;
         self.0.serialize(w.write_element()?, ctx)?;
         self.1.serialize(w.write_element()?, ctx)?;
+        w.end()?;
+        Ok(())
+    }
+}
+
+impl<W: Writer, T1: Serialize<W>, T2: Serialize<W>, T3: Serialize<W>> Serialize<W>
+    for (T1, T2, T3)
+{
+    fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+        let mut w = w.write_tuple(3)?;
+        self.0.serialize(w.write_element()?, ctx)?;
+        self.1.serialize(w.write_element()?, ctx)?;
+        self.2.serialize(w.write_element()?, ctx)?;
+        w.end()?;
+        Ok(())
+    }
+}
+impl<W: Writer, T1: Serialize<W>, T2: Serialize<W>, T3: Serialize<W>, T4: Serialize<W>> Serialize<W>
+    for (T1, T2, T3, T4)
+{
+    fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+        let mut w = w.write_tuple(4)?;
+        self.0.serialize(w.write_element()?, ctx)?;
+        self.1.serialize(w.write_element()?, ctx)?;
+        self.2.serialize(w.write_element()?, ctx)?;
+        self.3.serialize(w.write_element()?, ctx)?;
         w.end()?;
         Ok(())
     }

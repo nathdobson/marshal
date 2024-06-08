@@ -5,6 +5,7 @@ use marshal_core::write::simple::SimpleWriter;
 use marshal_core::Primitive;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
 
 use crate::to_from_vu128::{Array, ToFromVu128};
 use crate::{TypeTag, VU128_MAX_PADDING};
@@ -20,6 +21,19 @@ impl BinWriterSchema {
         }
     }
 }
+
+#[derive(Debug)]
+pub enum BinWriterError {
+    MissingLen,
+}
+
+impl Display for BinWriterError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for BinWriterError {}
 
 pub struct SimpleBinWriter<'s> {
     output: Vec<u8>,
@@ -220,18 +234,23 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         &mut self,
         any: Self::AnyWriter,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
     ) -> anyhow::Result<()> {
-        todo!()
+        let enum_def = self.get_or_write_enum_def(variants)?;
+        self.write_tag(TypeTag::Enum)?;
+        self.write_usize(enum_def)?;
+        self.write_vu128(variant_index)?;
+        self.write_tag(TypeTag::Unit)?;
+        Ok(())
     }
 
     fn write_tuple_variant(
         &mut self,
         any: Self::AnyWriter,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
         len: usize,
     ) -> anyhow::Result<Self::TupleVariantWriter> {
         todo!()
@@ -241,8 +260,8 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         &mut self,
         any: Self::AnyWriter,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
         len: usize,
     ) -> anyhow::Result<Self::StructVariantWriter> {
         todo!()
@@ -253,7 +272,10 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         any: Self::AnyWriter,
         len: Option<usize>,
     ) -> anyhow::Result<Self::SeqWriter> {
-        todo!()
+        let len = len.ok_or(BinWriterError::MissingLen)?;
+        self.write_tag(TypeTag::Seq)?;
+        self.write_usize(len)?;
+        Ok(())
     }
 
     fn write_tuple(
@@ -290,11 +312,11 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
     }
 
     fn seq_write_element(&mut self, seq: &mut Self::SeqWriter) -> anyhow::Result<Self::AnyWriter> {
-        todo!()
+        Ok(())
     }
 
     fn seq_end(&mut self, tuple: Self::SeqWriter) -> anyhow::Result<()> {
-        todo!()
+        Ok(())
     }
 
     fn map_write_element(

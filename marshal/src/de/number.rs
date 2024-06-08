@@ -9,7 +9,7 @@ macro_rules! derive_number {
             fn deserialize<'p>(p: P::AnyParser<'p>, _ctx: &mut Context) -> anyhow::Result<Self> {
                 match p.parse(ParseHint::Primitive(PrimitiveType::$v))? {
                     ParserView::Primitive(Primitive::$v(x)) => Ok(x),
-                    unexpected => unexpected.mismatch("u32")?,
+                    unexpected => unexpected.mismatch(std::stringify!($t))?,
                 }
             }
         }

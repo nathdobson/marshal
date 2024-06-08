@@ -37,12 +37,14 @@ pub enum ParseHint {
         variants: &'static [&'static str],
     },
     Identifier,
+    Ignore,
 }
 
 pub enum ParseVariantHint {
     UnitVariant,
-    TupleVariant,
-    StructVariant,
+    TupleVariant { len: usize },
+    StructVariant { fields: &'static [&'static str] },
+    Ignore,
 }
 
 pub enum ParserView<'p, 'de, P: ?Sized + Parser<'de>>
@@ -59,8 +61,11 @@ where
     Enum(P::EnumParser<'p>),
 }
 
-pub trait AnyParser<'p, 'de, P: ?Sized + Parser<'de>> {
+pub trait AnyParser<'p, 'de, P: ?Sized + Parser<'de> + 'p>: Sized {
     fn parse(self, hint: ParseHint) -> anyhow::Result<ParserView<'p, 'de, P>>;
+    fn ignore(mut self) -> anyhow::Result<()> {
+        self.parse(ParseHint::Ignore)?.ignore()
+    }
 }
 
 pub trait SeqParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
@@ -77,6 +82,12 @@ pub trait SeqParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
             map,
             phantom: PhantomData,
         }
+    }
+    fn ignore(mut self) -> anyhow::Result<()> {
+        while let Some(next) = self.parse_next()? {
+            next.ignore()?;
+        }
+        Ok(())
     }
 }
 
@@ -138,6 +149,12 @@ pub trait MapParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
             phantom: PhantomData,
         }
     }
+    fn ignore(mut self) -> anyhow::Result<()> {
+        while let Some(next) = self.parse_next()? {
+            next.ignore()?;
+        }
+        Ok(())
+    }
 }
 
 pub struct MapIter<'p, 'de, M: MapParser<'p, 'de, P>, P: Parser<'de> + 'p, C, KF, VF> {
@@ -185,24 +202,38 @@ impl<
     }
 }
 
-pub trait EntryParser<'p, 'de, P: ?Sized + Parser<'de>> {
+pub trait EntryParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
     fn parse_key<'p2>(&'p2 mut self) -> anyhow::Result<P::AnyParser<'p2>>;
     fn parse_value<'p2>(&'p2 mut self) -> anyhow::Result<P::AnyParser<'p2>>;
     fn parse_end(self) -> anyhow::Result<()>;
+    fn ignore(mut self) -> anyhow::Result<()> {
+        self.parse_key()?.ignore()?;
+        self.parse_value()?.ignore()?;
+        self.parse_end()
+    }
 }
 
-pub trait EnumParser<'p, 'de, P: ?Sized + Parser<'de>> {
+pub trait EnumParser<'p, 'de, P: ?Sized + Parser<'de>>: Sized {
     fn parse_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<P::AnyParser<'p2>>;
     fn parse_variant<'p2>(
         &'p2 mut self,
         hint: ParseVariantHint,
     ) -> anyhow::Result<ParserView<'p2, 'de, P>>;
     fn parse_end(self) -> anyhow::Result<()>;
+    fn ignore(mut self) -> anyhow::Result<()> {
+        self.parse_discriminant()?.ignore()?;
+        self.parse_variant(ParseVariantHint::Ignore)?.ignore()?;
+        self.parse_end()
+    }
 }
 
-pub trait SomeParser<'p, 'de, P: ?Sized + Parser<'de>> {
+pub trait SomeParser<'p, 'de, P: ?Sized + Parser<'de> + 'p>: Sized {
     fn parse_some<'p2>(&'p2 mut self) -> anyhow::Result<<P as Parser<'de>>::AnyParser<'p2>>;
     fn parse_end(self) -> anyhow::Result<()>;
+    fn ignore(mut self) -> anyhow::Result<()> {
+        self.parse_some()?.ignore()?;
+        self.parse_end()
+    }
 }
 pub trait Parser<'de>: Sized {
     type AnyParser<'p>: AnyParser<'p, 'de, Self>
@@ -295,6 +326,19 @@ impl<'p, 'de, P: Parser<'de>> ParserView<'p, 'de, P> {
         }
         .into())
     }
+    pub fn ignore(self) -> anyhow::Result<()> {
+        match self {
+            ParserView::Primitive(_) => {}
+            ParserView::String(_) => {}
+            ParserView::Bytes(_) => {}
+            ParserView::None => {}
+            ParserView::Some(x) => x.ignore()?,
+            ParserView::Seq(x) => x.ignore()?,
+            ParserView::Map(x) => x.ignore()?,
+            ParserView::Enum(x) => x.ignore()?,
+        }
+        Ok(())
+    }
 }
 
 impl Primitive {
@@ -323,29 +367,5 @@ impl Primitive {
             expected,
         }
         .into())
-    }
-}
-
-impl TryFrom<Primitive> for usize {
-    type Error = anyhow::Error;
-
-    fn try_from(value: Primitive) -> Result<Self, Self::Error> {
-        Ok(match value {
-            Primitive::Unit => 0,
-            Primitive::Bool(x) => x as Self,
-            Primitive::I8(x) => Self::try_from(x)?,
-            Primitive::I16(x) => Self::try_from(x)?,
-            Primitive::I32(x) => Self::try_from(x)?,
-            Primitive::I64(x) => Self::try_from(x)?,
-            Primitive::I128(x) => Self::try_from(x)?,
-            Primitive::U8(x) => Self::try_from(x)?,
-            Primitive::U16(x) => Self::try_from(x)?,
-            Primitive::U32(x) => Self::try_from(x)?,
-            Primitive::U64(x) => Self::try_from(x)?,
-            Primitive::U128(x) => Self::try_from(x)?,
-            Primitive::F32(x) => value.mismatch("u8")?,
-            Primitive::F64(x) => value.mismatch("u8")?,
-            Primitive::Char(x) => Self::try_from(x as u32)?,
-        })
     }
 }

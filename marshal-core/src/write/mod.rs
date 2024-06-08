@@ -55,21 +55,21 @@ pub trait AnyWriter<'w, W: Writer> {
     fn write_unit_variant(
         self,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
     ) -> anyhow::Result<()>;
     fn write_tuple_variant(
         self,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
         len: usize,
     ) -> anyhow::Result<<W as Writer>::TupleVariantWriter<'w>>;
     fn write_struct_variant(
         self,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
         len: usize,
     ) -> anyhow::Result<<W as Writer>::StructVariantWriter<'w>>;
     fn write_seq(self, len: Option<usize>) -> anyhow::Result<<W as Writer>::SeqWriter<'w>>;

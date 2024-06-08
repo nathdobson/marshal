@@ -1,8 +1,9 @@
 extern crate proc_macro;
 
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::__private::TokenStream2;
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, LitStr};
+use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields, LitStr, Variant};
 
 #[proc_macro_derive(Deserialize)]
 pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -10,6 +11,10 @@ pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenSt
     derive_deserialize_impl(&input)
         .unwrap_or_else(|e| e.into_compile_error())
         .into()
+}
+
+fn ident_to_lit(ident: &Ident) -> LitStr {
+    LitStr::new(&format!("{}", ident), ident.span())
 }
 
 fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error> {
@@ -21,6 +26,36 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
         data,
     } = input;
     let output: TokenStream2;
+    let parser_trait = quote!(::marshal::reexports::marshal_core::parse::Parser);
+    let primitive_type = quote!(::marshal::reexports::marshal_core::Primitive);
+    let primitive_type_type = quote!(::marshal::reexports::marshal_core::PrimitiveType);
+
+    let any_parser_trait = quote!(::marshal::reexports::marshal_core::parse::AnyParser);
+    let any_parser_type = quote!(<P as #parser_trait<'de>>::AnyParser<'_>);
+    let as_any_parser = quote!(<#any_parser_type as #any_parser_trait<P>>);
+
+    let map_parser_trait = quote!(::marshal::reexports::marshal_core::parse::MapParser);
+    let map_parser_type = quote!(<P as #parser_trait<'de>>::MapParser<'_>);
+    let as_map_parser = quote!(<#map_parser_type as #map_parser_trait<P>>);
+
+    let entry_parser_trait = quote!(::marshal::reexports::marshal_core::parse::EntryParser);
+    let entry_parser_type = quote!(<P as #parser_trait<'de>>::EntryParser<'_>);
+    let as_entry_parser = quote!(<#entry_parser_type as #entry_parser_trait<P>>);
+
+    let enum_parser_trait = quote!(::marshal::reexports::marshal_core::parse::EnumParser);
+    let enum_parser_type = quote!(<P as #parser_trait<'de>>::EnumParser<'_>);
+    let as_enum_parser = quote!(<#enum_parser_type as #enum_parser_trait<P>>);
+
+    let deserialize_trait = quote!(::marshal::de::Deserialize);
+    let result_type = quote!(::marshal::reexports::anyhow::Result);
+    let context_type = quote!(::marshal::context::Context);
+    let parse_hint_type = quote!(::marshal::reexports::marshal_core::parse::ParseHint);
+    let parse_variant_hint_type =
+        quote!(::marshal::reexports::marshal_core::parse::ParseVariantHint);
+    let parser_view_type = quote!(::marshal::reexports::marshal_core::parse::ParserView);
+    let type_name = ident_to_lit(&type_ident);
+    let option_type = quote! {::std::option::Option};
+    let schema_error = quote! {::marshal::de::SchemaError};
     match data {
         Data::Struct(data) => {
             let DataStruct {
@@ -28,29 +63,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 fields,
                 semi_token,
             } = data;
-            let parser_trait = quote!(::marshal::reexports::marshal_core::parse::Parser);
-            let primitive_type = quote!(::marshal::reexports::marshal_core::Primitive);
 
-            let any_parser_trait = quote!(::marshal::reexports::marshal_core::parse::AnyParser);
-            let any_parser_type = quote!(<P as #parser_trait<'de>>::AnyParser<'_>);
-            let as_any_parser = quote!(<#any_parser_type as #any_parser_trait<P>>);
-
-            let map_parser_trait = quote!(::marshal::reexports::marshal_core::parse::MapParser);
-            let map_parser_type = quote!(<P as #parser_trait<'de>>::MapParser<'_>);
-            let as_map_parser = quote!(<#map_parser_type as #map_parser_trait<P>>);
-
-            let entry_parser_trait = quote!(::marshal::reexports::marshal_core::parse::EntryParser);
-            let entry_parser_type = quote!(<P as #parser_trait<'de>>::EntryParser<'_>);
-            let as_entry_parser = quote!(<#entry_parser_type as #entry_parser_trait<P>>);
-
-            let deserialize_trait = quote!(::marshal::de::Deserialize);
-            let result_type = quote!(::marshal::reexports::anyhow::Result);
-            let context_type = quote!(::marshal::context::Context);
-            let parse_hint_type = quote!(::marshal::reexports::marshal_core::parse::ParseHint);
-            let parser_view_type = quote!(::marshal::reexports::marshal_core::parse::ParserView);
-            let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());
-            let option_type = quote! {::std::option::Option};
-            let missing_field_error_type = quote! {::marshal::de::MissingFieldError};
             match fields {
                 Fields::Named(fields) => {
                     let field_names = fields
@@ -107,7 +120,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                      _ => todo!("b"),
                                 }
                                 #(
-                                    let #field_names = #field_names.ok_or(#missing_field_error_type{field_name:#field_name_literals})?;
+                                    let #field_names = #field_names.ok_or(#schema_error::MissingField{field_name:#field_name_literals})?;
                                 )*
                                 Ok(#type_ident {
                                     #(
@@ -122,7 +135,80 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 Fields::Unit => todo!(),
             }
         }
-        Data::Enum(_) => todo!(),
+        Data::Enum(data) => {
+            let DataEnum {
+                enum_token,
+                brace_token,
+                variants,
+            } = data;
+            let mut variant_names: Vec<LitStr> = vec![];
+            for variant in variants {
+                variant_names.push(ident_to_lit(&variant.ident));
+            }
+            let mut matches: Vec<TokenStream> = vec![];
+            for (variant_index, variant) in variants.iter().enumerate() {
+                let Variant {
+                    attrs,
+                    ident: variant_ident,
+                    fields,
+                    discriminant,
+                } = variant;
+                match variant.fields {
+                    Fields::Named(_) => matches.push(quote! {
+                        #variant_index => {
+                            todo!()
+                        },
+                    }),
+
+                    Fields::Unnamed(_) => matches.push(quote! {
+                        #variant_index => {
+                            todo!()
+                        },
+                    }),
+
+                    Fields::Unit => matches.push(quote! {
+                        #variant_index => {
+                            let variant = #as_enum_parser::parse_variant(&mut parser, #parse_variant_hint_type::UnitVariant)?;
+                            variant.ignore()?;
+                            #result_type::Ok(#type_ident::#variant_ident)
+                        },
+                    }),
+                }
+            }
+            output = quote! {
+                impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                    fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
+                        let hint = #parse_hint_type::Enum {
+                            variants: &[
+                                #(
+                                    #variant_names
+                                ),*
+                            ],
+                            name: #type_name,
+                        };
+                        let parser = #as_any_parser::parse(parser, hint)?;
+                        match parser {
+                            #parser_view_type::Enum(mut parser) => {
+                                let variant_index = {
+                                    let disc = #as_enum_parser::parse_discriminant(&mut parser)?;
+                                    let disc = #as_any_parser::parse(disc, #parse_hint_type::Identifier)?;
+                                    match disc {
+                                        #parser_view_type::Primitive(variant_index) => usize::try_from(variant_index)?,
+                                        #parser_view_type::String(_) => todo!("y"),
+                                        _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
+                                    }
+                                };
+                                match variant_index {
+                                    #(#matches)*
+                                    _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
+                                }
+                            },
+                            _ => todo!("unknown"),
+                        }
+                    }
+                }
+            };
+        }
         Data::Union(_) => todo!(),
     }
     Ok(output)
@@ -196,7 +282,48 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 Fields::Unnamed(_) => output = quote! {},
             }
         }
-        Data::Enum(_) => todo!(),
+        Data::Enum(data) => {
+            let DataEnum {
+                enum_token,
+                brace_token,
+                variants,
+            } = data;
+            let mut matches = vec![];
+            let variant_names: Vec<_> = variants.iter().map(|x| ident_to_lit(&x.ident)).collect();
+            for (variant_index, variant) in variants.iter().enumerate() {
+                let Variant {
+                    attrs: variant_attrs,
+                    ident: variant_ident,
+                    fields: variant_fields,
+                    discriminant: variant_discriminant,
+                } = variant;
+                let variant_name = ident_to_lit(&variant_ident);
+                let variant_index = variant_index as u32;
+                match variant.fields {
+                    Fields::Named(_) => todo!(),
+                    Fields::Unnamed(_) => todo!(),
+                    Fields::Unit => {
+                        matches.push(quote!{
+                            Self::#variant_ident => {
+                                #as_any_writer::write_unit_variant(writer, #type_name, &[#( #variant_names ),*], #variant_index)?;
+                                Ok(())
+                            },
+                        });
+                    }
+                }
+            }
+            output = quote! {
+                impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
+                    fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                        match self{
+                            #(
+                                #matches
+                            )*
+                        }
+                    }
+                }
+            };
+        }
         Data::Union(_) => todo!(),
     }
     Ok(output)

@@ -45,23 +45,23 @@ pub trait SimpleWriter {
         &mut self,
         any: Self::AnyWriter,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
     ) -> anyhow::Result<()>;
     fn write_tuple_variant(
         &mut self,
         any: Self::AnyWriter,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
         len: usize,
     ) -> anyhow::Result<Self::TupleVariantWriter>;
     fn write_struct_variant(
         &mut self,
         any: Self::AnyWriter,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
         len: usize,
     ) -> anyhow::Result<Self::StructVariantWriter>;
     fn write_seq(
@@ -201,23 +201,23 @@ impl<'w, T: SimpleWriter> AnyWriter<'w, SimpleWriterAdapter<T>> for SimpleAnyWri
     fn write_unit_variant(
         mut self,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
     ) -> anyhow::Result<()> {
         self.writer
-            .write_unit_variant(self.inner, name, variant_index, variant)
+            .write_unit_variant(self.inner, name, variants, variant_index)
     }
 
     fn write_tuple_variant(
         mut self,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
         len: usize,
     ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::TupleVariantWriter<'w>> {
         let inner =
             self.writer
-                .write_tuple_variant(self.inner, name, variant_index, variant, len)?;
+                .write_tuple_variant(self.inner, name, variants, variant_index, len)?;
         Ok(SimpleTupleVariantWriter {
             writer: self.writer,
             inner,
@@ -227,13 +227,13 @@ impl<'w, T: SimpleWriter> AnyWriter<'w, SimpleWriterAdapter<T>> for SimpleAnyWri
     fn write_struct_variant(
         mut self,
         name: &'static str,
+        variants: &'static [&'static str],
         variant_index: u32,
-        variant: &'static str,
         len: usize,
     ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::StructVariantWriter<'w>> {
         let inner =
             self.writer
-                .write_struct_variant(self.inner, name, variant_index, variant, len)?;
+                .write_struct_variant(self.inner, name, variants, variant_index, len)?;
         Ok(SimpleStructVariantWriter {
             writer: self.writer,
             inner,

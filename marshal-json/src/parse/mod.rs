@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 use itertools::Itertools;
 
-use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::parse::{ParseHint, ParseVariantHint};
 use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
+use marshal_core::parse::{ParseHint, ParseVariantHint};
+use marshal_core::{Primitive, PrimitiveType};
 
 use crate::parse::any::PeekType;
 use crate::parse::error::JsonError;
@@ -85,6 +85,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             }
             (
                 ParseHint::Any
+                | ParseHint::Ignore
                 | ParseHint::UnitStruct { .. }
                 | ParseHint::Primitive(PrimitiveType::Unit)
                 | ParseHint::Tuple { len: 0 }
@@ -120,6 +121,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             }
             (
                 ParseHint::Any
+                | ParseHint::Ignore
                 | ParseHint::String
                 | ParseHint::Identifier
                 // ignore hint
@@ -160,6 +162,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             }
             (
                 ParseHint::Any
+                | ParseHint::Ignore
                 | ParseHint::Map
                 | ParseHint::Struct { .. }
                 // ignore hint
@@ -225,6 +228,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             (
                 ParseHint::Primitive(PrimitiveType::F64)
                 | ParseHint::Any
+                | ParseHint::Ignore
                 // Ignore hint
                 | ParseHint::Map
                 | ParseHint::String

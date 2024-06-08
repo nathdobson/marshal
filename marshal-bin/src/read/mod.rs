@@ -10,7 +10,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
 use marshal_core::parse::{ParseHint, ParseVariantHint};
-use marshal_core::Primitive;
+use marshal_core::{Primitive, PrimitiveType};
 
 use crate::to_from_vu128::{Array, ToFromVu128};
 use crate::util::StableCellVec;
@@ -181,13 +181,17 @@ pub enum BinKeyParser<'s> {
     Raw,
 }
 
+pub struct BinDiscriminantParser<'s> {
+    variant: &'s EnumDefKey,
+}
+
 impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
     type AnyParser = BinAnyParser<'s>;
     type SeqParser = BinSeqParser;
     type MapParser = BinMapParser<'s>;
     type KeyParser = BinKeyParser<'s>;
     type ValueParser = ();
-    type DiscriminantParser = ();
+    type DiscriminantParser = BinDiscriminantParser<'s>;
     type VariantParser = ();
     type SomeParser = ();
 
@@ -196,7 +200,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         any: Self::AnyParser,
         hint: ParseHint,
     ) -> anyhow::Result<SimpleParserView<'de, Self>> {
-        match any{
+        match any {
             BinAnyParser::U32(x) => return Ok(SimpleParserView::Primitive(Primitive::U32(x))),
             BinAnyParser::Str(x) => return Ok(SimpleParserView::String(Cow::Owned(x.to_string()))),
             BinAnyParser::Read => {}
@@ -287,8 +291,20 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                     }));
                 }
                 TypeTag::TupleStruct => todo!(),
-                TypeTag::Enum => todo!(),
-                TypeTag::Seq => todo!(),
+                TypeTag::Enum => {
+                    let enum_def = self.read_enum_def_ref()?;
+                    let variant = self.read_usize()?;
+                    let variants = match hint {
+                        ParseHint::Enum { variants, name } => Some(variants),
+                        _ => None,
+                    };
+                    let variant = &enum_def.get_translation(variants).keys[variant];
+                    return Ok(SimpleParserView::Enum(BinDiscriminantParser { variant }));
+                }
+                TypeTag::Seq => {
+                    let len = self.read_usize()?;
+                    return Ok(SimpleParserView::Seq(BinSeqParser { len }));
+                }
                 TypeTag::Map => todo!(),
                 TypeTag::Tuple => {
                     let len = self.read_vu128::<u64>()?;
@@ -355,7 +371,13 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         &mut self,
         e: Self::DiscriminantParser,
     ) -> anyhow::Result<(Self::AnyParser, Self::VariantParser)> {
-        todo!()
+        Ok((
+            match e.variant {
+                EnumDefKey::Native(x) => BinAnyParser::U32(u32::try_from(*x)?),
+                EnumDefKey::Foreign(y) => BinAnyParser::Str(y),
+            },
+            (),
+        ))
     }
 
     fn parse_enum_variant(
@@ -363,6 +385,20 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         e: Self::VariantParser,
         hint: ParseVariantHint,
     ) -> anyhow::Result<SimpleParserView<'de, Self>> {
-        todo!()
+        self.parse(
+            BinAnyParser::Read,
+            match hint {
+                ParseVariantHint::UnitVariant => ParseHint::Primitive(PrimitiveType::Unit),
+                ParseVariantHint::TupleVariant { len } => ParseHint::TupleStruct {
+                    name: "<enum>",
+                    len,
+                },
+                ParseVariantHint::StructVariant { fields } => ParseHint::Struct {
+                    name: "<enum>",
+                    fields,
+                },
+                ParseVariantHint::Ignore => ParseHint::Ignore,
+            },
+        )
     }
 }

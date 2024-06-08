@@ -264,12 +264,12 @@ impl SimpleWriter for SimpleJsonWriter {
         &mut self,
         any: Self::AnyWriter,
         _name: &'static str,
-        _variant_index: u32,
-        variant: &'static str,
+        variants: &'static [&'static str],
+        variant_index: u32,
     ) -> anyhow::Result<()> {
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
-        self.write_str_literal(ctx, variant)?;
+        self.write_str_literal(ctx, variants[variant_index as usize])?;
         self.write_colon(ctx)?;
         self.write_null(ctx)?;
         self.close_map(any.ctx)?;
@@ -280,13 +280,13 @@ impl SimpleWriter for SimpleJsonWriter {
         &mut self,
         any: Self::AnyWriter,
         _name: &'static str,
-        _variant_index: u32,
-        variant: &'static str,
+        variants: &'static [&'static str],
+        variant_index: u32,
         _len: usize,
     ) -> anyhow::Result<Self::TupleVariantWriter> {
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
-        self.write_str_literal(ctx, variant)?;
+        self.write_str_literal(ctx, variants[variant_index as usize])?;
         self.write_colon(ctx)?;
         self.open_list(ctx)?;
         Ok(JsonTupleVariantWriter {
@@ -299,13 +299,13 @@ impl SimpleWriter for SimpleJsonWriter {
         &mut self,
         any: Self::AnyWriter,
         _name: &'static str,
-        _variant_index: u32,
-        variant: &'static str,
+        variants: &'static [&'static str],
+        variant_index: u32,
         _len: usize,
     ) -> anyhow::Result<Self::StructVariantWriter> {
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
-        self.write_str_literal(ctx, variant)?;
+        self.write_str_literal(ctx, variants[variant_index as usize])?;
         self.write_colon(ctx)?;
         self.open_map(ctx)?;
         Ok(JsonStructVariantWriter {
