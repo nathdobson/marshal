@@ -6,7 +6,7 @@
 #![feature(never_type)]
 
 mod decode;
-mod write;
+mod encode;
 mod value;
 #[cfg(test)]
 mod test;

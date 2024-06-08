@@ -6,17 +6,17 @@ use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
 
 use crate::decode::full::{JsonDecoder, JsonDecoderBuilder};
-use crate::write::full::{JsonWriter, JsonWriterBuilder};
+use crate::encode::full::{JsonEncoder, JsonEncoderBuilder};
 
 #[track_caller]
 fn test_round_trip<
-    T: Debug + Eq + Serialize<JsonWriter> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
+    T: Debug + Eq + Serialize<JsonEncoder> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
 >(
     input: T,
     expected: &str,
 ) -> anyhow::Result<()> {
     println!("{:?}", input);
-    let mut w = JsonWriterBuilder::new();
+    let mut w = JsonEncoderBuilder::new();
     let mut c = Context::new();
     input.serialize(w.build(), &mut c)?;
     let found = w.end()?;

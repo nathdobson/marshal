@@ -1,14 +1,14 @@
 use crate::context::Context;
 use crate::ser::Serialize;
-use marshal_core::encode::{AnyWriter, SomeWriter, Writer};
+use marshal_core::encode::{AnyEncoder, SomeEncoder, Encoder};
 
-impl<W: Writer, T: Serialize<W>> Serialize<W> for Option<T> {
-    fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+impl<W: Encoder, T: Serialize<W>> Serialize<W> for Option<T> {
+    fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
         match self {
-            None => w.write_none(),
+            None => w.encode_none(),
             Some(x) => {
-                let mut w = w.write_some()?;
-                x.serialize(w.write_some()?, ctx)?;
+                let mut w = w.encode_some()?;
+                x.serialize(w.encode_some()?, ctx)?;
                 w.end()?;
                 Ok(())
             }

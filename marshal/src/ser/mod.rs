@@ -1,4 +1,4 @@
-use marshal_core::encode::Writer;
+use marshal_core::encode::Encoder;
 
 use crate::context::Context;
 
@@ -10,6 +10,6 @@ mod string;
 mod never;
 mod option;
 
-pub trait Serialize<W: Writer> {
-    fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()>;
+pub trait Serialize<W: Encoder> {
+    fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()>;
 }

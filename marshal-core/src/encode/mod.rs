@@ -2,122 +2,122 @@ use crate::Primitive;
 
 pub mod simple;
 
-pub trait Writer: Sized {
-    type AnyWriter<'w>: AnyWriter<'w, Self>
+pub trait Encoder: Sized {
+    type AnyEncoder<'w>: AnyEncoder<'w, Self>
     where
         Self: 'w;
-    type SomeWriter<'w>: SomeWriter<'w, Self>
+    type SomeEncoder<'w>: SomeEncoder<'w, Self>
     where
         Self: 'w;
-    type TupleWriter<'w>: TupleWriter<'w, Self>
+    type TupleEncoder<'w>: TupleEncoder<'w, Self>
     where
         Self: 'w;
-    type SeqWriter<'w>: SeqWriter<'w, Self>
+    type SeqEncoder<'w>: SeqEncoder<'w, Self>
     where
         Self: 'w;
-    type MapWriter<'w>: MapWriter<'w, Self>
+    type MapEncoder<'w>: MapEncoder<'w, Self>
     where
         Self: 'w;
-    type EntryWriter<'w>: EntryWriter<'w, Self>
+    type EntryEncoder<'w>: EntryEncoder<'w, Self>
     where
         Self: 'w;
-    type TupleStructWriter<'w>: TupleStructWriter<'w, Self>
+    type TupleStructEncoder<'w>: TupleStructEncoder<'w, Self>
     where
         Self: 'w;
-    type StructWriter<'w>: StructWriter<'w, Self>
+    type StructEncoder<'w>: StructEncoder<'w, Self>
     where
         Self: 'w;
-    type TupleVariantWriter<'w>: TupleVariantWriter<'w, Self>
+    type TupleVariantEncoder<'w>: TupleVariantEncoder<'w, Self>
     where
         Self: 'w;
-    type StructVariantWriter<'w>: StructVariantWriter<'w, Self>
+    type StructVariantEncoder<'w>: StructVariantEncoder<'w, Self>
     where
         Self: 'w;
 }
 
-pub trait AnyWriter<'w, W: Writer> {
-    fn write_prim(self, prim: Primitive) -> anyhow::Result<()>;
-    fn write_str(self, s: &str) -> anyhow::Result<()>;
-    fn write_bytes(self, s: &[u8]) -> anyhow::Result<()>;
-    fn write_none(self) -> anyhow::Result<()>;
-    fn write_some(self) -> anyhow::Result<<W as Writer>::SomeWriter<'w>>;
-    fn write_unit_struct(self, name: &'static str) -> anyhow::Result<()>;
-    fn write_tuple_struct(
+pub trait AnyEncoder<'w, W: Encoder> {
+    fn encode_prim(self, prim: Primitive) -> anyhow::Result<()>;
+    fn encode_str(self, s: &str) -> anyhow::Result<()>;
+    fn encode_bytes(self, s: &[u8]) -> anyhow::Result<()>;
+    fn encode_none(self) -> anyhow::Result<()>;
+    fn encode_some(self) -> anyhow::Result<<W as Encoder>::SomeEncoder<'w>>;
+    fn encode_unit_struct(self, name: &'static str) -> anyhow::Result<()>;
+    fn encode_tuple_struct(
         self,
         name: &'static str,
         len: usize,
-    ) -> anyhow::Result<<W as Writer>::TupleStructWriter<'w>>;
-    fn write_struct(
+    ) -> anyhow::Result<<W as Encoder>::TupleStructEncoder<'w>>;
+    fn encode_struct(
         self,
         name: &'static str,
         fields: &'static [&'static str],
-    ) -> anyhow::Result<<W as Writer>::StructWriter<'w>>;
-    fn write_unit_variant(
+    ) -> anyhow::Result<<W as Encoder>::StructEncoder<'w>>;
+    fn encode_unit_variant(
         self,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
     ) -> anyhow::Result<()>;
-    fn write_tuple_variant(
+    fn encode_tuple_variant(
         self,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
         len: usize,
-    ) -> anyhow::Result<<W as Writer>::TupleVariantWriter<'w>>;
-    fn write_struct_variant(
+    ) -> anyhow::Result<<W as Encoder>::TupleVariantEncoder<'w>>;
+    fn encode_struct_variant(
         self,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
         fields: &'static [&'static str],
-    ) -> anyhow::Result<<W as Writer>::StructVariantWriter<'w>>;
-    fn write_seq(self, len: Option<usize>) -> anyhow::Result<<W as Writer>::SeqWriter<'w>>;
-    fn write_tuple(self, len: usize) -> anyhow::Result<<W as Writer>::TupleWriter<'w>>;
-    fn write_map(self, len: Option<usize>) -> anyhow::Result<<W as Writer>::MapWriter<'w>>;
+    ) -> anyhow::Result<<W as Encoder>::StructVariantEncoder<'w>>;
+    fn encode_seq(self, len: Option<usize>) -> anyhow::Result<<W as Encoder>::SeqEncoder<'w>>;
+    fn encode_tuple(self, len: usize) -> anyhow::Result<<W as Encoder>::TupleEncoder<'w>>;
+    fn encode_map(self, len: Option<usize>) -> anyhow::Result<<W as Encoder>::MapEncoder<'w>>;
 }
 
-pub trait SomeWriter<'w, W: Writer> {
-    fn write_some(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+pub trait SomeEncoder<'w, W: Encoder> {
+    fn encode_some(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
 
-pub trait TupleWriter<'w, W: Writer> {
-    fn write_element(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+pub trait TupleEncoder<'w, W: Encoder> {
+    fn encode_element(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
-pub trait SeqWriter<'w, W: Writer> {
-    fn write_element(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
-    fn end(self) -> anyhow::Result<()>;
-}
-
-pub trait MapWriter<'w, W: Writer> {
-    fn write_entry(&mut self) -> anyhow::Result<<W as Writer>::EntryWriter<'_>>;
+pub trait SeqEncoder<'w, W: Encoder> {
+    fn encode_element(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
 
-pub trait EntryWriter<'w, W: Writer> {
-    fn write_key(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
-    fn write_value(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+pub trait MapEncoder<'w, W: Encoder> {
+    fn encode_entry(&mut self) -> anyhow::Result<<W as Encoder>::EntryEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
 
-pub trait TupleStructWriter<'w, W: Writer> {
-    fn write_field(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+pub trait EntryEncoder<'w, W: Encoder> {
+    fn encode_key(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
+    fn encode_value(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
 
-pub trait StructWriter<'w, W: Writer> {
-    fn write_field(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+pub trait TupleStructEncoder<'w, W: Encoder> {
+    fn encode_field(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
 
-pub trait TupleVariantWriter<'w, W: Writer> {
-    fn write_field(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+pub trait StructEncoder<'w, W: Encoder> {
+    fn encode_field(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
 
-pub trait StructVariantWriter<'w, W: Writer> {
-    fn write_field(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+pub trait TupleVariantEncoder<'w, W: Encoder> {
+    fn encode_field(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
+    fn end(self) -> anyhow::Result<()>;
+}
+
+pub trait StructVariantEncoder<'w, W: Encoder> {
+    fn encode_field(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }

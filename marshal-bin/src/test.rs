@@ -1,7 +1,7 @@
 use crate::read::full::{BinDecoder, BinDecoderBuilder};
 use crate::read::BinDecoderSchema;
-use crate::write::full::{BinWriter, BinWriterBuilder};
-use crate::write::BinWriterSchema;
+use crate::encode::full::{BinEncoder, BinEncoderBuilder};
+use crate::encode::BinEncoderSchema;
 use crate::VU128_MAX_PADDING;
 use marshal::context::Context;
 use marshal::de::Deserialize;
@@ -13,15 +13,15 @@ use std::fmt::Debug;
 fn test_round_trip<
     T: Debug
         + Eq
-        + for<'s> Serialize<BinWriter<'s>>
+        + for<'s> Serialize<BinEncoder<'s>>
         + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
 >(
     input: T,
     expected: &[u8],
 ) -> anyhow::Result<()> {
     println!("{:?}", input);
-    let mut writer_schema = BinWriterSchema::new();
-    let mut w = BinWriterBuilder::new(&mut writer_schema);
+    let mut encoder_schema = BinEncoderSchema::new();
+    let mut w = BinEncoderBuilder::new(&mut encoder_schema);
     let mut c = Context::new();
     input.serialize(w.build(), &mut c)?;
     let found = w.end()?;
@@ -35,7 +35,7 @@ fn test_round_trip<
 }
 
 fn test_transmute<
-    T1: Debug + for<'s> Serialize<BinWriter<'s>>,
+    T1: Debug + for<'s> Serialize<BinEncoder<'s>>,
     T2: Debug + Eq + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
 >(
     input: T1,
@@ -43,8 +43,8 @@ fn test_transmute<
     expected: &[u8],
 ) -> anyhow::Result<()> {
     println!("{:?}", input);
-    let mut writer_schema = BinWriterSchema::new();
-    let mut w = BinWriterBuilder::new(&mut writer_schema);
+    let mut writer_schema = BinEncoderSchema::new();
+    let mut w = BinEncoderBuilder::new(&mut writer_schema);
     let mut c = Context::new();
     input.serialize(w.build(), &mut c)?;
     let found = w.end()?;

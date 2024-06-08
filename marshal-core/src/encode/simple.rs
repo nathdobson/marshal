@@ -2,352 +2,352 @@ use std::marker::PhantomData;
 use std::slice;
 
 use crate::encode::{
-    AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
-    TupleStructWriter, TupleVariantWriter, TupleWriter, Writer,
+    AnyEncoder, EntryEncoder, MapEncoder, SeqEncoder, SomeEncoder, StructVariantEncoder, StructEncoder,
+    TupleStructEncoder, TupleVariantEncoder, TupleEncoder, Encoder,
 };
 use crate::Primitive;
 
-pub trait SimpleWriter {
-    type AnyWriter;
+pub trait SimpleEncoder {
+    type AnyEncoder;
     type SomeCloser;
-    type TupleWriter;
-    type SeqWriter;
-    type MapWriter;
-    type ValueWriter;
+    type TupleEncoder;
+    type SeqEncoder;
+    type MapEncoder;
+    type ValueEncoder;
     type EntryCloser;
-    type TupleStructWriter;
-    type StructWriter;
-    type TupleVariantWriter;
-    type StructVariantWriter;
-    fn write_prim(&mut self, any: Self::AnyWriter, prim: Primitive) -> anyhow::Result<()>;
-    fn write_str(&mut self, any: Self::AnyWriter, s: &str) -> anyhow::Result<()>;
-    fn write_bytes(&mut self, any: Self::AnyWriter, s: &[u8]) -> anyhow::Result<()>;
-    fn write_none(&mut self, any: Self::AnyWriter) -> anyhow::Result<()>;
-    fn write_some(
+    type TupleStructEncoder;
+    type StructEncoder;
+    type TupleVariantEncoder;
+    type StructVariantEncoder;
+    fn encode_prim(&mut self, any: Self::AnyEncoder, prim: Primitive) -> anyhow::Result<()>;
+    fn encode_str(&mut self, any: Self::AnyEncoder, s: &str) -> anyhow::Result<()>;
+    fn encode_bytes(&mut self, any: Self::AnyEncoder, s: &[u8]) -> anyhow::Result<()>;
+    fn encode_none(&mut self, any: Self::AnyEncoder) -> anyhow::Result<()>;
+    fn encode_some(
         &mut self,
-        any: Self::AnyWriter,
-    ) -> anyhow::Result<(Self::AnyWriter, Self::SomeCloser)>;
-    fn write_unit_struct(&mut self, any: Self::AnyWriter, name: &'static str)
-        -> anyhow::Result<()>;
-    fn write_tuple_struct(
+        any: Self::AnyEncoder,
+    ) -> anyhow::Result<(Self::AnyEncoder, Self::SomeCloser)>;
+    fn encode_unit_struct(&mut self, any: Self::AnyEncoder, name: &'static str)
+                          -> anyhow::Result<()>;
+    fn encode_tuple_struct(
         &mut self,
-        any: Self::AnyWriter,
+        any: Self::AnyEncoder,
         name: &'static str,
         len: usize,
-    ) -> anyhow::Result<Self::TupleStructWriter>;
-    fn write_struct(
+    ) -> anyhow::Result<Self::TupleStructEncoder>;
+    fn encode_struct(
         &mut self,
-        any: Self::AnyWriter,
+        any: Self::AnyEncoder,
         name: &'static str,
         fields: &'static [&'static str],
-    ) -> anyhow::Result<Self::StructWriter>;
-    fn write_unit_variant(
+    ) -> anyhow::Result<Self::StructEncoder>;
+    fn encode_unit_variant(
         &mut self,
-        any: Self::AnyWriter,
+        any: Self::AnyEncoder,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
     ) -> anyhow::Result<()>;
-    fn write_tuple_variant(
+    fn encode_tuple_variant(
         &mut self,
-        any: Self::AnyWriter,
+        any: Self::AnyEncoder,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
         len: usize,
-    ) -> anyhow::Result<Self::TupleVariantWriter>;
-    fn write_struct_variant(
+    ) -> anyhow::Result<Self::TupleVariantEncoder>;
+    fn encode_struct_variant(
         &mut self,
-        any: Self::AnyWriter,
+        any: Self::AnyEncoder,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
         fields: &'static [&'static str],
-    ) -> anyhow::Result<Self::StructVariantWriter>;
-    fn write_seq(
+    ) -> anyhow::Result<Self::StructVariantEncoder>;
+    fn encode_seq(
         &mut self,
-        any: Self::AnyWriter,
+        any: Self::AnyEncoder,
         len: Option<usize>,
-    ) -> anyhow::Result<Self::SeqWriter>;
-    fn write_tuple(
+    ) -> anyhow::Result<Self::SeqEncoder>;
+    fn encode_tuple(
         &mut self,
-        any: Self::AnyWriter,
+        any: Self::AnyEncoder,
         len: usize,
-    ) -> anyhow::Result<Self::TupleWriter>;
-    fn write_map(
+    ) -> anyhow::Result<Self::TupleEncoder>;
+    fn encode_map(
         &mut self,
-        any: Self::AnyWriter,
+        any: Self::AnyEncoder,
         len: Option<usize>,
-    ) -> anyhow::Result<Self::MapWriter>;
+    ) -> anyhow::Result<Self::MapEncoder>;
 
     fn some_end(&mut self, some: Self::SomeCloser) -> anyhow::Result<()>;
 
-    fn tuple_write_element(
+    fn tuple_encode_element(
         &mut self,
-        tuple: &mut Self::TupleWriter,
-    ) -> anyhow::Result<Self::AnyWriter>;
-    fn tuple_end(&mut self, tuple: Self::TupleWriter) -> anyhow::Result<()>;
+        tuple: &mut Self::TupleEncoder,
+    ) -> anyhow::Result<Self::AnyEncoder>;
+    fn tuple_end(&mut self, tuple: Self::TupleEncoder) -> anyhow::Result<()>;
 
-    fn seq_write_element(&mut self, seq: &mut Self::SeqWriter) -> anyhow::Result<Self::AnyWriter>;
-    fn seq_end(&mut self, tuple: Self::SeqWriter) -> anyhow::Result<()>;
+    fn seq_encode_element(&mut self, seq: &mut Self::SeqEncoder) -> anyhow::Result<Self::AnyEncoder>;
+    fn seq_end(&mut self, tuple: Self::SeqEncoder) -> anyhow::Result<()>;
 
-    fn map_write_element(
+    fn map_encode_element(
         &mut self,
-        map: &mut Self::MapWriter,
-    ) -> anyhow::Result<(Self::AnyWriter, Self::ValueWriter)>;
-    fn map_end(&mut self, map: Self::MapWriter) -> anyhow::Result<()>;
+        map: &mut Self::MapEncoder,
+    ) -> anyhow::Result<(Self::AnyEncoder, Self::ValueEncoder)>;
+    fn map_end(&mut self, map: Self::MapEncoder) -> anyhow::Result<()>;
 
-    fn entry_write_value(
+    fn entry_encode_value(
         &mut self,
-        value: Self::ValueWriter,
-    ) -> anyhow::Result<(Self::AnyWriter, Self::EntryCloser)>;
+        value: Self::ValueEncoder,
+    ) -> anyhow::Result<(Self::AnyEncoder, Self::EntryCloser)>;
     fn entry_end(&mut self, closer: Self::EntryCloser) -> anyhow::Result<()>;
 
-    fn tuple_struct_write_field(
+    fn tuple_struct_encode_field(
         &mut self,
-        map: &mut Self::TupleStructWriter,
-    ) -> anyhow::Result<Self::AnyWriter>;
-    fn tuple_struct_end(&mut self, map: Self::TupleStructWriter) -> anyhow::Result<()>;
+        map: &mut Self::TupleStructEncoder,
+    ) -> anyhow::Result<Self::AnyEncoder>;
+    fn tuple_struct_end(&mut self, map: Self::TupleStructEncoder) -> anyhow::Result<()>;
 
-    fn struct_write_field(
+    fn struct_encode_field(
         &mut self,
-        map: &mut Self::StructWriter,
+        map: &mut Self::StructEncoder,
         field: &'static str,
-    ) -> anyhow::Result<Self::AnyWriter>;
-    fn struct_end(&mut self, map: Self::StructWriter) -> anyhow::Result<()>;
+    ) -> anyhow::Result<Self::AnyEncoder>;
+    fn struct_end(&mut self, map: Self::StructEncoder) -> anyhow::Result<()>;
 
-    fn tuple_variant_write_field(
+    fn tuple_variant_encode_field(
         &mut self,
-        map: &mut Self::TupleVariantWriter,
-    ) -> anyhow::Result<Self::AnyWriter>;
-    fn tuple_variant_end(&mut self, map: Self::TupleVariantWriter) -> anyhow::Result<()>;
+        map: &mut Self::TupleVariantEncoder,
+    ) -> anyhow::Result<Self::AnyEncoder>;
+    fn tuple_variant_end(&mut self, map: Self::TupleVariantEncoder) -> anyhow::Result<()>;
 
-    fn struct_variant_write_field(
+    fn struct_variant_encode_field(
         &mut self,
-        map: &mut Self::StructVariantWriter,
+        map: &mut Self::StructVariantEncoder,
         key: &'static str,
-    ) -> anyhow::Result<Self::AnyWriter>;
-    fn struct_variant_end(&mut self, map: Self::StructVariantWriter) -> anyhow::Result<()>;
+    ) -> anyhow::Result<Self::AnyEncoder>;
+    fn struct_variant_end(&mut self, map: Self::StructVariantEncoder) -> anyhow::Result<()>;
 }
 
-pub struct SimpleWriterAdapter<T>(PhantomData<T>);
+pub struct SimpleEncoderAdapter<T>(PhantomData<T>);
 
-pub struct SimpleAnyWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    inner: T::AnyWriter,
+pub struct SimpleAnyEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    inner: T::AnyEncoder,
 }
 
-impl<'w, T: SimpleWriter> SimpleAnyWriter<'w, T> {
-    pub fn new(writer: &'w mut T, inner: T::AnyWriter) -> Self {
-        SimpleAnyWriter { writer, inner }
+impl<'w, T: SimpleEncoder> SimpleAnyEncoder<'w, T> {
+    pub fn new(encoder: &'w mut T, inner: T::AnyEncoder) -> Self {
+        SimpleAnyEncoder { encoder, inner }
     }
 }
 
-impl<'w, T: SimpleWriter> AnyWriter<'w, SimpleWriterAdapter<T>> for SimpleAnyWriter<'w, T> {
-    fn write_prim(mut self, prim: Primitive) -> anyhow::Result<()> {
-        self.writer.write_prim(self.inner, prim)
+impl<'w, T: SimpleEncoder> AnyEncoder<'w, SimpleEncoderAdapter<T>> for SimpleAnyEncoder<'w, T> {
+    fn encode_prim(mut self, prim: Primitive) -> anyhow::Result<()> {
+        self.encoder.encode_prim(self.inner, prim)
     }
 
-    fn write_str(mut self, s: &str) -> anyhow::Result<()> {
-        self.writer.write_str(self.inner, s)
+    fn encode_str(mut self, s: &str) -> anyhow::Result<()> {
+        self.encoder.encode_str(self.inner, s)
     }
 
-    fn write_bytes(mut self, s: &[u8]) -> anyhow::Result<()> {
-        self.writer.write_bytes(self.inner, s)
+    fn encode_bytes(mut self, s: &[u8]) -> anyhow::Result<()> {
+        self.encoder.encode_bytes(self.inner, s)
     }
 
-    fn write_none(mut self) -> anyhow::Result<()> {
-        self.writer.write_none(self.inner)
+    fn encode_none(mut self) -> anyhow::Result<()> {
+        self.encoder.encode_none(self.inner)
     }
 
-    fn write_some(mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::SomeWriter<'w>> {
-        let (any, closer) = self.writer.write_some(self.inner)?;
-        Ok(SimpleSomeWriter {
-            writer: self.writer,
-            some_writer: Some(any),
+    fn encode_some(mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::SomeEncoder<'w>> {
+        let (any, closer) = self.encoder.encode_some(self.inner)?;
+        Ok(SimpleSomeEncoder {
+            encoder: self.encoder,
+            some_encoder: Some(any),
             some_closer: Some(closer),
         })
     }
 
-    fn write_unit_struct(mut self, name: &'static str) -> anyhow::Result<()> {
-        self.writer.write_unit_struct(self.inner, name)
+    fn encode_unit_struct(mut self, name: &'static str) -> anyhow::Result<()> {
+        self.encoder.encode_unit_struct(self.inner, name)
     }
 
-    fn write_tuple_struct(
+    fn encode_tuple_struct(
         mut self,
         name: &'static str,
         len: usize,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::TupleStructWriter<'w>> {
-        let inner = self.writer.write_tuple_struct(self.inner, name, len)?;
-        Ok(SimpleTupleStructWriter {
-            writer: self.writer,
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::TupleStructEncoder<'w>> {
+        let inner = self.encoder.encode_tuple_struct(self.inner, name, len)?;
+        Ok(SimpleTupleStructEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
-    fn write_struct(
+    fn encode_struct(
         mut self,
         name: &'static str,
         fields: &'static [&'static str],
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::StructWriter<'w>> {
-        let inner = self.writer.write_struct(self.inner, name, fields)?;
-        Ok(SimpleStructWriter {
-            writer: self.writer,
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::StructEncoder<'w>> {
+        let inner = self.encoder.encode_struct(self.inner, name, fields)?;
+        Ok(SimpleStructEncoder {
+            encoder: self.encoder,
             fields: fields.iter(),
             inner,
         })
     }
 
-    fn write_unit_variant(
+    fn encode_unit_variant(
         mut self,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
     ) -> anyhow::Result<()> {
-        self.writer
-            .write_unit_variant(self.inner, name, variants, variant_index)
+        self.encoder
+            .encode_unit_variant(self.inner, name, variants, variant_index)
     }
 
-    fn write_tuple_variant(
+    fn encode_tuple_variant(
         mut self,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
         len: usize,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::TupleVariantWriter<'w>> {
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::TupleVariantEncoder<'w>> {
         let inner =
-            self.writer
-                .write_tuple_variant(self.inner, name, variants, variant_index, len)?;
-        Ok(SimpleTupleVariantWriter {
-            writer: self.writer,
+            self.encoder
+                .encode_tuple_variant(self.inner, name, variants, variant_index, len)?;
+        Ok(SimpleTupleVariantEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
-    fn write_struct_variant(
+    fn encode_struct_variant(
         mut self,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
         fields: &'static [&'static str],
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::StructVariantWriter<'w>> {
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::StructVariantEncoder<'w>> {
         let inner =
-            self.writer
-                .write_struct_variant(self.inner, name, variants, variant_index, fields)?;
-        Ok(SimpleStructVariantWriter {
-            writer: self.writer,
+            self.encoder
+                .encode_struct_variant(self.inner, name, variants, variant_index, fields)?;
+        Ok(SimpleStructVariantEncoder {
+            encoder: self.encoder,
             inner,
             fields,
         })
     }
 
-    fn write_seq(
+    fn encode_seq(
         mut self,
         len: Option<usize>,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::SeqWriter<'w>> {
-        let inner = self.writer.write_seq(self.inner, len)?;
-        Ok(SimpleSeqWriter {
-            writer: self.writer,
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::SeqEncoder<'w>> {
+        let inner = self.encoder.encode_seq(self.inner, len)?;
+        Ok(SimpleSeqEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
-    fn write_tuple(
+    fn encode_tuple(
         mut self,
         len: usize,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::TupleWriter<'w>> {
-        let inner = self.writer.write_tuple(self.inner, len)?;
-        Ok(SimpleTupleWriter {
-            writer: self.writer,
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::TupleEncoder<'w>> {
+        let inner = self.encoder.encode_tuple(self.inner, len)?;
+        Ok(SimpleTupleEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
-    fn write_map(
+    fn encode_map(
         mut self,
         len: Option<usize>,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::MapWriter<'w>> {
-        let inner = self.writer.write_map(self.inner, len)?;
-        Ok(SimpleMapWriter {
-            writer: self.writer,
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::MapEncoder<'w>> {
+        let inner = self.encoder.encode_map(self.inner, len)?;
+        Ok(SimpleMapEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 }
 
-pub struct SimpleSomeWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    some_writer: Option<T::AnyWriter>,
+pub struct SimpleSomeEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    some_encoder: Option<T::AnyEncoder>,
     some_closer: Option<T::SomeCloser>,
 }
 
-impl<'w, T: SimpleWriter> SomeWriter<'w, SimpleWriterAdapter<T>> for SimpleSomeWriter<'w, T> {
-    fn write_some(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
-            inner: self.some_writer.take().unwrap(),
+impl<'w, T: SimpleEncoder> SomeEncoder<'w, SimpleEncoderAdapter<T>> for SimpleSomeEncoder<'w, T> {
+    fn encode_some(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
+            inner: self.some_encoder.take().unwrap(),
         })
     }
 
     fn end(mut self) -> anyhow::Result<()> {
-        self.writer.some_end(self.some_closer.take().unwrap())
+        self.encoder.some_end(self.some_closer.take().unwrap())
     }
 }
 
-pub struct SimpleTupleWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    inner: T::TupleWriter,
+pub struct SimpleTupleEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    inner: T::TupleEncoder,
 }
 
-impl<'w, T: SimpleWriter> TupleWriter<'w, SimpleWriterAdapter<T>> for SimpleTupleWriter<'w, T> {
-    fn write_element(
+impl<'w, T: SimpleEncoder> TupleEncoder<'w, SimpleEncoderAdapter<T>> for SimpleTupleEncoder<'w, T> {
+    fn encode_element(
         &mut self,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        let inner = self.writer.tuple_write_element(&mut self.inner)?;
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
+        let inner = self.encoder.tuple_encode_element(&mut self.inner)?;
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
     fn end(self) -> anyhow::Result<()> {
-        self.writer.tuple_end(self.inner)
+        self.encoder.tuple_end(self.inner)
     }
 }
 
-pub struct SimpleSeqWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    inner: T::SeqWriter,
+pub struct SimpleSeqEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    inner: T::SeqEncoder,
 }
 
-impl<'w, T: SimpleWriter> SeqWriter<'w, SimpleWriterAdapter<T>> for SimpleSeqWriter<'w, T> {
-    fn write_element(
+impl<'w, T: SimpleEncoder> SeqEncoder<'w, SimpleEncoderAdapter<T>> for SimpleSeqEncoder<'w, T> {
+    fn encode_element(
         &mut self,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        let inner = self.writer.seq_write_element(&mut self.inner)?;
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
+        let inner = self.encoder.seq_encode_element(&mut self.inner)?;
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
     fn end(self) -> anyhow::Result<()> {
-        self.writer.seq_end(self.inner)
+        self.encoder.seq_end(self.inner)
     }
 }
 
-pub struct SimpleMapWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    inner: T::MapWriter,
+pub struct SimpleMapEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    inner: T::MapEncoder,
 }
 
-impl<'w, T: SimpleWriter> MapWriter<'w, SimpleWriterAdapter<T>> for SimpleMapWriter<'w, T> {
-    fn write_entry(
+impl<'w, T: SimpleEncoder> MapEncoder<'w, SimpleEncoderAdapter<T>> for SimpleMapEncoder<'w, T> {
+    fn encode_entry(
         &mut self,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::EntryWriter<'_>> {
-        let (key, value) = self.writer.map_write_element(&mut self.inner)?;
-        Ok(SimpleEntryWriter {
-            writer: self.writer,
+    ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::EntryEncoder<'_>> {
+        let (key, value) = self.encoder.map_encode_element(&mut self.inner)?;
+        Ok(SimpleEntryEncoder {
+            encoder: self.encoder,
             key: Some(key),
             value: Some(value),
             closer: None,
@@ -355,136 +355,136 @@ impl<'w, T: SimpleWriter> MapWriter<'w, SimpleWriterAdapter<T>> for SimpleMapWri
     }
 
     fn end(self) -> anyhow::Result<()> {
-        self.writer.map_end(self.inner)
+        self.encoder.map_end(self.inner)
     }
 }
 
-pub struct SimpleEntryWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    key: Option<T::AnyWriter>,
-    value: Option<T::ValueWriter>,
+pub struct SimpleEntryEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    key: Option<T::AnyEncoder>,
+    value: Option<T::ValueEncoder>,
     closer: Option<T::EntryCloser>,
 }
 
-impl<'w, T: SimpleWriter> EntryWriter<'w, SimpleWriterAdapter<T>> for SimpleEntryWriter<'w, T> {
-    fn write_key(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
+impl<'w, T: SimpleEncoder> EntryEncoder<'w, SimpleEncoderAdapter<T>> for SimpleEntryEncoder<'w, T> {
+    fn encode_key(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
             inner: self.key.take().unwrap(),
         })
     }
 
-    fn write_value(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        let (any, closer) = self.writer.entry_write_value(self.value.take().unwrap())?;
+    fn encode_value(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
+        let (any, closer) = self.encoder.entry_encode_value(self.value.take().unwrap())?;
         self.closer = Some(closer);
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
             inner: any,
         })
     }
 
     fn end(self) -> anyhow::Result<()> {
-        self.writer.entry_end(self.closer.unwrap())
+        self.encoder.entry_end(self.closer.unwrap())
     }
 }
 
-pub struct SimpleTupleStructWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    inner: T::TupleStructWriter,
+pub struct SimpleTupleStructEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    inner: T::TupleStructEncoder,
 }
 
-impl<'w, T: SimpleWriter> TupleStructWriter<'w, SimpleWriterAdapter<T>>
-    for SimpleTupleStructWriter<'w, T>
+impl<'w, T: SimpleEncoder> TupleStructEncoder<'w, SimpleEncoderAdapter<T>>
+    for SimpleTupleStructEncoder<'w, T>
 {
-    fn write_field(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        let inner = self.writer.tuple_struct_write_field(&mut self.inner)?;
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
+    fn encode_field(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
+        let inner = self.encoder.tuple_struct_encode_field(&mut self.inner)?;
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
     fn end(self) -> anyhow::Result<()> {
-        self.writer.tuple_struct_end(self.inner)
+        self.encoder.tuple_struct_end(self.inner)
     }
 }
 
-pub struct SimpleStructWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
+pub struct SimpleStructEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
     fields: slice::Iter<'static, &'static str>,
-    inner: T::StructWriter,
+    inner: T::StructEncoder,
 }
 
-impl<'w, T: SimpleWriter> StructWriter<'w, SimpleWriterAdapter<T>> for SimpleStructWriter<'w, T> {
-    fn write_field(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
+impl<'w, T: SimpleEncoder> StructEncoder<'w, SimpleEncoderAdapter<T>> for SimpleStructEncoder<'w, T> {
+    fn encode_field(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
         let inner = self
-            .writer
-            .struct_write_field(&mut self.inner, self.fields.next().unwrap())?;
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
+            .encoder
+            .struct_encode_field(&mut self.inner, self.fields.next().unwrap())?;
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
     fn end(self) -> anyhow::Result<()> {
-        self.writer.struct_end(self.inner)
+        self.encoder.struct_end(self.inner)
     }
 }
 
-pub struct SimpleTupleVariantWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    inner: T::TupleVariantWriter,
+pub struct SimpleTupleVariantEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    inner: T::TupleVariantEncoder,
 }
 
-impl<'w, T: SimpleWriter> TupleVariantWriter<'w, SimpleWriterAdapter<T>>
-    for SimpleTupleVariantWriter<'w, T>
+impl<'w, T: SimpleEncoder> TupleVariantEncoder<'w, SimpleEncoderAdapter<T>>
+    for SimpleTupleVariantEncoder<'w, T>
 {
-    fn write_field(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
-        let inner = self.writer.tuple_variant_write_field(&mut self.inner)?;
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
+    fn encode_field(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
+        let inner = self.encoder.tuple_variant_encode_field(&mut self.inner)?;
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
     fn end(self) -> anyhow::Result<()> {
-        self.writer.tuple_variant_end(self.inner)
+        self.encoder.tuple_variant_end(self.inner)
     }
 }
 
-pub struct SimpleStructVariantWriter<'w, T: SimpleWriter> {
-    writer: &'w mut T,
-    inner: T::StructVariantWriter,
+pub struct SimpleStructVariantEncoder<'w, T: SimpleEncoder> {
+    encoder: &'w mut T,
+    inner: T::StructVariantEncoder,
     fields: &'static [&'static str],
 }
 
-impl<'w, T: SimpleWriter> StructVariantWriter<'w, SimpleWriterAdapter<T>>
-    for SimpleStructVariantWriter<'w, T>
+impl<'w, T: SimpleEncoder> StructVariantEncoder<'w, SimpleEncoderAdapter<T>>
+    for SimpleStructVariantEncoder<'w, T>
 {
-    fn write_field(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
+    fn encode_field(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
         let inner = self
-            .writer
-            .struct_variant_write_field(&mut self.inner, self.fields.take_first().unwrap())?;
-        Ok(SimpleAnyWriter {
-            writer: self.writer,
+            .encoder
+            .struct_variant_encode_field(&mut self.inner, self.fields.take_first().unwrap())?;
+        Ok(SimpleAnyEncoder {
+            encoder: self.encoder,
             inner,
         })
     }
 
     fn end(self) -> anyhow::Result<()> {
-        self.writer.struct_variant_end(self.inner)
+        self.encoder.struct_variant_end(self.inner)
     }
 }
 
-impl<T: SimpleWriter> Writer for SimpleWriterAdapter<T> {
-    type AnyWriter<'w> =SimpleAnyWriter<'w,T> where Self: 'w;
-    type SomeWriter<'w> =SimpleSomeWriter<'w,T>  where Self: 'w;
-    type TupleWriter<'w> =SimpleTupleWriter<'w,T>  where Self: 'w;
-    type SeqWriter<'w> =SimpleSeqWriter<'w,T>  where Self: 'w;
-    type MapWriter<'w> =SimpleMapWriter<'w,T>  where Self: 'w;
-    type EntryWriter<'w> =SimpleEntryWriter<'w,T>  where Self: 'w;
-    type TupleStructWriter<'w>  =SimpleTupleStructWriter<'w,T> where Self: 'w;
-    type StructWriter<'w>  =SimpleStructWriter<'w,T> where Self: 'w;
-    type TupleVariantWriter<'w> =SimpleTupleVariantWriter<'w,T>  where Self: 'w;
-    type StructVariantWriter<'w>  =SimpleStructVariantWriter<'w,T> where Self: 'w;
+impl<T: SimpleEncoder> Encoder for SimpleEncoderAdapter<T> {
+    type AnyEncoder<'w> = SimpleAnyEncoder<'w,T> where Self: 'w;
+    type SomeEncoder<'w> = SimpleSomeEncoder<'w,T>  where Self: 'w;
+    type TupleEncoder<'w> = SimpleTupleEncoder<'w,T>  where Self: 'w;
+    type SeqEncoder<'w> = SimpleSeqEncoder<'w,T>  where Self: 'w;
+    type MapEncoder<'w> = SimpleMapEncoder<'w,T>  where Self: 'w;
+    type EntryEncoder<'w> = SimpleEntryEncoder<'w,T>  where Self: 'w;
+    type TupleStructEncoder<'w>  = SimpleTupleStructEncoder<'w,T> where Self: 'w;
+    type StructEncoder<'w>  = SimpleStructEncoder<'w,T> where Self: 'w;
+    type TupleVariantEncoder<'w> = SimpleTupleVariantEncoder<'w,T>  where Self: 'w;
+    type StructVariantEncoder<'w>  = SimpleStructVariantEncoder<'w,T> where Self: 'w;
 }

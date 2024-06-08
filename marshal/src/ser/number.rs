@@ -1,13 +1,13 @@
 use crate::context::Context;
 use crate::ser::Serialize;
-use marshal_core::encode::{AnyWriter, Writer};
+use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_core::Primitive;
 
 macro_rules! derive_number {
     ($t:ty, $v:ident) => {
-        impl<W: Writer> Serialize<W> for $t {
-            fn serialize(&self, w: W::AnyWriter<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
-                w.write_prim(Primitive::$v(*self))
+        impl<W: Encoder> Serialize<W> for $t {
+            fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+                w.encode_prim(Primitive::$v(*self))
             }
         }
     };

@@ -1,21 +1,21 @@
-use marshal_core::encode::{AnyWriter, SeqWriter, Writer};
+use marshal_core::encode::{AnyEncoder, SeqEncoder, Encoder};
 
 use crate::context::Context;
 use crate::ser::Serialize;
 
-impl<W: Writer, T: Serialize<W>> Serialize<W> for Vec<T> {
-    default fn serialize(&self, w: W::AnyWriter<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-        let mut w = w.write_seq(Some(self.len()))?;
+impl<W: Encoder, T: Serialize<W>> Serialize<W> for Vec<T> {
+    default fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+        let mut w = w.encode_seq(Some(self.len()))?;
         for x in self.iter() {
-            x.serialize(w.write_element()?, ctx)?;
+            x.serialize(w.encode_element()?, ctx)?;
         }
         w.end()?;
         Ok(())
     }
 }
 
-impl<W: Writer> Serialize<W> for Vec<u8> {
-    fn serialize(&self, w: W::AnyWriter<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
-        w.write_bytes(self)
+impl<W: Encoder> Serialize<W> for Vec<u8> {
+    fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+        w.encode_bytes(self)
     }
 }

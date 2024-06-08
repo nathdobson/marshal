@@ -363,34 +363,34 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
         data,
     } = input;
     let output: TokenStream2;
-    let writer_trait = quote! { ::marshal::reexports::marshal_core::encode::Writer };
-    let any_writer_trait = quote! { ::marshal::reexports::marshal_core::encode::AnyWriter };
-    let struct_writer_trait = quote! { ::marshal::reexports::marshal_core::encode::StructWriter };
-    let struct_variant_writer_trait =
-        quote! { ::marshal::reexports::marshal_core::encode::StructVariantWriter };
-    let tuple_variant_writer_trait =
-        quote! { ::marshal::reexports::marshal_core::encode::TupleVariantWriter };
-    let tuple_struct_writer_trait =
-        quote! { ::marshal::reexports::marshal_core::encode::TupleStructWriter };
+    let encoder_trait = quote! { ::marshal::reexports::marshal_core::encode::Encoder };
+    let any_encoder_trait = quote! { ::marshal::reexports::marshal_core::encode::AnyEncoder };
+    let struct_encoder_trait = quote! { ::marshal::reexports::marshal_core::encode::StructEncoder };
+    let struct_variant_encoder_trait =
+        quote! { ::marshal::reexports::marshal_core::encode::StructVariantEncoder };
+    let tuple_variant_encoder_trait =
+        quote! { ::marshal::reexports::marshal_core::encode::TupleVariantEncoder };
+    let tuple_struct_encoder_trait =
+        quote! { ::marshal::reexports::marshal_core::encode::TupleStructEncoder };
     let serialize_trait = quote! { ::marshal::ser::Serialize };
     let context_type = quote! { ::marshal::context::Context };
     let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());
-    let any_writer_type = quote!(<W as #writer_trait>::AnyWriter<'_>);
+    let any_encoder_type = quote!(<W as #encoder_trait>::AnyEncoder<'_>);
 
-    let struct_writer_type = quote!(<W as #writer_trait>::StructWriter<'_>);
-    let as_any_writer = quote!(<#any_writer_type as #any_writer_trait<W>>);
-    let as_struct_writer = quote!(<#struct_writer_type as #struct_writer_trait<W>>);
+    let struct_encoder_type = quote!(<W as #encoder_trait>::StructEncoder<'_>);
+    let as_any_encoder = quote!(<#any_encoder_type as #any_encoder_trait<W>>);
+    let as_struct_encoder = quote!(<#struct_encoder_type as #struct_encoder_trait<W>>);
 
-    let struct_variant_writer_type = quote!(<W as #writer_trait>::StructVariantWriter<'_>);
-    let as_struct_variant_writer =
-        quote!(<#struct_variant_writer_type as #struct_variant_writer_trait<W>>);
-    let tuple_variant_writer_type = quote!(<W as #writer_trait>::TupleVariantWriter<'_>);
-    let as_tuple_variant_writer =
-        quote!(<#tuple_variant_writer_type as #tuple_variant_writer_trait<W>>);
+    let struct_variant_encoder_type = quote!(<W as #encoder_trait>::StructVariantEncoder<'_>);
+    let as_struct_variant_encoder =
+        quote!(<#struct_variant_encoder_type as #struct_variant_encoder_trait<W>>);
+    let tuple_variant_encoder_type = quote!(<W as #encoder_trait>::TupleVariantEncoder<'_>);
+    let as_tuple_variant_encoder =
+        quote!(<#tuple_variant_encoder_type as #tuple_variant_encoder_trait<W>>);
 
-    let tuple_struct_writer_type = quote!(<W as #writer_trait>::TupleStructWriter<'_>);
-    let as_tuple_struct_writer =
-        quote!(<#tuple_struct_writer_type as #tuple_struct_writer_trait<W>>);
+    let tuple_struct_encoder_type = quote!(<W as #encoder_trait>::TupleStructEncoder<'_>);
+    let as_tuple_struct_encoder =
+        quote!(<#tuple_struct_encoder_type as #tuple_struct_encoder_trait<W>>);
     let result_type = quote!(::marshal::reexports::anyhow::Result);
 
     match data {
@@ -403,9 +403,9 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
             match fields {
                 Fields::Unit => {
                     output = quote! {
-                        impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
-                            fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
-                                #as_any_writer::write_unit_struct(writer,#type_name)
+                        impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
+                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                                #as_any_encoder::encode_unit_struct(encoder,#type_name)
                             }
                         }
                     }
@@ -422,17 +422,17 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                         .collect::<Vec<_>>();
 
                     output = quote! {
-                        impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
-                            fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
-                                let mut writer = #as_any_writer::write_struct(writer, #type_name, &[
+                        impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
+                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                                let mut encoder = #as_any_encoder::encode_struct(encoder, #type_name, &[
                                         #(
                                             #field_name_literals
                                         ),*
                                     ])?;
                                 #(
-                                    #serialize_trait::<W>::serialize(&self.#field_names, #as_struct_writer::write_field(&mut writer)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(&self.#field_names, #as_struct_encoder::encode_field(&mut encoder)?, ctx)?;
                                 )*
-                                #as_struct_writer::end(writer)?;
+                                #as_struct_encoder::end(encoder)?;
                                 Ok(())
                             }
                         }
@@ -442,13 +442,13 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     let field_count = fields.unnamed.len();
                     let field_index: Vec<_> = (0..field_count).map(syn::Index::from).collect();
                     output = quote! {
-                        impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
-                            fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
-                                let mut writer=#as_any_writer::write_tuple_struct(writer, #type_name, #field_count)?;
+                        impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
+                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                                let mut encoder=#as_any_encoder::encode_tuple_struct(encoder, #type_name, #field_count)?;
                                 #(
-                                    #serialize_trait::<W>::serialize(&self.#field_index, #as_tuple_struct_writer::write_field(&mut writer)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(&self.#field_index, #as_tuple_struct_encoder::encode_field(&mut encoder)?, ctx)?;
                                 )*
-                                #as_tuple_struct_writer::end(writer)?;
+                                #as_tuple_struct_encoder::end(encoder)?;
                                 #result_type::Ok(())
                             }
                         }
@@ -483,11 +483,11 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                             field_idents.iter().map(|x| ident_to_lit(x)).collect();
                         matches.push(quote! {
                             Self::#variant_ident{ #(#field_idents),* } => {
-                                let mut writer = #as_any_writer::write_struct_variant(writer, #type_name, &[#( #variant_names ),*], #variant_index, &[#(#field_names),*])?;
+                                let mut encoder = #as_any_encoder::encode_struct_variant(encoder, #type_name, &[#( #variant_names ),*], #variant_index, &[#(#field_names),*])?;
                                 #(
-                                    #serialize_trait::<W>::serialize(#field_idents, #as_struct_variant_writer::write_field(&mut writer)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(#field_idents, #as_struct_variant_encoder::encode_field(&mut encoder)?, ctx)?;
                                 )*
-                                #as_struct_variant_writer::end(writer)?;
+                                #as_struct_variant_encoder::end(encoder)?;
                                 Ok(())
                             },
                         });
@@ -499,11 +499,11 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                             .collect();
                         matches.push(quote! {
                             Self::#variant_ident(#( #field_idents ),*) => {
-                                let mut writer = #as_any_writer::write_tuple_variant(writer, #type_name, &[#( #variant_names ),*], #variant_index, #field_count)?;
+                                let mut encoder = #as_any_encoder::encode_tuple_variant(encoder, #type_name, &[#( #variant_names ),*], #variant_index, #field_count)?;
                                 #(
-                                    #serialize_trait::<W>::serialize(#field_idents, #as_tuple_variant_writer::write_field(&mut writer)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(#field_idents, #as_tuple_variant_encoder::encode_field(&mut encoder)?, ctx)?;
                                 )*
-                                #as_tuple_variant_writer::end(writer)?;
+                                #as_tuple_variant_encoder::end(encoder)?;
                                 Ok(())
                             },
                         });
@@ -511,7 +511,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     Fields::Unit => {
                         matches.push(quote!{
                             Self::#variant_ident => {
-                                #as_any_writer::write_unit_variant(writer, #type_name, &[#( #variant_names ),*], #variant_index)?;
+                                #as_any_encoder::encode_unit_variant(encoder, #type_name, &[#( #variant_names ),*], #variant_index)?;
                                 Ok(())
                             },
                         });
@@ -519,8 +519,8 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 }
             }
             output = quote! {
-                impl<W: #writer_trait> #serialize_trait<W> for #type_ident {
-                    fn serialize(&self, writer: #any_writer_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
+                    fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> anyhow::Result<()> {
                         match self{
                             #(
                                 #matches

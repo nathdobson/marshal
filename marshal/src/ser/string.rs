@@ -1,9 +1,9 @@
 use crate::context::Context;
 use crate::ser::Serialize;
-use marshal_core::encode::{AnyWriter, Writer};
+use marshal_core::encode::{AnyEncoder, Encoder};
 
-impl<W: Writer> Serialize<W> for String {
-    fn serialize(&self, w: W::AnyWriter<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
-        w.write_str(self)
+impl<W: Encoder> Serialize<W> for String {
+    fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+        w.encode_str(self)
     }
 }
