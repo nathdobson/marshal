@@ -3,20 +3,20 @@ use std::str::FromStr;
 use crate::decode::error::JsonError;
 use crate::decode::SimpleJsonDecoder;
 
-struct SliceParser<'p, 'de> {
-    parser: &'p mut SimpleJsonDecoder<'de>,
+struct SliceDecoder<'p, 'de> {
+    decoder: &'p mut SimpleJsonDecoder<'de>,
     index: usize,
 }
 
-impl<'p, 'de> SliceParser<'p, 'de> {
-    pub fn new(parser: &'p mut SimpleJsonDecoder<'de>) -> Self {
-        SliceParser { parser, index: 0 }
+impl<'p, 'de> SliceDecoder<'p, 'de> {
+    pub fn new(decoder: &'p mut SimpleJsonDecoder<'de>) -> Self {
+        SliceDecoder { decoder, index: 0 }
     }
     pub fn try_consume_char(
         &mut self,
         expected: impl FnOnce(u8) -> bool,
     ) -> anyhow::Result<Option<u8>> {
-        Ok(match self.parser.try_peek_ahead(self.index)? {
+        Ok(match self.decoder.try_peek_ahead(self.index)? {
             None => None,
             Some(c) => {
                 if expected(c) {
@@ -33,16 +33,16 @@ impl<'p, 'de> SliceParser<'p, 'de> {
     }
 
     pub fn end(self) -> anyhow::Result<&'de [u8]> {
-        self.parser.read_count(self.index)
+        self.decoder.read_count(self.index)
     }
 }
 
 impl<'de> SimpleJsonDecoder<'de> {
     pub fn read_number<T: FromStr>(&mut self) -> anyhow::Result<T>
-        where
-            <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
+    where
+        <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
     {
-        let mut slice = SliceParser::new(self);
+        let mut slice = SliceDecoder::new(self);
         slice.try_consume_char(|x| x == b'-')?;
         match slice
             .try_consume_digit()?
