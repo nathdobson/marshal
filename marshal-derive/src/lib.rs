@@ -167,7 +167,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                         #as_seq_decoder::ignore(decoder)?;
                                         Ok(result)
                                     },
-                                    _ => todo!("b")
+                                    v => v.mismatch("seq")?
                                 }
                             }
                         }
@@ -179,7 +179,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                             fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
                                 match #as_any_decoder::decode(decoder, #decode_hint_type::UnitStruct{name:#type_name})?{
                                     #decoder_view_type::Primitive(#primitive_type::Unit) => Ok(#type_ident),
-                                    _ => todo!("expected unit"),
+                                    v => v.mismatch("unit")?,
                                 }
                             }
                         }
@@ -228,29 +228,33 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 match decoder {
                                     #decoder_view_type::Map(mut decoder) => {
                                         while let Some(mut entry) = #as_map_decoder::decode_next(&mut decoder)?{
-                                            let field_index:usize = match #as_any_decoder::decode(#as_entry_decoder::decode_key(&mut entry)?,#decode_hint_type::Identifier)?{
+                                            let field_index:Option<usize> = match #as_any_decoder::decode(#as_entry_decoder::decode_key(&mut entry)?,#decode_hint_type::Identifier)?{
                                                 #decoder_view_type::String(name) => match &*name{
                                                     #(
-                                                        #field_names => #field_indexes,
+                                                        #field_names => Some(#field_indexes),
                                                     )*
-                                                    _ => todo!("unexpected field name"),
+                                                    _ => None,
                                                 },
-                                                #decoder_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
-                                                _=> todo!("unexpected type instead of field name or index")
+                                                #decoder_view_type::Primitive(x) => Some(<usize as TryFrom<#primitive_type>>::try_from(x)?),
+                                                v => v.mismatch("field name or index")?,
                                             };
-                                            match field_index {
-                                                #(
-                                                    #field_indexes => {
-                                                        let value = #as_entry_decoder::decode_value(&mut entry)?;
-                                                        #field_idents = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
-                                                    }
-                                                )*
-                                                _=>todo!("unknown field index"),
+                                            if let Some(field_index)=field_index{
+                                                match field_index {
+                                                    #(
+                                                        #field_indexes => {
+                                                            let value = #as_entry_decoder::decode_value(&mut entry)?;
+                                                            #field_idents = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
+                                                        }
+                                                    )*
+                                                    _ => #as_any_decoder::ignore(#as_entry_decoder::decode_value(&mut entry)?)?,
+                                                }
+                                            }else{
+                                                #as_any_decoder::ignore(#as_entry_decoder::decode_value(&mut entry)?)?;
                                             }
                                             #as_entry_decoder::decode_end(entry)?;
                                         }
                                     },
-                                     _ => todo!("expected map"),
+                                    v => v.mismatch("expected map")?
                                 }
                                 #(
                                     let #field_idents = #field_idents.ok_or(#schema_error::MissingField{field_name:#field_names})?;
@@ -286,7 +290,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                         #as_seq_decoder::ignore(decoder)?;
                                         result
                                     },
-                                    _ => todo!("b")
+                                    v => v.mismatch("seq")?
                                 }
                             },
                         })
@@ -336,7 +340,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 #as_enum_decoder::decode_end(decoder)?;
                                 Ok(result)
                             },
-                            _ => todo!("expected enum, but got something else"),
+                            v => v.mismatch("enum")?,
                         }
                     }
                 }

@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::{AnyDecoder, EntryDecoder, MapDecoder, DecodeHint, Decoder, DecoderView, SeqDecoder};
+use marshal_core::decode::{
+    AnyDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, MapDecoder, SeqDecoder,
+};
 use marshal_core::Primitive;
 
 pub enum JsonValue {
@@ -36,14 +38,16 @@ impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
                         .decode(DecodeHint::String)?
                         .try_into_string()?
                         .into_owned();
-                    let value =
-                        <JsonValue as Deserialize<'de, P>>::deserialize(entry.decode_value()?, ctx)?;
+                    let value = <JsonValue as Deserialize<'de, P>>::deserialize(
+                        entry.decode_value()?,
+                        ctx,
+                    )?;
                     entry.decode_end()?;
                     map.insert(key, value);
                 }
                 Ok(JsonValue::Object(map))
             }
-            x => todo!("{:?}", x),
+            v => v.mismatch("json-like value")?,
         }
     }
 }

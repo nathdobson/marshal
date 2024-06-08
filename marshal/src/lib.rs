@@ -8,6 +8,7 @@
 #![feature(specialization)]
 #![feature(adt_const_params)]
 #![allow(incomplete_features)]
+#![feature(macro_metavar_expr)]
 
 pub mod context;
 pub mod de;

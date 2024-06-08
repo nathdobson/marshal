@@ -18,7 +18,6 @@ use marshal_core::decode::{
 use marshal_core::encode::{AnyEncoder, Encoder, StructEncoder};
 use std::intrinsics::const_allocate;
 use std::mem::{align_of, size_of};
-use std::thread::Builder;
 
 #[derive(Default, Eq, Ord, PartialEq, PartialOrd, Debug, Hash, Copy, Clone)]
 pub struct StructNil<const STRUCT: &'static str>;
@@ -162,10 +161,10 @@ impl<'de, const STRUCT: &'static str, D: Decoder<'de>> DeserializeStructList<'de
     type Builder = StructNil<STRUCT>;
 
     fn decode_field(
-        builder: &mut Self::Builder,
-        field: &str,
+        _: &mut Self::Builder,
+        _: &str,
         value: D::AnyDecoder<'_>,
-        ctx: &mut Context,
+        _: &mut Context,
     ) -> anyhow::Result<()> {
         value.ignore()
     }
