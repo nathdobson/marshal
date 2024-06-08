@@ -245,11 +245,11 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 #(
                                     let #field_idents = #field_idents.ok_or(#schema_error::MissingField{field_name:#field_names})?;
                                 )*
-                                Ok(#type_ident::#variant_ident {
+                                #type_ident::#variant_ident {
                                     #(
                                         #field_idents
                                     ),*
-                                })
+                                }
                             },
                         });
                     }
@@ -273,8 +273,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 },
                                             )*
                                         );
-
-                                        Ok(result)
+                                        result
                                     },
                                     _ => todo!("b")
                                 }
@@ -286,7 +285,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         #variant_index => {
                             let variant = #as_enum_parser::parse_variant(&mut parser, #parse_variant_hint_type::UnitVariant)?;
                             variant.ignore()?;
-                            #result_type::Ok(#type_ident::#variant_ident)
+                            #type_ident::#variant_ident
                         },
                     }),
                 }
@@ -314,10 +313,11 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                         _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
                                     }
                                 };
-                                match variant_index {
+                                let result=match variant_index {
                                     #(#matches)*
                                     _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
-                                }
+                                };
+                                Ok(result)
                             },
                             _ => todo!("expected enum, but got something else"),
                         }
@@ -478,6 +478,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                                 #(
                                     #serialize_trait::<W>::serialize(#field_idents, #as_struct_variant_writer::write_field(&mut writer)?, ctx)?;
                                 )*
+                                #as_struct_variant_writer::end(writer)?;
                                 Ok(())
                             },
                         });
@@ -493,6 +494,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                                 #(
                                     #serialize_trait::<W>::serialize(#field_idents, #as_tuple_variant_writer::write_field(&mut writer)?, ctx)?;
                                 )*
+                                #as_tuple_variant_writer::end(writer)?;
                                 Ok(())
                             },
                         });

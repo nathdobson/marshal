@@ -387,7 +387,7 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
     }
 
     fn tuple_variant_end(&mut self, map: Self::TupleVariantWriter) -> anyhow::Result<()> {
-        todo!()
+        Ok(())
     }
 
     fn struct_variant_write_field(
@@ -399,6 +399,6 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
     }
 
     fn struct_variant_end(&mut self, map: Self::StructVariantWriter) -> anyhow::Result<()> {
-        todo!()
+        Ok(())
     }
 }
