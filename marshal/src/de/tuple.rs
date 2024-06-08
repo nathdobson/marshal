@@ -1,16 +1,16 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use marshal_core::decode::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
+use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, SeqDecoder};
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::context::Context;
 use crate::de::Deserialize;
 
-impl<'de, P: Parser<'de>> Deserialize<'de, P> for () {
-    fn deserialize(p: P::AnyParser<'_>, _: &mut Context) -> anyhow::Result<Self> {
-        match p.parse(ParseHint::Primitive(PrimitiveType::Unit))? {
-            ParserView::Primitive(Primitive::Unit) => Ok(()),
+impl<'de, P: Decoder<'de>> Deserialize<'de, P> for () {
+    fn deserialize(p: P::AnyDecoder<'_>, _: &mut Context) -> anyhow::Result<Self> {
+        match p.decode(DecodeHint::Primitive(PrimitiveType::Unit))? {
+            DecoderView::Primitive(Primitive::Unit) => Ok(()),
             unexpected => unexpected.mismatch("unit")?,
         }
     }
@@ -34,12 +34,12 @@ impl Display for TupleTooLong {
 }
 impl Error for TupleTooLong {}
 
-impl<'de, P: Parser<'de>, T1: Deserialize<'de, P>> Deserialize<'de, P> for (T1,) {
-    fn deserialize(p: P::AnyParser<'_>, context: &mut Context) -> anyhow::Result<Self> {
-        match p.parse(ParseHint::Tuple { len: 1 })? {
-            ParserView::Seq(mut p) => {
-                let f0 = T1::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                if let Some(_) = p.parse_next()? {
+impl<'de, P: Decoder<'de>, T1: Deserialize<'de, P>> Deserialize<'de, P> for (T1,) {
+    fn deserialize(p: P::AnyDecoder<'_>, context: &mut Context) -> anyhow::Result<Self> {
+        match p.decode(DecodeHint::Tuple { len: 1 })? {
+            DecoderView::Seq(mut p) => {
+                let f0 = T1::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                if let Some(_) = p.decode_next()? {
                     return Err(TupleTooLong.into());
                 }
                 Ok((f0,))
@@ -49,15 +49,15 @@ impl<'de, P: Parser<'de>, T1: Deserialize<'de, P>> Deserialize<'de, P> for (T1,)
     }
 }
 
-impl<'de, P: Parser<'de>, T1: Deserialize<'de, P>, T2: Deserialize<'de, P>> Deserialize<'de, P>
+impl<'de, P: Decoder<'de>, T1: Deserialize<'de, P>, T2: Deserialize<'de, P>> Deserialize<'de, P>
     for (T1, T2)
 {
-    fn deserialize(p: P::AnyParser<'_>, context: &mut Context) -> anyhow::Result<Self> {
-        match p.parse(ParseHint::Tuple { len: 2})? {
-            ParserView::Seq(mut p) => {
-                let f0 = T1::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                let f1 = T2::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                if let Some(_) = p.parse_next()? {
+    fn deserialize(p: P::AnyDecoder<'_>, context: &mut Context) -> anyhow::Result<Self> {
+        match p.decode(DecodeHint::Tuple { len: 2})? {
+            DecoderView::Seq(mut p) => {
+                let f0 = T1::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                let f1 = T2::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                if let Some(_) = p.decode_next()? {
                     return Err(TupleTooLong.into());
                 }
                 Ok((f0, f1))
@@ -69,19 +69,19 @@ impl<'de, P: Parser<'de>, T1: Deserialize<'de, P>, T2: Deserialize<'de, P>> Dese
 
 impl<
         'de,
-        P: Parser<'de>,
+        P: Decoder<'de>,
         T1: Deserialize<'de, P>,
         T2: Deserialize<'de, P>,
         T3: Deserialize<'de, P>,
     > Deserialize<'de, P> for (T1, T2, T3)
 {
-    fn deserialize(p: P::AnyParser<'_>, context: &mut Context) -> anyhow::Result<Self> {
-        match p.parse(ParseHint::Tuple { len: 3 })? {
-            ParserView::Seq(mut p) => {
-                let f0 = T1::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                let f1 = T2::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                let f2 = T3::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                if let Some(_) = p.parse_next()? {
+    fn deserialize(p: P::AnyDecoder<'_>, context: &mut Context) -> anyhow::Result<Self> {
+        match p.decode(DecodeHint::Tuple { len: 3 })? {
+            DecoderView::Seq(mut p) => {
+                let f0 = T1::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                let f1 = T2::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                let f2 = T3::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                if let Some(_) = p.decode_next()? {
                     return Err(TupleTooLong.into());
                 }
                 Ok((f0, f1, f2))
@@ -93,21 +93,21 @@ impl<
 
 impl<
         'de,
-        P: Parser<'de>,
+        P: Decoder<'de>,
         T1: Deserialize<'de, P>,
         T2: Deserialize<'de, P>,
         T3: Deserialize<'de, P>,
         T4: Deserialize<'de, P>,
     > Deserialize<'de, P> for (T1, T2, T3, T4)
 {
-    fn deserialize(p: P::AnyParser<'_>, context: &mut Context) -> anyhow::Result<Self> {
-        match p.parse(ParseHint::Tuple { len: 4 })? {
-            ParserView::Seq(mut p) => {
-                let f0 = T1::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                let f1 = T2::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                let f2 = T3::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                let f3 = T4::deserialize(p.parse_next()?.ok_or(TupleTooShort)?, context)?;
-                if let Some(_) = p.parse_next()? {
+    fn deserialize(p: P::AnyDecoder<'_>, context: &mut Context) -> anyhow::Result<Self> {
+        match p.decode(DecodeHint::Tuple { len: 4 })? {
+            DecoderView::Seq(mut p) => {
+                let f0 = T1::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                let f1 = T2::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                let f2 = T3::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                let f3 = T4::deserialize(p.decode_next()?.ok_or(TupleTooShort)?, context)?;
+                if let Some(_) = p.decode_next()? {
                     return Err(TupleTooLong.into());
                 }
                 Ok((f0, f1, f2, f3))

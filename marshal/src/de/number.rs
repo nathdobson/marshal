@@ -1,14 +1,14 @@
 use crate::context::Context;
 use crate::de::Deserialize;
-use marshal_core::decode::{AnyParser, ParseHint, Parser, ParserView};
+use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
 use marshal_core::{Primitive, PrimitiveType};
 
 macro_rules! derive_number {
     ($t:ty, $v:ident) => {
-        impl<'de, P: Parser<'de>> Deserialize<'de, P> for $t {
-            fn deserialize<'p>(p: P::AnyParser<'p>, _ctx: &mut Context) -> anyhow::Result<Self> {
-                match p.parse(ParseHint::Primitive(PrimitiveType::$v))? {
-                    ParserView::Primitive(Primitive::$v(x)) => Ok(x),
+        impl<'de, P: Decoder<'de>> Deserialize<'de, P> for $t {
+            fn deserialize<'p>(p: P::AnyDecoder<'p>, _ctx: &mut Context) -> anyhow::Result<Self> {
+                match p.decode(DecodeHint::Primitive(PrimitiveType::$v))? {
+                    DecoderView::Primitive(Primitive::$v(x)) => Ok(x),
                     unexpected => unexpected.mismatch(std::stringify!($t))?,
                 }
             }

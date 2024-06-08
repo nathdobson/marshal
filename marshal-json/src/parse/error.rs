@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
-use marshal_core::decode::ParseHint;
+use marshal_core::decode::DecodeHint;
 
 use crate::parse::any::PeekType;
 
@@ -26,7 +26,7 @@ pub enum JsonError {
     DecodeUtf16Error,
     DepthBudgetExceeded,
     TooManyChars,
-    SchemaMismatch { hint: ParseHint, found: PeekType },
+    SchemaMismatch { hint: DecodeHint, found: PeekType },
     UnexpectedNull,
     BadOption,
 }

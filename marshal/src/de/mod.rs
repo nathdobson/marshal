@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 
-use marshal_core::decode::Parser;
+use marshal_core::decode::Decoder;
 
 use crate::context::Context;
 
@@ -12,8 +12,8 @@ mod vec;
 mod never;
 mod option;
 
-pub trait Deserialize<'de, P: Parser<'de>>: Sized {
-    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &mut Context) -> anyhow::Result<Self>;
+pub trait Deserialize<'de, P: Decoder<'de>>: Sized {
+    fn deserialize<'p>(p: P::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self>;
 }
 
 #[derive(Debug)]

@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::decode::{
-    AnyParser, EntryParser, EnumParser, MapParser, ParseHint, Parser, ParserView, ParseVariantHint,
-    SeqParser, SomeParser,
+    AnyDecoder, EntryDecoder, EnumDecoder, MapDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint,
+    SeqDecoder, SomeDecoder,
 };
 
 pub struct DepthBudgetParser<T>(PhantomData<T>);
@@ -24,39 +24,39 @@ impl Display for OverflowError {
 
 impl Error for OverflowError {}
 
-impl<'de, T: Parser<'de>> Parser<'de> for DepthBudgetParser<T> {
-    type AnyParser<'p> = WithDepthBudget<T::AnyParser<'p>> where Self: 'p;
-    type SeqParser<'p> = WithDepthBudget<T::SeqParser<'p>> where Self: 'p;
-    type MapParser<'p> = WithDepthBudget<T::MapParser<'p>> where Self: 'p;
-    type EntryParser<'p> = WithDepthBudget<T::EntryParser<'p>> where Self: 'p;
-    type EnumParser<'p> = WithDepthBudget<T::EnumParser<'p>> where Self: 'p;
-    type SomeParser<'p> = WithDepthBudget<T::SomeParser<'p>> where Self: 'p;
+impl<'de, T: Decoder<'de>> Decoder<'de> for DepthBudgetParser<T> {
+    type AnyDecoder<'p> = WithDepthBudget<T::AnyDecoder<'p>> where Self: 'p;
+    type SeqDecoder<'p> = WithDepthBudget<T::SeqDecoder<'p>> where Self: 'p;
+    type MapDecoder<'p> = WithDepthBudget<T::MapDecoder<'p>> where Self: 'p;
+    type EntryDecoder<'p> = WithDepthBudget<T::EntryDecoder<'p>> where Self: 'p;
+    type EnumDecoder<'p> = WithDepthBudget<T::EnumDecoder<'p>> where Self: 'p;
+    type SomeDecoder<'p> = WithDepthBudget<T::SomeDecoder<'p>> where Self: 'p;
 }
 
-fn annotate<'p, 'de, T: Parser<'de>>(
+fn annotate<'p, 'de, T: Decoder<'de>>(
     depth_budget: usize,
-    view: ParserView<'p, 'de, T>,
-) -> anyhow::Result<ParserView<'p, 'de, DepthBudgetParser<T>>> {
+    view: DecoderView<'p, 'de, T>,
+) -> anyhow::Result<DecoderView<'p, 'de, DepthBudgetParser<T>>> {
     let depth_budget: Result<usize, OverflowError> =
         depth_budget.checked_sub(1).ok_or(OverflowError);
     Ok(match view {
-        ParserView::Primitive(x) => ParserView::Primitive(x),
-        ParserView::String(x) => ParserView::String(x),
-        ParserView::Bytes(x) => ParserView::Bytes(x),
-        ParserView::None => ParserView::None,
-        ParserView::Some(inner) => ParserView::Some(WithDepthBudget {
+        DecoderView::Primitive(x) => DecoderView::Primitive(x),
+        DecoderView::String(x) => DecoderView::String(x),
+        DecoderView::Bytes(x) => DecoderView::Bytes(x),
+        DecoderView::None => DecoderView::None,
+        DecoderView::Some(inner) => DecoderView::Some(WithDepthBudget {
             depth_budget: depth_budget?,
             inner,
         }),
-        ParserView::Seq(inner) => ParserView::Seq(WithDepthBudget {
+        DecoderView::Seq(inner) => DecoderView::Seq(WithDepthBudget {
             depth_budget: depth_budget?,
             inner,
         }),
-        ParserView::Map(inner) => ParserView::Map(WithDepthBudget {
+        DecoderView::Map(inner) => DecoderView::Map(WithDepthBudget {
             depth_budget: depth_budget?,
             inner,
         }),
-        ParserView::Enum(inner) => ParserView::Enum(WithDepthBudget {
+        DecoderView::Enum(inner) => DecoderView::Enum(WithDepthBudget {
             depth_budget: depth_budget?,
             inner,
         }),
@@ -72,21 +72,21 @@ impl<T> WithDepthBudget<T> {
     }
 }
 
-impl<'p, 'de, T: Parser<'de>> AnyParser<'p, 'de, DepthBudgetParser<T>>
-    for WithDepthBudget<T::AnyParser<'p>>
+impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, DepthBudgetParser<T>>
+    for WithDepthBudget<T::AnyDecoder<'p>>
 {
-    fn parse(self, hint: ParseHint) -> anyhow::Result<ParserView<'p, 'de, DepthBudgetParser<T>>> {
-        annotate(self.depth_budget, self.inner.parse(hint)?)
+    fn decode(self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, DepthBudgetParser<T>>> {
+        annotate(self.depth_budget, self.inner.decode(hint)?)
     }
 }
 
-impl<'p, 'de, T: Parser<'de>> SeqParser<'p, 'de, DepthBudgetParser<T>>
-    for WithDepthBudget<T::SeqParser<'p>>
+impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, DepthBudgetParser<T>>
+    for WithDepthBudget<T::SeqDecoder<'p>>
 {
-    fn parse_next<'p2>(
+    fn decode_next<'p2>(
         &'p2 mut self,
-    ) -> anyhow::Result<Option<WithDepthBudget<T::AnyParser<'p2>>>> {
-        if let Some(inner) = self.inner.parse_next()? {
+    ) -> anyhow::Result<Option<WithDepthBudget<T::AnyDecoder<'p2>>>> {
+        if let Some(inner) = self.inner.decode_next()? {
             Ok(Some(WithDepthBudget {
                 depth_budget: self.depth_budget,
                 inner,
@@ -97,13 +97,13 @@ impl<'p, 'de, T: Parser<'de>> SeqParser<'p, 'de, DepthBudgetParser<T>>
     }
 }
 
-impl<'p, 'de, T: Parser<'de>> MapParser<'p, 'de, DepthBudgetParser<T>>
-    for WithDepthBudget<T::MapParser<'p>>
+impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, DepthBudgetParser<T>>
+    for WithDepthBudget<T::MapDecoder<'p>>
 {
-    fn parse_next<'p2>(
+    fn decode_next<'p2>(
         &'p2 mut self,
-    ) -> anyhow::Result<Option<WithDepthBudget<T::EntryParser<'p2>>>> {
-        if let Some(inner) = self.inner.parse_next()? {
+    ) -> anyhow::Result<Option<WithDepthBudget<T::EntryDecoder<'p2>>>> {
+        if let Some(inner) = self.inner.decode_next()? {
             Ok(Some(WithDepthBudget {
                 depth_budget: self.depth_budget,
                 inner,
@@ -114,67 +114,67 @@ impl<'p, 'de, T: Parser<'de>> MapParser<'p, 'de, DepthBudgetParser<T>>
     }
 }
 
-impl<'p, 'de, T: Parser<'de>> EntryParser<'p, 'de, DepthBudgetParser<T>>
-    for WithDepthBudget<T::EntryParser<'p>>
+impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, DepthBudgetParser<T>>
+    for WithDepthBudget<T::EntryDecoder<'p>>
 {
-    fn parse_key<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyParser<'p2>>> {
+    fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyDecoder<'p2>>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
-            inner: self.inner.parse_key()?,
+            inner: self.inner.decode_key()?,
         })
     }
 
-    fn parse_value<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyParser<'p2>>> {
+    fn decode_value<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyDecoder<'p2>>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
-            inner: self.inner.parse_value()?,
+            inner: self.inner.decode_value()?,
         })
     }
 
-    fn parse_end(self) -> anyhow::Result<()> {
-        Ok(self.inner.parse_end()?)
+    fn decode_end(self) -> anyhow::Result<()> {
+        Ok(self.inner.decode_end()?)
     }
 }
 
-impl<'p, 'de, T: Parser<'de>> EnumParser<'p, 'de, DepthBudgetParser<T>>
-    for WithDepthBudget<T::EnumParser<'p>>
+impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, DepthBudgetParser<T>>
+    for WithDepthBudget<T::EnumDecoder<'p>>
 {
-    fn parse_discriminant<'p2>(
+    fn decode_discriminant<'p2>(
         &'p2 mut self,
-    ) -> anyhow::Result<WithDepthBudget<T::AnyParser<'p2>>> {
+    ) -> anyhow::Result<WithDepthBudget<T::AnyDecoder<'p2>>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
-            inner: self.inner.parse_discriminant()?,
+            inner: self.inner.decode_discriminant()?,
         })
     }
 
-    fn parse_variant<'p2>(
+    fn decode_variant<'p2>(
         &'p2 mut self,
-        hint: ParseVariantHint,
-    ) -> anyhow::Result<ParserView<'p2, 'de, DepthBudgetParser<T>>> {
+        hint: DecodeVariantHint,
+    ) -> anyhow::Result<DecoderView<'p2, 'de, DepthBudgetParser<T>>> {
         Ok(annotate(
             self.depth_budget,
-            self.inner.parse_variant(hint)?,
+            self.inner.decode_variant(hint)?,
         )?)
     }
 
-    fn parse_end(self) -> anyhow::Result<()> {
-        Ok(self.inner.parse_end()?)
+    fn decode_end(self) -> anyhow::Result<()> {
+        Ok(self.inner.decode_end()?)
     }
 }
-impl<'p, 'de, T: Parser<'de>> SomeParser<'p, 'de, DepthBudgetParser<T>>
-    for WithDepthBudget<<T as Parser<'de>>::SomeParser<'p>>
+impl<'p, 'de, T: Decoder<'de>> SomeDecoder<'p, 'de, DepthBudgetParser<T>>
+    for WithDepthBudget<<T as Decoder<'de>>::SomeDecoder<'p>>
 {
-    fn parse_some<'p2>(
+    fn decode_some<'p2>(
         &'p2 mut self,
-    ) -> anyhow::Result<<DepthBudgetParser<T> as Parser<'de>>::AnyParser<'p2>> {
+    ) -> anyhow::Result<<DepthBudgetParser<T> as Decoder<'de>>::AnyDecoder<'p2>> {
         Ok(WithDepthBudget {
             depth_budget: self.depth_budget,
-            inner: self.inner.parse_some()?,
+            inner: self.inner.decode_some()?,
         })
     }
 
-    fn parse_end(self) -> anyhow::Result<()> {
-        Ok(self.inner.parse_end()?)
+    fn decode_end(self) -> anyhow::Result<()> {
+        Ok(self.inner.decode_end()?)
     }
 }

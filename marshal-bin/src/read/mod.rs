@@ -7,7 +7,7 @@ use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
 
 use marshal_core::decode::simple::{SimpleParser, SimpleParserView};
-use marshal_core::decode::{ParseHint, ParseVariantHint};
+use marshal_core::decode::{DecodeHint, DecodeVariantHint};
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::to_from_vu128::{Array, ToFromVu128};
@@ -198,7 +198,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
     fn parse(
         &mut self,
         any: Self::AnyParser,
-        hint: ParseHint,
+        hint: DecodeHint,
     ) -> anyhow::Result<SimpleParserView<'de, Self>> {
         match any {
             BinAnyParser::U32(x) => return Ok(SimpleParserView::Primitive(Primitive::U32(x))),
@@ -282,7 +282,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                 TypeTag::Struct => {
                     let enum_def = self.read_enum_def_ref()?;
                     let fields = match hint {
-                        ParseHint::Struct { name: _, fields } => Some(fields),
+                        DecodeHint::Struct { name: _, fields } => Some(fields),
                         _ => None,
                     };
                     let trans = enum_def.get_translation(fields);
@@ -298,7 +298,7 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
                     let enum_def = self.read_enum_def_ref()?;
                     let variant = self.read_usize()?;
                     let variants = match hint {
-                        ParseHint::Enum { name: _, variants } => Some(variants),
+                        DecodeHint::Enum { name: _, variants } => Some(variants),
                         _ => None,
                     };
                     let variant = &enum_def.get_translation(variants).keys[variant];
@@ -403,22 +403,22 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
     fn parse_enum_variant(
         &mut self,
         _: Self::VariantParser,
-        hint: ParseVariantHint,
+        hint: DecodeVariantHint,
     ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)> {
         Ok((
             self.parse(
                 BinAnyParser::Read,
                 match hint {
-                    ParseVariantHint::UnitVariant => ParseHint::Primitive(PrimitiveType::Unit),
-                    ParseVariantHint::TupleVariant { len } => ParseHint::TupleStruct {
+                    DecodeVariantHint::UnitVariant => DecodeHint::Primitive(PrimitiveType::Unit),
+                    DecodeVariantHint::TupleVariant { len } => DecodeHint::TupleStruct {
                         name: "<enum>",
                         len,
                     },
-                    ParseVariantHint::StructVariant { fields } => ParseHint::Struct {
+                    DecodeVariantHint::StructVariant { fields } => DecodeHint::Struct {
                         name: "<enum>",
                         fields,
                     },
-                    ParseVariantHint::Ignore => ParseHint::Ignore,
+                    DecodeVariantHint::Ignore => DecodeHint::Ignore,
                 },
             )?,
             (),

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
+use marshal_core::decode::{AnyDecoder, EntryDecoder, MapDecoder, DecodeHint, Decoder, DecoderView, SeqDecoder};
 use marshal_core::Primitive;
 
 pub enum JsonValue {
@@ -14,31 +14,31 @@ pub enum JsonValue {
     Object(HashMap<String, JsonValue>),
 }
 
-impl<'de, P: Parser<'de>> Deserialize<'de, P> for JsonValue {
-    fn deserialize<'p>(p: P::AnyParser<'p>, ctx: &mut Context) -> anyhow::Result<Self> {
-        match p.parse(ParseHint::Any)? {
-            ParserView::Primitive(Primitive::Bool(x)) => Ok(JsonValue::Bool(x)),
-            ParserView::Primitive(Primitive::F64(x)) => Ok(JsonValue::Number(x)),
-            ParserView::Primitive(Primitive::Unit) => Ok(JsonValue::Null),
-            ParserView::String(x) => Ok(JsonValue::String(x.into_owned())),
-            ParserView::Seq(mut p) => {
+impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
+    fn deserialize<'p>(p: P::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self> {
+        match p.decode(DecodeHint::Any)? {
+            DecoderView::Primitive(Primitive::Bool(x)) => Ok(JsonValue::Bool(x)),
+            DecoderView::Primitive(Primitive::F64(x)) => Ok(JsonValue::Number(x)),
+            DecoderView::Primitive(Primitive::Unit) => Ok(JsonValue::Null),
+            DecoderView::String(x) => Ok(JsonValue::String(x.into_owned())),
+            DecoderView::Seq(mut p) => {
                 let mut vec = vec![];
-                while let Some(next) = p.parse_next()? {
+                while let Some(next) = p.decode_next()? {
                     vec.push(<JsonValue as Deserialize<'de, P>>::deserialize(next, ctx)?);
                 }
                 Ok(JsonValue::Array(vec))
             }
-            ParserView::Map(mut p) => {
+            DecoderView::Map(mut p) => {
                 let mut map = HashMap::new();
-                while let Some(mut entry) = p.parse_next()? {
+                while let Some(mut entry) = p.decode_next()? {
                     let key = entry
-                        .parse_key()?
-                        .parse(ParseHint::String)?
+                        .decode_key()?
+                        .decode(DecodeHint::String)?
                         .try_into_string()?
                         .into_owned();
                     let value =
-                        <JsonValue as Deserialize<'de, P>>::deserialize(entry.parse_value()?, ctx)?;
-                    entry.parse_end()?;
+                        <JsonValue as Deserialize<'de, P>>::deserialize(entry.decode_value()?, ctx)?;
+                    entry.decode_end()?;
                     map.insert(key, value);
                 }
                 Ok(JsonValue::Object(map))

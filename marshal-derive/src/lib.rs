@@ -29,36 +29,36 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
         data,
     } = input;
     let output: TokenStream2;
-    let parser_trait = quote!(::marshal::reexports::marshal_core::decode::Parser);
+    let decoder_trait = quote!(::marshal::reexports::marshal_core::decode::Decoder);
     let primitive_type = quote!(::marshal::reexports::marshal_core::Primitive);
 
-    let any_parser_trait = quote!(::marshal::reexports::marshal_core::decode::AnyParser);
-    let any_parser_type = quote!(<P as #parser_trait<'de>>::AnyParser<'_>);
-    let as_any_parser = quote!(<#any_parser_type as #any_parser_trait<P>>);
+    let any_decoder_trait = quote!(::marshal::reexports::marshal_core::decode::AnyDecoder);
+    let any_decoder_type = quote!(<P as #decoder_trait<'de>>::AnyDecoder<'_>);
+    let as_any_decoder = quote!(<#any_decoder_type as #any_decoder_trait<P>>);
 
-    let map_parser_trait = quote!(::marshal::reexports::marshal_core::decode::MapParser);
-    let map_parser_type = quote!(<P as #parser_trait<'de>>::MapParser<'_>);
-    let as_map_parser = quote!(<#map_parser_type as #map_parser_trait<P>>);
+    let map_decoder_trait = quote!(::marshal::reexports::marshal_core::decode::MapDecoder);
+    let map_decoder_type = quote!(<P as #decoder_trait<'de>>::MapDecoder<'_>);
+    let as_map_decoder = quote!(<#map_decoder_type as #map_decoder_trait<P>>);
 
-    let seq_parser_trait = quote!(::marshal::reexports::marshal_core::decode::SeqParser);
-    let seq_parser_type = quote!(<P as #parser_trait<'de>>::SeqParser<'_>);
-    let as_seq_parser = quote!(<#seq_parser_type as #seq_parser_trait<P>>);
+    let seq_decoder_trait = quote!(::marshal::reexports::marshal_core::decode::SeqDecoder);
+    let seq_decoder_type = quote!(<P as #decoder_trait<'de>>::SeqDecoder<'_>);
+    let as_seq_decoder = quote!(<#seq_decoder_type as #seq_decoder_trait<P>>);
 
-    let entry_parser_trait = quote!(::marshal::reexports::marshal_core::decode::EntryParser);
-    let entry_parser_type = quote!(<P as #parser_trait<'de>>::EntryParser<'_>);
-    let as_entry_parser = quote!(<#entry_parser_type as #entry_parser_trait<P>>);
+    let entry_decoder_trait = quote!(::marshal::reexports::marshal_core::decode::EntryDecoder);
+    let entry_decoder_type = quote!(<P as #decoder_trait<'de>>::EntryDecoder<'_>);
+    let as_entry_decoder = quote!(<#entry_decoder_type as #entry_decoder_trait<P>>);
 
-    let enum_parser_trait = quote!(::marshal::reexports::marshal_core::decode::EnumParser);
-    let enum_parser_type = quote!(<P as #parser_trait<'de>>::EnumParser<'_>);
-    let as_enum_parser = quote!(<#enum_parser_type as #enum_parser_trait<P>>);
+    let enum_decoder_trait = quote!(::marshal::reexports::marshal_core::decode::EnumDecoder);
+    let enum_decoder_type = quote!(<P as #decoder_trait<'de>>::EnumDecoder<'_>);
+    let as_enum_decoder = quote!(<#enum_decoder_type as #enum_decoder_trait<P>>);
 
     let deserialize_trait = quote!(::marshal::de::Deserialize);
     let result_type = quote!(::marshal::reexports::anyhow::Result);
     let context_type = quote!(::marshal::context::Context);
-    let parse_hint_type = quote!(::marshal::reexports::marshal_core::decode::ParseHint);
-    let parse_variant_hint_type =
-        quote!(::marshal::reexports::marshal_core::decode::ParseVariantHint);
-    let parser_view_type = quote!(::marshal::reexports::marshal_core::decode::ParserView);
+    let decode_hint_type = quote!(::marshal::reexports::marshal_core::decode::DecodeHint);
+    let decode_variant_hint_type =
+        quote!(::marshal::reexports::marshal_core::decode::DecodeVariantHint);
+    let decoder_view_type = quote!(::marshal::reexports::marshal_core::decode::DecoderView);
     let type_name = ident_to_lit(&type_ident);
     let option_type = quote! {::std::option::Option};
     let schema_error = quote! {::marshal::de::SchemaError};
@@ -84,10 +84,10 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         .collect::<Vec<_>>();
                     let field_name_indexes = (0..fields.named.len()).collect::<Vec<_>>();
                     output = quote! {
-                        impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                        impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
                             #[allow(unreachable_code)]
-                            fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
-                                let hint = #parse_hint_type::Struct{
+                            fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
+                                let hint = #decode_hint_type::Struct{
                                     fields: &[
                                         #(
                                             #field_name_literals
@@ -98,30 +98,30 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 #(
                                     let mut #field_names : #option_type<#field_types> = #option_type::None;
                                 )*
-                                let parser = #as_any_parser::parse(parser, hint)?;
-                                match parser {
-                                    #parser_view_type::Map(mut parser) => {
-                                        while let Some(mut entry) = #as_map_parser::parse_next(&mut parser)?{
-                                            let field_index:usize = match #as_any_parser::parse(#as_entry_parser::parse_key(&mut entry)?,#parse_hint_type::Identifier)?{
-                                                #parser_view_type::String(name) => match &*name{
+                                let decoder = #as_any_decoder::decode(decoder, hint)?;
+                                match decoder {
+                                    #decoder_view_type::Map(mut decoder) => {
+                                        while let Some(mut entry) = #as_map_decoder::decode_next(&mut decoder)?{
+                                            let field_index:usize = match #as_any_decoder::decode(#as_entry_decoder::decode_key(&mut entry)?,#decode_hint_type::Identifier)?{
+                                                #decoder_view_type::String(name) => match &*name{
                                                     #(
                                                         #field_name_literals => #field_name_indexes,
                                                     )*
                                                     _ => todo!("unexpected field name"),
                                                 },
-                                                #parser_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
+                                                #decoder_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
                                                 _=> todo!("unexpected type instead of field name or index")
                                             };
                                             match field_index {
                                                 #(
                                                     #field_name_indexes => {
-                                                        let value = #as_entry_parser::parse_value(&mut entry)?;
+                                                        let value = #as_entry_decoder::decode_value(&mut entry)?;
                                                         #field_names = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
                                                     }
                                                 )*
                                                 _=>todo!("unknown field index"),
                                             }
-                                            #as_entry_parser::parse_end(entry)?;
+                                            #as_entry_decoder::decode_end(entry)?;
                                         }
                                     },
                                      _ => todo!("expected map"),
@@ -142,15 +142,15 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                     let field_count = fields.unnamed.len();
                     let field_types = fields.unnamed.iter().map(|x| &x.ty).collect::<Vec<_>>();
                     output = quote! {
-                        impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
-                            fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
-                                match #as_any_parser::parse(parser, #parse_hint_type::TupleStruct{name:#type_name, len:#field_count})?{
-                                    #parser_view_type::Seq(mut parser) => {
+                        impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                            fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
+                                match #as_any_decoder::decode(decoder, #decode_hint_type::TupleStruct{name:#type_name, len:#field_count})?{
+                                    #decoder_view_type::Seq(mut decoder) => {
                                         let result=#type_ident(
                                             #(
                                                 {
                                                     let x = <#field_types as #deserialize_trait<'de, P> >::deserialize(
-                                                        #as_seq_parser::parse_next(&mut parser)?
+                                                        #as_seq_decoder::decode_next(&mut decoder)?
                                                             .ok_or(#schema_error::TupleTooShort)?,
                                                         ctx
                                                     )?;
@@ -158,7 +158,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 },
                                             )*
                                         );
-                                        #as_seq_parser::ignore(parser)?;
+                                        #as_seq_decoder::ignore(decoder)?;
                                         Ok(result)
                                     },
                                     _ => todo!("b")
@@ -169,10 +169,10 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 }
                 Fields::Unit => {
                     output = quote! {
-                        impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
-                            fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
-                                match #as_any_parser::parse(parser, #parse_hint_type::UnitStruct{name:#type_name})?{
-                                    #parser_view_type::Primitive(#primitive_type::Unit) => Ok(#type_ident),
+                        impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                            fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
+                                match #as_any_decoder::decode(decoder, #decode_hint_type::UnitStruct{name:#type_name})?{
+                                    #decoder_view_type::Primitive(#primitive_type::Unit) => Ok(#type_ident),
                                     _ => todo!("expected unit"),
                                 }
                             }
@@ -208,7 +208,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         let field_indexes:Vec<_> =(0..fields.named.len()).collect();
                         matches.push(quote! {
                             #variant_index => {
-                                let hint = #parse_variant_hint_type::StructVariant{
+                                let hint = #decode_variant_hint_type::StructVariant{
                                     fields: &[
                                         #(
                                             #field_names
@@ -218,30 +218,30 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 #(
                                     let mut #field_idents : #option_type<#field_types> = #option_type::None;
                                 )*
-                                let parser = #as_enum_parser::parse_variant(&mut parser, hint)?;
-                                match parser {
-                                    #parser_view_type::Map(mut parser) => {
-                                        while let Some(mut entry) = #as_map_parser::parse_next(&mut parser)?{
-                                            let field_index:usize = match #as_any_parser::parse(#as_entry_parser::parse_key(&mut entry)?,#parse_hint_type::Identifier)?{
-                                                #parser_view_type::String(name) => match &*name{
+                                let decoder = #as_enum_decoder::decode_variant(&mut decoder, hint)?;
+                                match decoder {
+                                    #decoder_view_type::Map(mut decoder) => {
+                                        while let Some(mut entry) = #as_map_decoder::decode_next(&mut decoder)?{
+                                            let field_index:usize = match #as_any_decoder::decode(#as_entry_decoder::decode_key(&mut entry)?,#decode_hint_type::Identifier)?{
+                                                #decoder_view_type::String(name) => match &*name{
                                                     #(
                                                         #field_names => #field_indexes,
                                                     )*
                                                     _ => todo!("unexpected field name"),
                                                 },
-                                                #parser_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
+                                                #decoder_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
                                                 _=> todo!("unexpected type instead of field name or index")
                                             };
                                             match field_index {
                                                 #(
                                                     #field_indexes => {
-                                                        let value = #as_entry_parser::parse_value(&mut entry)?;
+                                                        let value = #as_entry_decoder::decode_value(&mut entry)?;
                                                         #field_idents = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
                                                     }
                                                 )*
                                                 _=>todo!("unknown field index"),
                                             }
-                                            #as_entry_parser::parse_end(entry)?;
+                                            #as_entry_decoder::decode_end(entry)?;
                                         }
                                     },
                                      _ => todo!("expected map"),
@@ -263,13 +263,13 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         let field_types:Vec<_> =fields.unnamed.iter().map(|x|&x.ty).collect();
                         matches.push(quote! {
                             #variant_index => {
-                                match #as_enum_parser::parse_variant(&mut parser, #parse_variant_hint_type::TupleVariant{ len: #field_count })?{
-                                    #parser_view_type::Seq(mut parser) => {
+                                match #as_enum_decoder::decode_variant(&mut decoder, #decode_variant_hint_type::TupleVariant{ len: #field_count })?{
+                                    #decoder_view_type::Seq(mut decoder) => {
                                         let result=#type_ident::#variant_ident(
                                             #(
                                                 {
                                                     let x = <#field_types as #deserialize_trait<'de, P> >::deserialize(
-                                                        #as_seq_parser::parse_next(&mut parser)?
+                                                        #as_seq_decoder::decode_next(&mut decoder)?
                                                             .ok_or(#schema_error::TupleTooShort)?,
                                                         ctx
                                                     )?;
@@ -277,7 +277,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 },
                                             )*
                                         );
-                                        #as_seq_parser::ignore(parser)?;
+                                        #as_seq_decoder::ignore(decoder)?;
                                         result
                                     },
                                     _ => todo!("b")
@@ -288,7 +288,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
 
                     Fields::Unit => matches.push(quote! {
                         #variant_index => {
-                            let variant = #as_enum_parser::parse_variant(&mut parser, #parse_variant_hint_type::UnitVariant)?;
+                            let variant = #as_enum_decoder::decode_variant(&mut decoder, #decode_variant_hint_type::UnitVariant)?;
                             variant.ignore()?;
                             #type_ident::#variant_ident
                         },
@@ -296,9 +296,9 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 }
             }
             output = quote! {
-                impl<'de, P: #parser_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
-                    fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
-                        let hint = #parse_hint_type::Enum {
+                impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                    fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
+                        let hint = #decode_hint_type::Enum {
                             variants: &[
                                 #(
                                     #variant_names
@@ -306,15 +306,15 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                             ],
                             name: #type_name,
                         };
-                        let parser = #as_any_parser::parse(parser, hint)?;
-                        match parser {
-                            #parser_view_type::Enum(mut parser) => {
+                        let decoder = #as_any_decoder::decode(decoder, hint)?;
+                        match decoder {
+                            #decoder_view_type::Enum(mut decoder) => {
                                 let variant_index = {
-                                    let disc = #as_enum_parser::parse_discriminant(&mut parser)?;
-                                    let disc = #as_any_parser::parse(disc, #parse_hint_type::Identifier)?;
+                                    let disc = #as_enum_decoder::decode_discriminant(&mut decoder)?;
+                                    let disc = #as_any_decoder::decode(disc, #decode_hint_type::Identifier)?;
                                     match disc {
-                                        #parser_view_type::Primitive(variant_index) => usize::try_from(variant_index)?,
-                                        #parser_view_type::String(disc) => match &*disc {
+                                        #decoder_view_type::Primitive(variant_index) => usize::try_from(variant_index)?,
+                                        #decoder_view_type::String(disc) => match &*disc {
                                             #(
                                                 #variant_names => #variant_indexes,
                                             )*
@@ -327,7 +327,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                     #(#matches)*
                                     _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
                                 };
-                                #as_enum_parser::parse_end(parser)?;
+                                #as_enum_decoder::decode_end(decoder)?;
                                 Ok(result)
                             },
                             _ => todo!("expected enum, but got something else"),

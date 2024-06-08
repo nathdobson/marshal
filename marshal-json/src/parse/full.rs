@@ -1,7 +1,7 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal_core::decode::depth_budget::{DepthBudgetParser, WithDepthBudget};
-use marshal_core::decode::Parser;
+use marshal_core::decode::Decoder;
 use marshal_core::decode::poison::{PoisonAnyParser, PoisonParser, PoisonState};
 use marshal_core::decode::simple::{SimpleAnyParser, SimpleParserAdapter};
 
@@ -27,7 +27,7 @@ impl<'de> JsonParserBuilder<'de> {
         self.depth_budget = depth_budget;
         self
     }
-    pub fn build<'p>(&'p mut self) -> <JsonParser<'de> as Parser<'de>>::AnyParser<'p> {
+    pub fn build<'p>(&'p mut self) -> <JsonParser<'de> as Decoder<'de>>::AnyDecoder<'p> {
         PoisonAnyParser::new(
             &mut self.poison,
             WithDepthBudget::new(

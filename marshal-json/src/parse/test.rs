@@ -3,7 +3,7 @@ use std::fs::read_dir;
 
 use marshal::context::Context;
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{AnyParser, ParseHint, ParserView, SeqParser};
+use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, SeqDecoder};
 use marshal_core::decode::simple::SimpleAnyParser;
 
 use crate::parse::{JsonAnyParser, SimpleJsonParser};
@@ -15,14 +15,14 @@ fn test() -> anyhow::Result<()> {
     let input = b"[1,23]";
     let mut p = SimpleJsonParser::new(input);
     let p = SimpleAnyParser::new(&mut p, JsonAnyParser::default());
-    match p.parse(ParseHint::Any)? {
-        ParserView::Seq(mut p) => {
-            match p.parse_next()?.unwrap().parse(ParseHint::Primitive(PrimitiveType::U64))? {
-                ParserView::Primitive(Primitive::U64(x)) => assert_eq!(x, 1),
+    match p.decode(DecodeHint::Any)? {
+        DecoderView::Seq(mut p) => {
+            match p.decode_next()?.unwrap().decode(DecodeHint::Primitive(PrimitiveType::U64))? {
+                DecoderView::Primitive(Primitive::U64(x)) => assert_eq!(x, 1),
                 _ => todo!(),
             }
-            match p.parse_next()?.unwrap().parse(ParseHint::Primitive(PrimitiveType::U64))? {
-                ParserView::Primitive(Primitive::U64(x)) => assert_eq!(x, 23),
+            match p.decode_next()?.unwrap().decode(DecodeHint::Primitive(PrimitiveType::U64))? {
+                DecoderView::Primitive(Primitive::U64(x)) => assert_eq!(x, 23),
                 _ => todo!(),
             }
         }

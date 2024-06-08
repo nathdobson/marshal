@@ -5,7 +5,7 @@ use base64::Engine;
 use itertools::Itertools;
 
 use marshal_core::decode::simple::{SimpleParser, SimpleParserView};
-use marshal_core::decode::{ParseHint, ParseVariantHint};
+use marshal_core::decode::{DecodeHint, DecodeVariantHint};
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::parse::any::PeekType;
@@ -65,7 +65,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
     fn parse(
         &mut self,
         context: Self::AnyParser,
-        hint: ParseHint,
+        hint: DecodeHint,
     ) -> anyhow::Result<SimpleParserView<'de, Self>> {
         let found = self.peek_type()?;
         if context.must_be_string {
@@ -77,7 +77,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             (_, PeekType::Null) if context.cannot_be_null => {
                 Err(JsonError::UnexpectedNull.into())
             }
-            (ParseHint::Option, PeekType::Map) if context.cannot_be_null => {
+            (DecodeHint::Option, PeekType::Map) if context.cannot_be_null => {
                 self.read_exact(b'{')?;
                 let key=self.read_string()?;
                 match &*key{
@@ -95,43 +95,43 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 }
 
             }
-            (ParseHint::Option, PeekType::Null) => {
+            (DecodeHint::Option, PeekType::Null) => {
                 self.read_null()?;
                 Ok(SimpleParserView::None)
             }
-            (ParseHint::Option, _) => {
+            (DecodeHint::Option, _) => {
                 Ok(SimpleParserView::Some(JsonSomeParser::Transparent {
                     must_be_string: context.must_be_string,
                 }))
             }
             (
-                ParseHint::Any
-                | ParseHint::Ignore
-                | ParseHint::UnitStruct { .. }
-                | ParseHint::Primitive(PrimitiveType::Unit)
-                | ParseHint::Tuple { len: 0 }
-                | ParseHint::Struct { name: _, fields: &[] }
-                | ParseHint::Enum { name: _, variants: &[] }
+                DecodeHint::Any
+                | DecodeHint::Ignore
+                | DecodeHint::UnitStruct { .. }
+                | DecodeHint::Primitive(PrimitiveType::Unit)
+                | DecodeHint::Tuple { len: 0 }
+                | DecodeHint::Struct { name: _, fields: &[] }
+                | DecodeHint::Enum { name: _, variants: &[] }
                 // ignore hint
-                | ParseHint::Identifier
-                | ParseHint::Map
-                | ParseHint::Primitive(_)
-                | ParseHint::Seq
-                | ParseHint::String
-                | ParseHint::Bytes
-                | ParseHint::Tuple { .. }
-                | ParseHint::TupleStruct { .. }
-                | ParseHint::Struct { .. }
-                | ParseHint::Enum { .. }
+                | DecodeHint::Identifier
+                | DecodeHint::Map
+                | DecodeHint::Primitive(_)
+                | DecodeHint::Seq
+                | DecodeHint::String
+                | DecodeHint::Bytes
+                | DecodeHint::Tuple { .. }
+                | DecodeHint::TupleStruct { .. }
+                | DecodeHint::Struct { .. }
+                | DecodeHint::Enum { .. }
                 , PeekType::Null
             ) => {
                 self.read_null()?;
                 Ok(SimpleParserView::Primitive(Primitive::Unit))
             }
-            (ParseHint::Bytes, PeekType::String) => {
+            (DecodeHint::Bytes, PeekType::String) => {
                 Ok(SimpleParserView::Bytes(BASE64_STANDARD_NO_PAD.decode(self.read_string()?)?.into()))
             }
-            (ParseHint::Primitive(PrimitiveType::Char), PeekType::String) => {
+            (DecodeHint::Primitive(PrimitiveType::Char), PeekType::String) => {
                 Ok(SimpleParserView::Primitive(Primitive::Char(
                     self.read_string()?
                         .chars()
@@ -141,12 +141,12 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 )))
             }
             (
-                ParseHint::Any
-                | ParseHint::Ignore
-                | ParseHint::String
-                | ParseHint::Identifier
+                DecodeHint::Any
+                | DecodeHint::Ignore
+                | DecodeHint::String
+                | DecodeHint::Identifier
                 // ignore hint
-                | ParseHint::Primitive(
+                | DecodeHint::Primitive(
                     PrimitiveType::Unit
                     | PrimitiveType::Bool
                     | PrimitiveType::I8
@@ -162,13 +162,13 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                     | PrimitiveType::F32
                     | PrimitiveType::F64
                 )
-                | ParseHint::Map
-                | ParseHint::Seq
-                | ParseHint::UnitStruct { .. }
-                | ParseHint::Tuple { .. }
-                | ParseHint::TupleStruct { .. }
-                | ParseHint::Struct { .. }
-                | ParseHint::Enum { .. },
+                | DecodeHint::Map
+                | DecodeHint::Seq
+                | DecodeHint::UnitStruct { .. }
+                | DecodeHint::Tuple { .. }
+                | DecodeHint::TupleStruct { .. }
+                | DecodeHint::Struct { .. }
+                | DecodeHint::Enum { .. },
                 PeekType::String,
             ) => {
                 Ok(SimpleParserView::String(Cow::Owned(self.read_string()?)))
@@ -177,24 +177,24 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 self.read_exact(b'[')?;
                 Ok(SimpleParserView::Seq(JsonSeqParser { started: false }))
             }
-            (ParseHint::Enum { .. }, PeekType::Map) => {
+            (DecodeHint::Enum { .. }, PeekType::Map) => {
                 self.read_exact(b'{')?;
                 Ok(SimpleParserView::Enum(()))
             }
             (
-                ParseHint::Any
-                | ParseHint::Ignore
-                | ParseHint::Map
-                | ParseHint::Struct { .. }
+                DecodeHint::Any
+                | DecodeHint::Ignore
+                | DecodeHint::Map
+                | DecodeHint::Struct { .. }
                 // ignore hint
-                | ParseHint::Primitive(_)
-                | ParseHint::UnitStruct { .. }
-                | ParseHint::Seq
-                | ParseHint::Tuple { .. }
-                | ParseHint::TupleStruct { .. }
-                | ParseHint::Bytes
-                | ParseHint::String
-                | ParseHint::Identifier { .. },
+                | DecodeHint::Primitive(_)
+                | DecodeHint::UnitStruct { .. }
+                | DecodeHint::Seq
+                | DecodeHint::Tuple { .. }
+                | DecodeHint::TupleStruct { .. }
+                | DecodeHint::Bytes
+                | DecodeHint::String
+                | DecodeHint::Identifier { .. },
                 PeekType::Map,
             ) => {
                 self.read_exact(b'{')?;
@@ -203,43 +203,43 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
             (_, PeekType::Bool) => Ok(
                 SimpleParserView::Primitive(Primitive::Bool(self.read_bool()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::I8), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::I8), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::I8(self.read_number()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::I16), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::I16), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::I16(self.read_number()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::I32), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::I32), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::I32(self.read_number()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::I64), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::I64), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::I64(self.read_number()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::I128), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::I128), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::I128(self.read_number()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::U8), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::U8), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::U8(self.read_number()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::U16), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::U16), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::U16(self.read_number()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::U32), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::U32), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::U32(self.read_number()?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::Char), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::Char), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::Char(char::try_from(self.read_number::<u32>()?)?)),
             ),
-            (ParseHint::Primitive(PrimitiveType::U64), PeekType::Number) => Ok(
+            (DecodeHint::Primitive(PrimitiveType::U64), PeekType::Number) => Ok(
                 SimpleParserView::Primitive(Primitive::U64(self.read_number()?)),
             ),
             (
-                ParseHint::Primitive(PrimitiveType::U128) | ParseHint::Identifier,
+                DecodeHint::Primitive(PrimitiveType::U128) | DecodeHint::Identifier,
                 PeekType::Number,
             ) => Ok(SimpleParserView::Primitive(Primitive::U128(
                 self.read_number()?,
             ))),
-            (ParseHint::Primitive(PrimitiveType::F32), PeekType::Number) => {
+            (DecodeHint::Primitive(PrimitiveType::F32), PeekType::Number) => {
                 let n = self.read_number::<f32>()?;
                 if !n.is_finite() {
                     return Err(JsonError::BadNumber.into());
@@ -247,20 +247,20 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
                 Ok(SimpleParserView::Primitive(Primitive::F32(n)))
             }
             (
-                ParseHint::Primitive(PrimitiveType::F64)
-                | ParseHint::Any
-                | ParseHint::Ignore
+                DecodeHint::Primitive(PrimitiveType::F64)
+                | DecodeHint::Any
+                | DecodeHint::Ignore
                 // Ignore hint
-                | ParseHint::Map
-                | ParseHint::String
-                | ParseHint::Bytes
-                | ParseHint::UnitStruct { .. }
-                | ParseHint::Seq { .. }
-                | ParseHint::Tuple { .. }
-                | ParseHint::TupleStruct { .. }
-                | ParseHint::Struct { .. }
-                | ParseHint::Enum { .. }
-                | ParseHint::Primitive(
+                | DecodeHint::Map
+                | DecodeHint::String
+                | DecodeHint::Bytes
+                | DecodeHint::UnitStruct { .. }
+                | DecodeHint::Seq { .. }
+                | DecodeHint::Tuple { .. }
+                | DecodeHint::TupleStruct { .. }
+                | DecodeHint::Struct { .. }
+                | DecodeHint::Enum { .. }
+                | DecodeHint::Primitive(
                     PrimitiveType::Unit
                     | PrimitiveType::Bool
                 )
@@ -342,20 +342,20 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
     fn parse_enum_variant(
         &mut self,
         _: Self::VariantParser,
-        hint: ParseVariantHint,
+        hint: DecodeVariantHint,
     ) -> anyhow::Result<(SimpleParserView<'de, Self>, Self::EnumCloser)> {
         self.read_exact(b':')?;
         let hint = match hint {
-            ParseVariantHint::UnitVariant => ParseHint::Primitive(PrimitiveType::Unit),
-            ParseVariantHint::TupleVariant { len } => ParseHint::TupleStruct {
+            DecodeVariantHint::UnitVariant => DecodeHint::Primitive(PrimitiveType::Unit),
+            DecodeVariantHint::TupleVariant { len } => DecodeHint::TupleStruct {
                 name: "<enum>",
                 len,
             },
-            ParseVariantHint::StructVariant { fields } => ParseHint::Struct {
+            DecodeVariantHint::StructVariant { fields } => DecodeHint::Struct {
                 name: "<enum>",
                 fields,
             },
-            ParseVariantHint::Ignore => ParseHint::Ignore,
+            DecodeVariantHint::Ignore => DecodeHint::Ignore,
         };
         Ok((
             self.parse(
