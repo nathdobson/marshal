@@ -118,8 +118,7 @@ impl<'de, 's> SimpleBinDecoder<'de, 's> {
             default_translation: EnumDefTranslation { keys: vec![] },
             custom_translation: Default::default(),
         };
-        let index = self.schema.enum_defs.push(def);
-        println!("at index {}", index);
+        self.schema.enum_defs.push(def);
         Ok(())
     }
     fn read_enum_def_ref(&mut self) -> anyhow::Result<&'s EnumDefForeign> {

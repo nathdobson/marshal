@@ -253,7 +253,6 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
     for PoisonEnumDecoder<'p, 'de, T>
 {
     fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
-        println!("Reading discriminant");
         if self.read_discriminant {
             return Err(PoisonError("already read discriminant").into());
         }
@@ -268,7 +267,6 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
         &'p2 mut self,
         hint: DecodeVariantHint,
     ) -> anyhow::Result<DecoderView<'p2, 'de, PoisonDecoder<T>>> {
-        println!("Reading variant");
         if !self.read_discriminant {
             return Err(PoisonError("did not read discriminant").into());
         }
@@ -283,7 +281,6 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
     }
 
     fn decode_end(mut self) -> anyhow::Result<()> {
-        println!("Ending enum");
         if !self.read_variant {
             return Err(PoisonError("Did not read variant").into());
         }

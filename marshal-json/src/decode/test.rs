@@ -45,12 +45,6 @@ fn test_parsing() {
             .next()
             .unwrap();
         let contents = fs::read(dir.path()).unwrap();
-        // println!("name={}", dir.path().to_str().unwrap());
-        // if let Ok(contents) = std::str::from_utf8(&contents) {
-        //     println!("{}", contents);
-        // } else {
-        //     println!("<err>");
-        // }
         let output = decode_json::<JsonValue>(&contents, &mut Context::new());
         match expected {
             'i' => {}
