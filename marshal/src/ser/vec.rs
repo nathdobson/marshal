@@ -1,4 +1,4 @@
-use marshal_core::write::{AnyWriter, SeqWriter, Writer};
+use marshal_core::encode::{AnyWriter, SeqWriter, Writer};
 
 use crate::context::Context;
 use crate::ser::Serialize;

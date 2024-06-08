@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::parse::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
+use marshal_core::decode::{AnyParser, EntryParser, MapParser, ParseHint, Parser, ParserView, SeqParser};
 use marshal_core::Primitive;
 
 pub enum JsonValue {

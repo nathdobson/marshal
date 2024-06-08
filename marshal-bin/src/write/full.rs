@@ -1,6 +1,6 @@
 use crate::write::{BinWriterSchema, SimpleBinWriter};
-use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriterAdapter};
-use marshal_core::write::Writer;
+use marshal_core::encode::simple::{SimpleAnyWriter, SimpleWriterAdapter};
+use marshal_core::encode::Writer;
 
 pub type BinWriter<'s> = SimpleWriterAdapter<SimpleBinWriter<'s>>;
 

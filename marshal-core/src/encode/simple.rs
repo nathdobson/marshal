@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::slice;
 
-use crate::write::{
+use crate::encode::{
     AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
     TupleStructWriter, TupleVariantWriter, TupleWriter, Writer,
 };

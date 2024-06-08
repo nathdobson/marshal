@@ -1,4 +1,4 @@
-use marshal_core::parse::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
+use marshal_core::decode::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
 
 use crate::context::Context;
 use crate::de::Deserialize;

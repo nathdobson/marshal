@@ -1,4 +1,4 @@
-use marshal_core::write::Writer;
+use marshal_core::encode::Writer;
 use crate::context::Context;
 use crate::ser::Serialize;
 

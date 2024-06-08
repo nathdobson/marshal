@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 
-use marshal_core::parse::Parser;
+use marshal_core::decode::Parser;
 
 use crate::context::Context;
 

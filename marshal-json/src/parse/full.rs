@@ -1,9 +1,9 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
-use marshal_core::parse::Parser;
-use marshal_core::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
-use marshal_core::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
+use marshal_core::decode::depth_budget::{DepthBudgetParser, WithDepthBudget};
+use marshal_core::decode::Parser;
+use marshal_core::decode::poison::{PoisonAnyParser, PoisonParser, PoisonState};
+use marshal_core::decode::simple::{SimpleAnyParser, SimpleParserAdapter};
 
 use crate::parse::{JsonAnyParser, SimpleJsonParser};
 

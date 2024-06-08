@@ -1,7 +1,7 @@
 pub mod full;
 
 use by_address::ByAddress;
-use marshal_core::write::simple::SimpleWriter;
+use marshal_core::encode::simple::SimpleWriter;
 use marshal_core::Primitive;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};

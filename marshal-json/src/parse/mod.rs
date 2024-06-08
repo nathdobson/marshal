@@ -4,8 +4,8 @@ use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
 use itertools::Itertools;
 
-use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
-use marshal_core::parse::{ParseHint, ParseVariantHint};
+use marshal_core::decode::simple::{SimpleParser, SimpleParserView};
+use marshal_core::decode::{ParseHint, ParseVariantHint};
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::parse::any::PeekType;
@@ -369,7 +369,7 @@ impl<'de> SimpleParser<'de> for SimpleJsonParser<'de> {
         ))
     }
 
-    fn parse_enum_end(&mut self, e: Self::EnumCloser) -> anyhow::Result<()> {
+    fn parse_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
         self.read_exact(b'}')
     }
 

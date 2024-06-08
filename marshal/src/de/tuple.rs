@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use marshal_core::parse::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
+use marshal_core::decode::{AnyParser, ParseHint, Parser, ParserView, SeqParser};
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::context::Context;

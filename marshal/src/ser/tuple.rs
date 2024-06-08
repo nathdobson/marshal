@@ -1,4 +1,4 @@
-use marshal_core::write::{AnyWriter, TupleWriter, Writer};
+use marshal_core::encode::{AnyWriter, TupleWriter, Writer};
 use marshal_core::Primitive;
 
 use crate::context::Context;

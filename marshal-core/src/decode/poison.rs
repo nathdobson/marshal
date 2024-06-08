@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 
-use crate::parse::{
+use crate::decode::{
     AnyParser, EntryParser, EnumParser, MapParser, ParseHint, ParseVariantHint, Parser, ParserView,
     SeqParser, SomeParser,
 };
@@ -65,7 +65,6 @@ impl<'p> PoisonGuard<'p> {
 impl<'p> Drop for PoisonGuard<'p> {
     fn drop(&mut self) {
         if let Some(state) = self.state.take() {
-            println!("poisoned");
             state.poisoned = Err(PoisonError(self.message));
         }
     }
@@ -118,7 +117,7 @@ impl<'de, T: Parser<'de>> Parser<'de> for PoisonParser<T> {
 impl<'p, 'de, T: Parser<'de>> PoisonAnyParser<'p, 'de, T> {
     pub fn new(state: &'p mut PoisonState, inner: T::AnyParser<'p>) -> Self {
         PoisonAnyParser {
-            guard: PoisonGuard::new(state, "Did not call AnyParser::parse"),
+            guard: PoisonGuard::new(state, "Did not call AnyParser::decode"),
             inner,
         }
     }

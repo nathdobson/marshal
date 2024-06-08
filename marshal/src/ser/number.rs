@@ -1,6 +1,6 @@
 use crate::context::Context;
 use crate::ser::Serialize;
-use marshal_core::write::{AnyWriter, Writer};
+use marshal_core::encode::{AnyWriter, Writer};
 use marshal_core::Primitive;
 
 macro_rules! derive_number {

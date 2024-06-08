@@ -6,8 +6,8 @@
 #![feature(try_blocks)]
 #![feature(never_type)]
 
-pub mod parse;
-pub mod write;
+pub mod decode;
+pub mod encode;
 
 #[derive(Debug)]
 pub enum Primitive {

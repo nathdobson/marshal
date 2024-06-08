@@ -29,36 +29,36 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
         data,
     } = input;
     let output: TokenStream2;
-    let parser_trait = quote!(::marshal::reexports::marshal_core::parse::Parser);
+    let parser_trait = quote!(::marshal::reexports::marshal_core::decode::Parser);
     let primitive_type = quote!(::marshal::reexports::marshal_core::Primitive);
 
-    let any_parser_trait = quote!(::marshal::reexports::marshal_core::parse::AnyParser);
+    let any_parser_trait = quote!(::marshal::reexports::marshal_core::decode::AnyParser);
     let any_parser_type = quote!(<P as #parser_trait<'de>>::AnyParser<'_>);
     let as_any_parser = quote!(<#any_parser_type as #any_parser_trait<P>>);
 
-    let map_parser_trait = quote!(::marshal::reexports::marshal_core::parse::MapParser);
+    let map_parser_trait = quote!(::marshal::reexports::marshal_core::decode::MapParser);
     let map_parser_type = quote!(<P as #parser_trait<'de>>::MapParser<'_>);
     let as_map_parser = quote!(<#map_parser_type as #map_parser_trait<P>>);
 
-    let seq_parser_trait = quote!(::marshal::reexports::marshal_core::parse::SeqParser);
+    let seq_parser_trait = quote!(::marshal::reexports::marshal_core::decode::SeqParser);
     let seq_parser_type = quote!(<P as #parser_trait<'de>>::SeqParser<'_>);
     let as_seq_parser = quote!(<#seq_parser_type as #seq_parser_trait<P>>);
 
-    let entry_parser_trait = quote!(::marshal::reexports::marshal_core::parse::EntryParser);
+    let entry_parser_trait = quote!(::marshal::reexports::marshal_core::decode::EntryParser);
     let entry_parser_type = quote!(<P as #parser_trait<'de>>::EntryParser<'_>);
     let as_entry_parser = quote!(<#entry_parser_type as #entry_parser_trait<P>>);
 
-    let enum_parser_trait = quote!(::marshal::reexports::marshal_core::parse::EnumParser);
+    let enum_parser_trait = quote!(::marshal::reexports::marshal_core::decode::EnumParser);
     let enum_parser_type = quote!(<P as #parser_trait<'de>>::EnumParser<'_>);
     let as_enum_parser = quote!(<#enum_parser_type as #enum_parser_trait<P>>);
 
     let deserialize_trait = quote!(::marshal::de::Deserialize);
     let result_type = quote!(::marshal::reexports::anyhow::Result);
     let context_type = quote!(::marshal::context::Context);
-    let parse_hint_type = quote!(::marshal::reexports::marshal_core::parse::ParseHint);
+    let parse_hint_type = quote!(::marshal::reexports::marshal_core::decode::ParseHint);
     let parse_variant_hint_type =
-        quote!(::marshal::reexports::marshal_core::parse::ParseVariantHint);
-    let parser_view_type = quote!(::marshal::reexports::marshal_core::parse::ParserView);
+        quote!(::marshal::reexports::marshal_core::decode::ParseVariantHint);
+    let parser_view_type = quote!(::marshal::reexports::marshal_core::decode::ParserView);
     let type_name = ident_to_lit(&type_ident);
     let option_type = quote! {::std::option::Option};
     let schema_error = quote! {::marshal::de::SchemaError};
@@ -363,15 +363,15 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
         data,
     } = input;
     let output: TokenStream2;
-    let writer_trait = quote! { ::marshal::reexports::marshal_core::write::Writer };
-    let any_writer_trait = quote! { ::marshal::reexports::marshal_core::write::AnyWriter };
-    let struct_writer_trait = quote! { ::marshal::reexports::marshal_core::write::StructWriter };
+    let writer_trait = quote! { ::marshal::reexports::marshal_core::encode::Writer };
+    let any_writer_trait = quote! { ::marshal::reexports::marshal_core::encode::AnyWriter };
+    let struct_writer_trait = quote! { ::marshal::reexports::marshal_core::encode::StructWriter };
     let struct_variant_writer_trait =
-        quote! { ::marshal::reexports::marshal_core::write::StructVariantWriter };
+        quote! { ::marshal::reexports::marshal_core::encode::StructVariantWriter };
     let tuple_variant_writer_trait =
-        quote! { ::marshal::reexports::marshal_core::write::TupleVariantWriter };
+        quote! { ::marshal::reexports::marshal_core::encode::TupleVariantWriter };
     let tuple_struct_writer_trait =
-        quote! { ::marshal::reexports::marshal_core::write::TupleStructWriter };
+        quote! { ::marshal::reexports::marshal_core::encode::TupleStructWriter };
     let serialize_trait = quote! { ::marshal::ser::Serialize };
     let context_type = quote! { ::marshal::context::Context };
     let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());

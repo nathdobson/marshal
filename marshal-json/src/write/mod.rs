@@ -6,7 +6,7 @@ use std::io::Write;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
 
-use marshal_core::write::simple::{SimpleAnyWriter, SimpleWriter};
+use marshal_core::encode::simple::{SimpleAnyWriter, SimpleWriter};
 use marshal_core::Primitive;
 
 pub mod full;

@@ -1,8 +1,8 @@
 use crate::read::{BinAnyParser, BinParserSchema, SimpleBinParser};
-use marshal_core::parse::depth_budget::{DepthBudgetParser, WithDepthBudget};
-use marshal_core::parse::poison::{PoisonAnyParser, PoisonParser, PoisonState};
-use marshal_core::parse::simple::{SimpleAnyParser, SimpleParserAdapter};
-use marshal_core::parse::Parser;
+use marshal_core::decode::depth_budget::{DepthBudgetParser, WithDepthBudget};
+use marshal_core::decode::poison::{PoisonAnyParser, PoisonParser, PoisonState};
+use marshal_core::decode::simple::{SimpleAnyParser, SimpleParserAdapter};
+use marshal_core::decode::Parser;
 
 pub type BinParser<'de, 's> =
     PoisonParser<DepthBudgetParser<SimpleParserAdapter<SimpleBinParser<'de, 's>>>>;

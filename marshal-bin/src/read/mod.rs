@@ -6,8 +6,8 @@ use safe_once_map::cell::OnceCellMap;
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
 
-use marshal_core::parse::simple::{SimpleParser, SimpleParserView};
-use marshal_core::parse::{ParseHint, ParseVariantHint};
+use marshal_core::decode::simple::{SimpleParser, SimpleParserView};
+use marshal_core::decode::{ParseHint, ParseVariantHint};
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::to_from_vu128::{Array, ToFromVu128};
@@ -417,18 +417,18 @@ impl<'de, 's> SimpleParser<'de> for SimpleBinParser<'de, 's> {
         )?,()))
     }
 
-    fn parse_enum_end(&mut self, e: Self::EnumCloser) -> anyhow::Result<()> {
+    fn parse_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
         Ok(())
     }
 
     fn parse_some_inner(
         &mut self,
-        e: Self::SomeParser,
+        _: Self::SomeParser,
     ) -> anyhow::Result<(Self::AnyParser, Self::SomeCloser)> {
         Ok((BinAnyParser::Read, ()))
     }
 
-    fn parse_some_end(&mut self, p: Self::SomeCloser) -> anyhow::Result<()> {
+    fn parse_some_end(&mut self, _: Self::SomeCloser) -> anyhow::Result<()> {
         Ok(())
     }
 }

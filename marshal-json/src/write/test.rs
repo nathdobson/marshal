@@ -1,5 +1,5 @@
-use marshal_core::write::simple::SimpleAnyWriter;
-use marshal_core::write::{
+use marshal_core::encode::simple::SimpleAnyWriter;
+use marshal_core::encode::{
     AnyWriter, EntryWriter, MapWriter, SeqWriter, SomeWriter, StructVariantWriter, StructWriter,
     TupleStructWriter, TupleVariantWriter, TupleWriter,
 };

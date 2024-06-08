@@ -1,6 +1,6 @@
 use crate::context::Context;
 use crate::de::Deserialize;
-use marshal_core::parse::{AnyParser, ParseHint, Parser, ParserView};
+use marshal_core::decode::{AnyParser, ParseHint, Parser, ParserView};
 use marshal_core::{Primitive, PrimitiveType};
 
 macro_rules! derive_number {
