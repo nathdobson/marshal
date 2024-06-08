@@ -48,8 +48,8 @@ pub enum DecodeVariantHint {
 }
 
 pub enum DecoderView<'p, 'de, P: ?Sized + Decoder<'de>>
-where
-    P: 'p,
+    where
+        P: 'p,
 {
     Primitive(Primitive),
     String(Cow<'de, str>),
@@ -98,13 +98,13 @@ pub struct SeqIter<'p, 'de, S: SeqDecoder<'p, 'de, P>, P: Decoder<'de> + 'p, F> 
 }
 
 impl<
-        'p,
-        'de,
-        S: SeqDecoder<'p, 'de, P>,
-        P: Decoder<'de>,
-        T,
-        F: for<'p2> FnMut(P::AnyDecoder<'p2>) -> anyhow::Result<T>,
-    > Iterator for SeqIter<'p, 'de, S, P, F>
+    'p,
+    'de,
+    S: SeqDecoder<'p, 'de, P>,
+    P: Decoder<'de>,
+    T,
+    F: for<'p2> FnMut(P::AnyDecoder<'p2>) -> anyhow::Result<T>,
+> Iterator for SeqIter<'p, 'de, S, P, F>
 {
     type Item = anyhow::Result<T>;
 
@@ -166,16 +166,16 @@ pub struct MapIter<'p, 'de, M: MapDecoder<'p, 'de, P>, P: Decoder<'de> + 'p, C, 
 }
 
 impl<
-        'p,
-        'de,
-        M: MapDecoder<'p, 'de, P>,
-        P: Decoder<'de>,
-        C,
-        K,
-        V,
-        KF: for<'p2> FnMut(&mut C, P::AnyDecoder<'p2>) -> anyhow::Result<K>,
-        VF: for<'p2> FnMut(&mut C, K, P::AnyDecoder<'p2>) -> anyhow::Result<V>,
-    > Iterator for MapIter<'p, 'de, M, P, C, KF, VF>
+    'p,
+    'de,
+    M: MapDecoder<'p, 'de, P>,
+    P: Decoder<'de>,
+    C,
+    K,
+    V,
+    KF: for<'p2> FnMut(&mut C, P::AnyDecoder<'p2>) -> anyhow::Result<K>,
+    VF: for<'p2> FnMut(&mut C, K, P::AnyDecoder<'p2>) -> anyhow::Result<V>,
+> Iterator for MapIter<'p, 'de, M, P, C, KF, VF>
 {
     type Item = anyhow::Result<V>;
 
@@ -235,25 +235,26 @@ pub trait SomeDecoder<'p, 'de, P: ?Sized + Decoder<'de> + 'p>: Sized {
         self.decode_end()
     }
 }
+
 pub trait Decoder<'de>: Sized {
     type AnyDecoder<'p>: AnyDecoder<'p, 'de, Self>
-    where
-        Self: 'p;
+        where
+            Self: 'p;
     type SeqDecoder<'p>: SeqDecoder<'p, 'de, Self>
-    where
-        Self: 'p;
+        where
+            Self: 'p;
     type MapDecoder<'p>: MapDecoder<'p, 'de, Self>
-    where
-        Self: 'p;
+        where
+            Self: 'p;
     type EntryDecoder<'p>: EntryDecoder<'p, 'de, Self>
-    where
-        Self: 'p;
+        where
+            Self: 'p;
     type EnumDecoder<'p>: EnumDecoder<'p, 'de, Self>
-    where
-        Self: 'p;
+        where
+            Self: 'p;
     type SomeDecoder<'p>: SomeDecoder<'p, 'de, Self>
-    where
-        Self: 'p;
+        where
+            Self: 'p;
 }
 
 impl<'p, 'de, P: Decoder<'de>> Debug for DecoderView<'p, 'de, P> {
@@ -286,6 +287,7 @@ impl Display for TypeMismatch {
         )
     }
 }
+
 impl Error for TypeMismatch {}
 
 impl<'p, 'de, P: Decoder<'de>> DecoderView<'p, 'de, P> {
@@ -324,7 +326,7 @@ impl<'p, 'de, P: Decoder<'de>> DecoderView<'p, 'de, P> {
             found: self.kind(),
             expected,
         }
-        .into())
+            .into())
     }
     pub fn ignore(self) -> anyhow::Result<()> {
         match self {
@@ -366,6 +368,6 @@ impl Primitive {
             found: self.kind(),
             expected,
         }
-        .into())
+            .into())
     }
 }

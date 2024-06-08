@@ -74,7 +74,7 @@ impl<T> WithDepthBudget<T> {
 }
 
 impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, DepthBudgetDecoder<T>>
-    for WithDepthBudget<T::AnyDecoder<'p>>
+for WithDepthBudget<T::AnyDecoder<'p>>
 {
     fn decode(self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, DepthBudgetDecoder<T>>> {
         annotate(self.depth_budget, self.inner.decode(hint)?)
@@ -82,7 +82,7 @@ impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, DepthBudgetDecoder<T>>
 }
 
 impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, DepthBudgetDecoder<T>>
-    for WithDepthBudget<T::SeqDecoder<'p>>
+for WithDepthBudget<T::SeqDecoder<'p>>
 {
     fn decode_next<'p2>(
         &'p2 mut self,
@@ -99,7 +99,7 @@ impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, DepthBudgetDecoder<T>>
 }
 
 impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, DepthBudgetDecoder<T>>
-    for WithDepthBudget<T::MapDecoder<'p>>
+for WithDepthBudget<T::MapDecoder<'p>>
 {
     fn decode_next<'p2>(
         &'p2 mut self,
@@ -116,7 +116,7 @@ impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, DepthBudgetDecoder<T>>
 }
 
 impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, DepthBudgetDecoder<T>>
-    for WithDepthBudget<T::EntryDecoder<'p>>
+for WithDepthBudget<T::EntryDecoder<'p>>
 {
     fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyDecoder<'p2>>> {
         Ok(WithDepthBudget {
@@ -138,7 +138,7 @@ impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, DepthBudgetDecoder<T>>
 }
 
 impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, DepthBudgetDecoder<T>>
-    for WithDepthBudget<T::EnumDecoder<'p>>
+for WithDepthBudget<T::EnumDecoder<'p>>
 {
     fn decode_discriminant<'p2>(
         &'p2 mut self,
@@ -163,8 +163,9 @@ impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, DepthBudgetDecoder<T>>
         Ok(self.inner.decode_end()?)
     }
 }
+
 impl<'p, 'de, T: Decoder<'de>> SomeDecoder<'p, 'de, DepthBudgetDecoder<T>>
-    for WithDepthBudget<<T as Decoder<'de>>::SomeDecoder<'p>>
+for WithDepthBudget<<T as Decoder<'de>>::SomeDecoder<'p>>
 {
     fn decode_some<'p2>(
         &'p2 mut self,

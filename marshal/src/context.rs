@@ -38,4 +38,4 @@ impl Display for GetError {
     }
 }
 
-impl std::error::Error for GetError{}
+impl std::error::Error for GetError {}

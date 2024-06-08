@@ -462,7 +462,7 @@ impl SimpleEncoder for SimpleJsonEncoder {
     fn struct_encode_field(
         &mut self,
         s: &mut Self::StructEncoder,
-        key: &'static str
+        key: &'static str,
     ) -> anyhow::Result<Self::AnyEncoder> {
         let ctx = s.ctx.indent();
         if s.started {

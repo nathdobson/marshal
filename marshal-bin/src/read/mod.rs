@@ -60,13 +60,13 @@ pub enum BinDecoderError {
 
 impl Display for BinDecoderError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self{
-            BinDecoderError::TrailingData => write!(f,"input contains excessive trailing bytes"),
-            BinDecoderError::NonZeroPadding => write!(f,"final padding is not zero"),
-            BinDecoderError::Eof => write!(f,"unexpected end of file"),
-            BinDecoderError::BadTag(x) => write!(f,"unknown type tag {}",x),
+        match self {
+            BinDecoderError::TrailingData => write!(f, "input contains excessive trailing bytes"),
+            BinDecoderError::NonZeroPadding => write!(f, "final padding is not zero"),
+            BinDecoderError::Eof => write!(f, "unexpected end of file"),
+            BinDecoderError::BadTag(x) => write!(f, "unknown type tag {}", x),
             BinDecoderError::NoSuchEnumDef => write!(f, "reference to unknown enum definition (did you remember to reuse the BinDecoderSchema?)"),
-            BinDecoderError::MissingField(field)=> write!(f,"attempted to deserialize struct with missing field `{}'",field),
+            BinDecoderError::MissingField(field) => write!(f, "attempted to deserialize struct with missing field `{}'", field),
         }
     }
 }
@@ -175,6 +175,7 @@ pub struct BinSeqDecoder {
 }
 
 pub struct BinMapDecoder<'s>(BinMapDecoderInner<'s>);
+
 enum BinMapDecoderInner<'s> {
     WithSchema(&'s [EnumDefKey]),
     WithLength(usize),
@@ -210,7 +211,7 @@ impl<'de, 's> SimpleDecoder<'de> for SimpleBinDecoder<'de, 's> {
         match any {
             BinAnyDecoder::U32(x) => return Ok(SimpleDecoderView::Primitive(Primitive::U32(x))),
             BinAnyDecoder::Str(x) => {
-                return Ok(SimpleDecoderView::String(Cow::Owned(x.to_string())))
+                return Ok(SimpleDecoderView::String(Cow::Owned(x.to_string())));
             }
             BinAnyDecoder::Read => {}
         }
@@ -221,72 +222,72 @@ impl<'de, 's> SimpleDecoder<'de> for SimpleBinDecoder<'de, 's> {
                 TypeTag::Bool => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::Bool(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::I8 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I8(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::I16 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I16(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::I32 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I32(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::I64 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I64(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::I128 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I128(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::U8 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U8(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::U16 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U16(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::U32 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U32(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::U64 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U64(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::U128 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U128(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::F32 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::F32(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::F64 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::F32(
                         self.read_vu128()?,
-                    )))
+                    )));
                 }
                 TypeTag::Char => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::Char(
                         self.read_vu128::<u32>()?.try_into()?,
-                    )))
+                    )));
                 }
                 TypeTag::Struct => {
                     let enum_def = self.read_enum_def_ref()?;
@@ -340,7 +341,7 @@ impl<'de, 's> SimpleDecoder<'de> for SimpleBinDecoder<'de, 's> {
     }
 
     fn is_human_readable(&self) -> bool {
-        todo!()
+        false
     }
 
     fn decode_seq_next(

@@ -5,7 +5,7 @@ use marshal_core::decode::simple::{SimpleAnyDecoder, SimpleDecoderAdapter};
 use marshal_core::decode::Decoder;
 
 pub type BinDecoder<'de, 's> =
-    PoisonDecoder<DepthBudgetDecoder<SimpleDecoderAdapter<SimpleBinDecoder<'de, 's>>>>;
+PoisonDecoder<DepthBudgetDecoder<SimpleDecoderAdapter<SimpleBinDecoder<'de, 's>>>>;
 
 pub struct BinDecoderBuilder<'de, 's> {
     inner: SimpleBinDecoder<'de, 's>,

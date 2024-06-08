@@ -39,8 +39,8 @@ impl<'p, 'de> SliceDecoder<'p, 'de> {
 
 impl<'de> SimpleJsonDecoder<'de> {
     pub fn read_number<T: FromStr>(&mut self) -> anyhow::Result<T>
-    where
-        <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
+        where
+            <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
     {
         let mut slice = SliceDecoder::new(self);
         slice.try_consume_char(|x| x == b'-')?;

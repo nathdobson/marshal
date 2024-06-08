@@ -102,29 +102,35 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 match decoder {
                                     #decoder_view_type::Map(mut decoder) => {
                                         while let Some(mut entry) = #as_map_decoder::decode_next(&mut decoder)?{
-                                            let field_index:usize = match #as_any_decoder::decode(#as_entry_decoder::decode_key(&mut entry)?,#decode_hint_type::Identifier)?{
-                                                #decoder_view_type::String(name) => match &*name{
+                                            let field_index: Option<usize> = match #as_any_decoder::decode(#as_entry_decoder::decode_key(&mut entry)?,#decode_hint_type::Identifier)?{
+                                                #decoder_view_type::String(name) => match &*name {
                                                     #(
-                                                        #field_name_literals => #field_name_indexes,
+                                                        #field_name_literals => Some(#field_name_indexes),
                                                     )*
-                                                    _ => todo!("unexpected field name"),
+                                                    _ => None,
                                                 },
-                                                #decoder_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
-                                                _=> todo!("unexpected type instead of field name or index")
+                                                #decoder_view_type::Primitive(x) => Some(<usize as TryFrom<#primitive_type>>::try_from(x)?),
+                                                v => v.mismatch("field name or index")?,
                                             };
-                                            match field_index {
-                                                #(
-                                                    #field_name_indexes => {
-                                                        let value = #as_entry_decoder::decode_value(&mut entry)?;
-                                                        #field_names = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
-                                                    }
-                                                )*
-                                                _=>todo!("unknown field index"),
-                                            }
+                                            if let Some(field_index) = field_index{
+                                                match field_index {
+                                                    #(
+                                                        #field_name_indexes => {
+                                                            let value = #as_entry_decoder::decode_value(&mut entry)?;
+                                                            #field_names = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
+                                                        }
+                                                    )*
+                                                    _ => {
+                                                        #as_any_decoder::ignore(#as_entry_decoder::decode_value(&mut entry)?)?;
+                                                    },
+                                                }
+                                            }else{
+                                                #as_any_decoder::ignore(#as_entry_decoder::decode_value(&mut entry)?)?;
+                                            };
                                             #as_entry_decoder::decode_end(entry)?;
                                         }
                                     },
-                                     _ => todo!("expected map"),
+                                    v => v.mismatch("map from field names or indices to field values")?,
                                 }
                                 #(
                                     let #field_names = #field_names.ok_or(#schema_error::MissingField{field_name:#field_name_literals})?;
@@ -202,10 +208,10 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 } = variant;
                 match &fields {
                     Fields::Named(fields) => {
-                        let field_idents:Vec<_>=fields.named.iter().map(|x|x.ident.as_ref().unwrap()).collect();
-                        let field_types:Vec<_> =fields.named.iter().map(|x|&x.ty).collect();
-                        let field_names:Vec<_> = field_idents.iter().map(|x|ident_to_lit(x)).collect();
-                        let field_indexes:Vec<_> =(0..fields.named.len()).collect();
+                        let field_idents: Vec<_> = fields.named.iter().map(|x| x.ident.as_ref().unwrap()).collect();
+                        let field_types: Vec<_> = fields.named.iter().map(|x| &x.ty).collect();
+                        let field_names: Vec<_> = field_idents.iter().map(|x| ident_to_lit(x)).collect();
+                        let field_indexes: Vec<_> = (0..fields.named.len()).collect();
                         matches.push(quote! {
                             #variant_index => {
                                 let hint = #decode_variant_hint_type::StructVariant{
@@ -259,8 +265,8 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                     }
 
                     Fields::Unnamed(fields) => {
-                        let field_count=fields.unnamed.len();
-                        let field_types:Vec<_> =fields.unnamed.iter().map(|x|&x.ty).collect();
+                        let field_count = fields.unnamed.len();
+                        let field_types: Vec<_> = fields.unnamed.iter().map(|x| &x.ty).collect();
                         matches.push(quote! {
                             #variant_index => {
                                 match #as_enum_decoder::decode_variant(&mut decoder, #decode_variant_hint_type::TupleVariant{ len: #field_count })?{
@@ -284,7 +290,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 }
                             },
                         })
-                    },
+                    }
 
                     Fields::Unit => matches.push(quote! {
                         #variant_index => {
@@ -340,7 +346,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
             return Err(syn::Error::new(
                 u.union_token.span,
                 "Cannot derive Deserialize for for unions.",
-            ))?
+            ))?;
         }
     }
     Ok(output)
@@ -509,7 +515,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                         });
                     }
                     Fields::Unit => {
-                        matches.push(quote!{
+                        matches.push(quote! {
                             Self::#variant_ident => {
                                 #as_any_encoder::encode_unit_variant(encoder, #type_name, &[#( #variant_names ),*], #variant_index)?;
                                 Ok(())
@@ -534,7 +540,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
             return Err(syn::Error::new(
                 u.union_token.span,
                 "Cannot derive Deserialize for for unions.",
-            ))?
+            ))?;
         }
     }
     Ok(output)

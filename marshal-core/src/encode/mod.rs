@@ -4,35 +4,35 @@ pub mod simple;
 
 pub trait Encoder: Sized {
     type AnyEncoder<'w>: AnyEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type SomeEncoder<'w>: SomeEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type TupleEncoder<'w>: TupleEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type SeqEncoder<'w>: SeqEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type MapEncoder<'w>: MapEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type EntryEncoder<'w>: EntryEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type TupleStructEncoder<'w>: TupleStructEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type StructEncoder<'w>: StructEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type TupleVariantEncoder<'w>: TupleVariantEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
     type StructVariantEncoder<'w>: StructVariantEncoder<'w, Self>
-    where
-        Self: 'w;
+        where
+            Self: 'w;
 }
 
 pub trait AnyEncoder<'w, W: Encoder> {
@@ -86,6 +86,7 @@ pub trait TupleEncoder<'w, W: Encoder> {
     fn encode_element(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }
+
 pub trait SeqEncoder<'w, W: Encoder> {
     fn encode_element(&mut self) -> anyhow::Result<<W as Encoder>::AnyEncoder<'_>>;
     fn end(self) -> anyhow::Result<()>;

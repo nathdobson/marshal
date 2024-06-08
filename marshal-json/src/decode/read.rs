@@ -65,7 +65,7 @@ impl<'de> SimpleJsonDecoder<'de> {
                 expected: char::from(expected),
                 found: self.cursor.get(0).map(|x| char::from(*x)),
             }
-            .into());
+                .into());
         }
         Ok(())
     }

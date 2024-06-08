@@ -6,11 +6,13 @@
 #![feature(never_type)]
 #![feature(try_blocks)]
 #![feature(specialization)]
+#![feature(adt_const_params)]
 #![allow(incomplete_features)]
 
 pub mod context;
 pub mod de;
 pub mod ser;
+mod structural;
 
 #[doc(hidden)]
 pub mod reexports {

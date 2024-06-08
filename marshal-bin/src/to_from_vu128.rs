@@ -27,7 +27,7 @@ impl<const N: usize, T> Array for [T; N] {
 }
 
 pub trait ToFromVu128: Sized {
-    type Buffer: Array<Item = u8>;
+    type Buffer: Array<Item=u8>;
     fn encode_vu128(buf: &mut Self::Buffer, value: Self) -> usize;
     fn decode_vu128(buf: &Self::Buffer) -> (Self, usize);
 }

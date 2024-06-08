@@ -10,7 +10,7 @@ impl<W: Encoder> Serialize<W> for () {
     }
 }
 
-impl<W: Encoder, T1: Serialize<W>> Serialize<W> for (T1,) {
+impl<W: Encoder, T1: Serialize<W>> Serialize<W> for (T1, ) {
     fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
         let mut w = w.encode_tuple(1)?;
         self.0.serialize(w.encode_element()?, ctx)?;
@@ -30,7 +30,7 @@ impl<W: Encoder, T1: Serialize<W>, T2: Serialize<W>> Serialize<W> for (T1, T2) {
 }
 
 impl<W: Encoder, T1: Serialize<W>, T2: Serialize<W>, T3: Serialize<W>> Serialize<W>
-    for (T1, T2, T3)
+for (T1, T2, T3)
 {
     fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
         let mut w = w.encode_tuple(3)?;
@@ -41,8 +41,9 @@ impl<W: Encoder, T1: Serialize<W>, T2: Serialize<W>, T3: Serialize<W>> Serialize
         Ok(())
     }
 }
+
 impl<W: Encoder, T1: Serialize<W>, T2: Serialize<W>, T3: Serialize<W>, T4: Serialize<W>> Serialize<W>
-    for (T1, T2, T3, T4)
+for (T1, T2, T3, T4)
 {
     fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
         let mut w = w.encode_tuple(4)?;

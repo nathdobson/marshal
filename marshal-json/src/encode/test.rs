@@ -179,6 +179,7 @@ fn test_some_none() -> anyhow::Result<()> {
         },
     )
 }
+
 #[test]
 fn test_some_some_none() -> anyhow::Result<()> {
     run_simple(

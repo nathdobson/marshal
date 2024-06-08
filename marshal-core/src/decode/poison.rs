@@ -128,7 +128,7 @@ impl<'de, T: Decoder<'de>> Decoder<'de> for PoisonDecoder<T> {
     type MapDecoder<'p> = PoisonMapDecoder<'p, 'de, T> where Self: 'p;
     type EntryDecoder<'p> = PoisonEntryDecoder<'p, 'de, T> where Self: 'p;
     type EnumDecoder<'p> = PoisonEnumDecoder<'p, 'de, T> where Self: 'p;
-    type SomeDecoder<'p> = PoisonSomeDecoder<'p,'de,T> where Self: 'p;
+    type SomeDecoder<'p> = PoisonSomeDecoder<'p, 'de, T> where Self: 'p;
 }
 
 impl<'p, 'de, T: Decoder<'de>> PoisonAnyDecoder<'p, 'de, T> {
@@ -157,7 +157,7 @@ fn annotate_view<'p, 'de, T: Decoder<'de>>(
 }
 
 impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, PoisonDecoder<T>>
-    for PoisonAnyDecoder<'p, 'de, T>
+for PoisonAnyDecoder<'p, 'de, T>
 {
     fn decode(
         mut self,
@@ -180,7 +180,7 @@ impl<'p, 'de, T: Decoder<'de>> PoisonSeqDecoder<'p, 'de, T> {
 }
 
 impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, PoisonDecoder<T>>
-    for PoisonSeqDecoder<'p, 'de, T>
+for PoisonSeqDecoder<'p, 'de, T>
 {
     fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<PoisonAnyDecoder<'p2, 'de, T>>> {
         self.guard.check()?;
@@ -204,7 +204,7 @@ impl<'p, 'de, T: Decoder<'de>> PoisonMapDecoder<'p, 'de, T> {
 }
 
 impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, PoisonDecoder<T>>
-    for PoisonMapDecoder<'p, 'de, T>
+for PoisonMapDecoder<'p, 'de, T>
 {
     fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<PoisonEntryDecoder<'p2, 'de, T>>> {
         self.guard.check()?;
@@ -230,7 +230,7 @@ impl<'p, 'de, T: Decoder<'de>> PoisonEntryDecoder<'p, 'de, T> {
 }
 
 impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, PoisonDecoder<T>>
-    for PoisonEntryDecoder<'p, 'de, T>
+for PoisonEntryDecoder<'p, 'de, T>
 {
     fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if self.read_key {
@@ -279,7 +279,7 @@ impl<'p, 'de, T: Decoder<'de>> PoisonEnumDecoder<'p, 'de, T> {
 }
 
 impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, PoisonDecoder<T>>
-    for PoisonEnumDecoder<'p, 'de, T>
+for PoisonEnumDecoder<'p, 'de, T>
 {
     fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if self.read_discriminant {
@@ -331,7 +331,7 @@ impl<'p, 'de, T: Decoder<'de>> PoisonSomeDecoder<'p, 'de, T> {
 }
 
 impl<'p, 'de, T: Decoder<'de>> SomeDecoder<'p, 'de, PoisonDecoder<T>>
-    for PoisonSomeDecoder<'p, 'de, T>
+for PoisonSomeDecoder<'p, 'de, T>
 {
     fn decode_some<'p2>(&'p2 mut self) -> anyhow::Result<PoisonAnyDecoder<'p2, 'de, T>> {
         if self.read_some {

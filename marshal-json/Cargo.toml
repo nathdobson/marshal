@@ -4,13 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-marshal = {workspace=true}
-utf8-width = {workspace=true}
-base64 = {workspace=true}
-anyhow = {workspace=true}
-itertools = {workspace=true}
-marshal-core={workspace=true}
-marshal-derive = {workspace=true}
+marshal = { workspace = true }
+utf8-width = { workspace = true }
+base64 = { workspace = true }
+anyhow = { workspace = true }
+itertools = { workspace = true }
+marshal-core = { workspace = true }
+marshal-derive = { workspace = true }
 
 [dev-dependencies]
-marshal = {workspace=true}
+marshal = { workspace = true }

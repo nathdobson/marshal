@@ -114,15 +114,15 @@ pub struct SimpleSomeDecoder<'p, 'de, T: SimpleDecoder<'de>> {
 }
 
 impl<'de, T> Decoder<'de> for SimpleDecoderAdapter<T>
-where
-    T: SimpleDecoder<'de>,
+    where
+        T: SimpleDecoder<'de>,
 {
-    type AnyDecoder<'p> = SimpleAnyDecoder<'p, 'de,T> where T:'p;
-    type SeqDecoder<'p> = SimpleSeqDecoder<'p, 'de, T> where T:'p;
+    type AnyDecoder<'p> = SimpleAnyDecoder<'p, 'de, T> where T: 'p;
+    type SeqDecoder<'p> = SimpleSeqDecoder<'p, 'de, T> where T: 'p;
     type MapDecoder<'p> = SimpleMapDecoder<'p, 'de, T> where Self: 'p;
     type EntryDecoder<'p> = SimpleEntryDecoder<'p, 'de, T> where Self: 'p;
-    type EnumDecoder<'p> = SimpleEnumDecoder<'p,'de, T> where Self: 'p;
-    type SomeDecoder<'p> = SimpleSomeDecoder<'p,'de,T> where Self:'p;
+    type EnumDecoder<'p> = SimpleEnumDecoder<'p, 'de, T> where Self: 'p;
+    type SomeDecoder<'p> = SimpleSomeDecoder<'p, 'de, T> where Self: 'p;
 }
 
 impl<'de, T: SimpleDecoder<'de>> SimpleDecoderView<'de, T> {
@@ -150,8 +150,8 @@ impl<'de, T: SimpleDecoder<'de>> SimpleDecoderView<'de, T> {
 }
 
 impl<'p, 'de, T> AnyDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleAnyDecoder<'p, 'de, T>
-where
-    T: SimpleDecoder<'de>,
+    where
+        T: SimpleDecoder<'de>,
 {
     fn decode(self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, SimpleDecoderAdapter<T>>> {
         Ok(self.this.decode(self.any, hint)?.wrap(self.this))
@@ -159,8 +159,8 @@ where
 }
 
 impl<'p, 'de, T> SeqDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleSeqDecoder<'p, 'de, T>
-where
-    T: SimpleDecoder<'de>,
+    where
+        T: SimpleDecoder<'de>,
 {
     fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<SimpleAnyDecoder<'p2, 'de, T>>> {
         if let Some(any) = self.this.decode_seq_next(&mut self.seq)? {
@@ -175,8 +175,8 @@ where
 }
 
 impl<'p, 'de, T> MapDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleMapDecoder<'p, 'de, T>
-where
-    T: SimpleDecoder<'de>,
+    where
+        T: SimpleDecoder<'de>,
 {
     fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<SimpleEntryDecoder<'p2, 'de, T>>> {
         if let Some(data) = self.this.decode_map_next(&mut self.map)? {
@@ -190,9 +190,10 @@ where
         }
     }
 }
+
 impl<'p, 'de, T> EntryDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleEntryDecoder<'p, 'de, T>
-where
-    T: SimpleDecoder<'de>,
+    where
+        T: SimpleDecoder<'de>,
 {
     fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyDecoder<'p2, 'de, T>> {
         let (key, value) = self.this.decode_entry_key(self.key.take().unwrap())?;
@@ -218,8 +219,8 @@ where
 }
 
 impl<'p, 'de, T> EnumDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleEnumDecoder<'p, 'de, T>
-where
-    T: SimpleDecoder<'de>,
+    where
+        T: SimpleDecoder<'de>,
 {
     fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyDecoder<'p2, 'de, T>> {
         let (discriminant, variant) = self
@@ -249,8 +250,8 @@ where
 }
 
 impl<'p, 'de, T> SomeDecoder<'p, 'de, SimpleDecoderAdapter<T>> for SimpleSomeDecoder<'p, 'de, T>
-where
-    T: SimpleDecoder<'de>,
+    where
+        T: SimpleDecoder<'de>,
 {
     fn decode_some<'p2>(&'p2 mut self) -> anyhow::Result<SimpleAnyDecoder<'p2, 'de, T>> {
         let (any, closer) = self

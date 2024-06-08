@@ -7,7 +7,7 @@ use crate::context::Context;
 use crate::de::Deserialize;
 
 impl<'de, P: Decoder<'de>, K: Hash + Eq + Deserialize<'de, P>, V: Deserialize<'de, P>>
-    Deserialize<'de, P> for HashMap<K, V>
+Deserialize<'de, P> for HashMap<K, V>
 {
     fn deserialize<'p>(p: P::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self> {
         p.decode(DecodeHint::Map)?

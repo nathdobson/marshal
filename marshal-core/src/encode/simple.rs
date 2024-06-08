@@ -394,7 +394,7 @@ pub struct SimpleTupleStructEncoder<'w, T: SimpleEncoder> {
 }
 
 impl<'w, T: SimpleEncoder> TupleStructEncoder<'w, SimpleEncoderAdapter<T>>
-    for SimpleTupleStructEncoder<'w, T>
+for SimpleTupleStructEncoder<'w, T>
 {
     fn encode_field(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
         let inner = self.encoder.tuple_struct_encode_field(&mut self.inner)?;
@@ -437,7 +437,7 @@ pub struct SimpleTupleVariantEncoder<'w, T: SimpleEncoder> {
 }
 
 impl<'w, T: SimpleEncoder> TupleVariantEncoder<'w, SimpleEncoderAdapter<T>>
-    for SimpleTupleVariantEncoder<'w, T>
+for SimpleTupleVariantEncoder<'w, T>
 {
     fn encode_field(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
         let inner = self.encoder.tuple_variant_encode_field(&mut self.inner)?;
@@ -459,7 +459,7 @@ pub struct SimpleStructVariantEncoder<'w, T: SimpleEncoder> {
 }
 
 impl<'w, T: SimpleEncoder> StructVariantEncoder<'w, SimpleEncoderAdapter<T>>
-    for SimpleStructVariantEncoder<'w, T>
+for SimpleStructVariantEncoder<'w, T>
 {
     fn encode_field(&mut self) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::AnyEncoder<'_>> {
         let inner = self
@@ -477,14 +477,14 @@ impl<'w, T: SimpleEncoder> StructVariantEncoder<'w, SimpleEncoderAdapter<T>>
 }
 
 impl<T: SimpleEncoder> Encoder for SimpleEncoderAdapter<T> {
-    type AnyEncoder<'w> = SimpleAnyEncoder<'w,T> where Self: 'w;
-    type SomeEncoder<'w> = SimpleSomeEncoder<'w,T>  where Self: 'w;
-    type TupleEncoder<'w> = SimpleTupleEncoder<'w,T>  where Self: 'w;
-    type SeqEncoder<'w> = SimpleSeqEncoder<'w,T>  where Self: 'w;
-    type MapEncoder<'w> = SimpleMapEncoder<'w,T>  where Self: 'w;
-    type EntryEncoder<'w> = SimpleEntryEncoder<'w,T>  where Self: 'w;
-    type TupleStructEncoder<'w>  = SimpleTupleStructEncoder<'w,T> where Self: 'w;
-    type StructEncoder<'w>  = SimpleStructEncoder<'w,T> where Self: 'w;
-    type TupleVariantEncoder<'w> = SimpleTupleVariantEncoder<'w,T>  where Self: 'w;
-    type StructVariantEncoder<'w>  = SimpleStructVariantEncoder<'w,T> where Self: 'w;
+    type AnyEncoder<'w> = SimpleAnyEncoder<'w, T> where Self: 'w;
+    type SomeEncoder<'w> = SimpleSomeEncoder<'w, T> where Self: 'w;
+    type TupleEncoder<'w> = SimpleTupleEncoder<'w, T> where Self: 'w;
+    type SeqEncoder<'w> = SimpleSeqEncoder<'w, T> where Self: 'w;
+    type MapEncoder<'w> = SimpleMapEncoder<'w, T> where Self: 'w;
+    type EntryEncoder<'w> = SimpleEntryEncoder<'w, T> where Self: 'w;
+    type TupleStructEncoder<'w> = SimpleTupleStructEncoder<'w, T> where Self: 'w;
+    type StructEncoder<'w> = SimpleStructEncoder<'w, T> where Self: 'w;
+    type TupleVariantEncoder<'w> = SimpleTupleVariantEncoder<'w, T> where Self: 'w;
+    type StructVariantEncoder<'w> = SimpleStructVariantEncoder<'w, T> where Self: 'w;
 }

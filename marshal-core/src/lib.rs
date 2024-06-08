@@ -46,6 +46,7 @@ pub enum PrimitiveType {
     F64,
     Char,
 }
+
 impl TryFrom<Primitive> for usize {
     type Error = anyhow::Error;
 

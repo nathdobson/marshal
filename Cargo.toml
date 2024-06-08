@@ -6,22 +6,22 @@ members = [
 ]
 
 [workspace.dependencies]
-marshal = {path="marshal"}
-marshal-json = {path="marshal-json"}
-marshal-bin = {path= "marshal-bin"}
-marshal-core = {path = "marshal-core"}
-marshal-derive = {path="marshal-derive"}
+marshal = { path = "marshal" }
+marshal-json = { path = "marshal-json" }
+marshal-bin = { path = "marshal-bin" }
+marshal-core = { path = "marshal-core" }
+marshal-derive = { path = "marshal-derive" }
 utf8-width = "0.1.7"
-base64="0.22.1"
+base64 = "0.22.1"
 itertools = "0.13.0"
 anyhow = "1.0.86 "
 type-map = "0.5.0"
-vu128="1.0.0"
-proc-macro2="1.0.85"
+vu128 = "1.0.0"
+proc-macro2 = "1.0.85"
 quote = "1.0.36"
 syn = "2.0.66"
 num-traits = "0.2.19"
 num-derive = "0.4.2"
 by_address = "1.2.1"
-safe-once-map= {path="../safe-once-map"}
-safe-once= {path="../safe-once"}
+safe-once-map = { path = "../safe-once-map" }
+safe-once = { path = "../safe-once" }

@@ -79,21 +79,20 @@ impl<'de> SimpleDecoder<'de> for SimpleJsonDecoder<'de> {
             }
             (DecodeHint::Option, PeekType::Map) if context.cannot_be_null => {
                 self.read_exact(b'{')?;
-                let key=self.read_string()?;
-                match &*key{
-                    "None"=>{
+                let key = self.read_string()?;
+                match &*key {
+                    "None" => {
                         self.read_exact(b':')?;
                         self.read_null()?;
                         self.read_exact(b'}')?;
                         Ok(SimpleDecoderView::None)
-                    },
-                    "Some"=>{
+                    }
+                    "Some" => {
                         self.read_exact(b':')?;
                         Ok(SimpleDecoderView::Some(JsonSomeDecoder::Struct))
-                    },
-                    _=>return Err(JsonDecoderError::BadOption.into()),
+                    }
+                    _ => return Err(JsonDecoderError::BadOption.into()),
                 }
-
             }
             (DecodeHint::Option, PeekType::Null) => {
                 self.read_null()?;
