@@ -388,7 +388,7 @@ fn test_struct_variant() -> anyhow::Result<()> {
   "x": {}
 }"#,
         |w| {
-            let mut w = w.write_struct_variant("", &["x", "y"], 0, 0)?;
+            let mut w = w.write_struct_variant("", &["x", "y"], 0, &[])?;
             w.end()?;
             Ok(())
         },
@@ -401,8 +401,8 @@ fn test_struct_variant() -> anyhow::Result<()> {
   }
 }"#,
         |w| {
-            let mut w = w.write_struct_variant("", &["x", "y"], 0, 1)?;
-            w.write_field("a")?.write_prim(Primitive::U32(4))?;
+            let mut w = w.write_struct_variant("", &["x", "y"], 0, &["a"])?;
+            w.write_field()?.write_prim(Primitive::U32(4))?;
             w.end()?;
             Ok(())
         },
@@ -416,9 +416,9 @@ fn test_struct_variant() -> anyhow::Result<()> {
   }
 }"#,
         |w| {
-            let mut w = w.write_struct_variant("", &["x", "y"], 0, 2)?;
-            w.write_field("b")?.write_prim(Primitive::U32(4))?;
-            w.write_field("c")?.write_prim(Primitive::U32(8))?;
+            let mut w = w.write_struct_variant("", &["x", "y"], 0, &["b", "c"])?;
+            w.write_field()?.write_prim(Primitive::U32(4))?;
+            w.write_field()?.write_prim(Primitive::U32(8))?;
             w.end()?;
             Ok(())
         },

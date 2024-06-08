@@ -62,7 +62,7 @@ pub trait SimpleWriter {
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
-        len: usize,
+        fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructVariantWriter>;
     fn write_seq(
         &mut self,
@@ -229,14 +229,15 @@ impl<'w, T: SimpleWriter> AnyWriter<'w, SimpleWriterAdapter<T>> for SimpleAnyWri
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
-        len: usize,
+        fields: &'static [&'static str],
     ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::StructVariantWriter<'w>> {
         let inner =
             self.writer
-                .write_struct_variant(self.inner, name, variants, variant_index, len)?;
+                .write_struct_variant(self.inner, name, variants, variant_index, fields)?;
         Ok(SimpleStructVariantWriter {
             writer: self.writer,
             inner,
+            fields,
         })
     }
 
@@ -454,18 +455,16 @@ impl<'w, T: SimpleWriter> TupleVariantWriter<'w, SimpleWriterAdapter<T>>
 pub struct SimpleStructVariantWriter<'w, T: SimpleWriter> {
     writer: &'w mut T,
     inner: T::StructVariantWriter,
+    fields: &'static [&'static str],
 }
 
 impl<'w, T: SimpleWriter> StructVariantWriter<'w, SimpleWriterAdapter<T>>
     for SimpleStructVariantWriter<'w, T>
 {
-    fn write_field(
-        &mut self,
-        key: &'static str,
-    ) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
+    fn write_field(&mut self) -> anyhow::Result<<SimpleWriterAdapter<T> as Writer>::AnyWriter<'_>> {
         let inner = self
             .writer
-            .struct_variant_write_field(&mut self.inner, key)?;
+            .struct_variant_write_field(&mut self.inner, self.fields.take_first().unwrap())?;
         Ok(SimpleAnyWriter {
             writer: self.writer,
             inner,

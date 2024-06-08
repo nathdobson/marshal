@@ -1,7 +1,7 @@
 extern crate proc_macro;
 
 use proc_macro2::{Ident, TokenStream};
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::__private::TokenStream2;
 use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields, LitStr, Variant};
 
@@ -170,7 +170,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                             fn deserialize(parser: #any_parser_type, ctx: &mut #context_type) -> #result_type<Self>{
                                 match #as_any_parser::parse(parser, #parse_hint_type::UnitStruct{name:#type_name})?{
                                     #parser_view_type::Primitive(#primitive_type::Unit) => Ok(#type_ident),
-                                    _ => todo!(),
+                                    _ => todo!("expected unit"),
                                 }
                             }
                         }
@@ -196,18 +196,91 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                     fields,
                     discriminant,
                 } = variant;
-                match variant.fields {
-                    Fields::Named(_) => matches.push(quote! {
-                        #variant_index => {
-                            todo!()
-                        },
-                    }),
+                match &variant.fields {
+                    Fields::Named(fields) => {
+                        let field_idents:Vec<_>=fields.named.iter().map(|x|x.ident.as_ref().unwrap()).collect();
+                        let field_types:Vec<_> =fields.named.iter().map(|x|&x.ty).collect();
+                        let field_names:Vec<_> = field_idents.iter().map(|x|ident_to_lit(x)).collect();
+                        let field_indexes:Vec<_> =(0..fields.named.len()).collect();
+                        matches.push(quote! {
+                            #variant_index => {
+                                let hint = #parse_variant_hint_type::StructVariant{
+                                    fields: &[
+                                        #(
+                                            #field_names
+                                        ),*
+                                    ],
+                                };
+                                #(
+                                    let mut #field_idents : #option_type<#field_types> = #option_type::None;
+                                )*
+                                let parser = #as_enum_parser::parse_variant(&mut parser, hint)?;
+                                match parser {
+                                    #parser_view_type::Map(mut parser) => {
+                                        while let Some(mut entry) = #as_map_parser::parse_next(&mut parser)?{
+                                            let field_index:usize = match #as_any_parser::parse(#as_entry_parser::parse_key(&mut entry)?,#parse_hint_type::Identifier)?{
+                                                #parser_view_type::String(name) => match &*name{
+                                                    #(
+                                                        #field_names => #field_indexes,
+                                                    )*
+                                                    _ => todo!("unexpected field name"),
+                                                },
+                                                #parser_view_type::Primitive(x) => <usize as TryFrom<#primitive_type>>::try_from(x)?,
+                                                _=> todo!("unexpected type instead of field name or index")
+                                            };
+                                            match field_index {
+                                                #(
+                                                    #field_indexes => {
+                                                        let value = #as_entry_parser::parse_value(&mut entry)?;
+                                                        #field_idents = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
+                                                    }
+                                                )*
+                                                _=>todo!("unknown field index"),
+                                            }
+                                            #as_entry_parser::parse_end(entry)?;
+                                        }
+                                    },
+                                     _ => todo!("expected map"),
+                                }
+                                #(
+                                    let #field_idents = #field_idents.ok_or(#schema_error::MissingField{field_name:#field_names})?;
+                                )*
+                                Ok(#type_ident::#variant_ident {
+                                    #(
+                                        #field_idents
+                                    ),*
+                                })
+                            },
+                        });
+                    }
 
-                    Fields::Unnamed(_) => matches.push(quote! {
-                        #variant_index => {
-                            todo!()
-                        },
-                    }),
+                    Fields::Unnamed(fields) => {
+                        let field_count=fields.unnamed.len();
+                        let field_types:Vec<_> =fields.unnamed.iter().map(|x|&x.ty).collect();
+                        matches.push(quote! {
+                            #variant_index => {
+                                match #as_enum_parser::parse_variant(&mut parser, #parse_variant_hint_type::TupleVariant{ len: #field_count })?{
+                                    #parser_view_type::Seq(mut parser) => {
+                                        let result=#type_ident::#variant_ident(
+                                            #(
+                                                {
+                                                    let x = <#field_types as #deserialize_trait<'de, P> >::deserialize(
+                                                        #as_seq_parser::parse_next(&mut parser)?
+                                                            .ok_or(#schema_error::TupleTooShort)?,
+                                                        ctx
+                                                    )?;
+                                                    x
+                                                },
+                                            )*
+                                        );
+
+                                        Ok(result)
+                                    },
+                                    _ => todo!("b")
+                                }
+                            },
+                        })
+                    },
 
                     Fields::Unit => matches.push(quote! {
                         #variant_index => {
@@ -282,6 +355,10 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
     let writer_trait = quote! { ::marshal::reexports::marshal_core::write::Writer };
     let any_writer_trait = quote! { ::marshal::reexports::marshal_core::write::AnyWriter };
     let struct_writer_trait = quote! { ::marshal::reexports::marshal_core::write::StructWriter };
+    let struct_variant_writer_trait =
+        quote! { ::marshal::reexports::marshal_core::write::StructVariantWriter };
+    let tuple_variant_writer_trait =
+        quote! { ::marshal::reexports::marshal_core::write::TupleVariantWriter };
     let tuple_struct_writer_trait =
         quote! { ::marshal::reexports::marshal_core::write::TupleStructWriter };
     let serialize_trait = quote! { ::marshal::ser::Serialize };
@@ -292,6 +369,13 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
     let struct_writer_type = quote!(<W as #writer_trait>::StructWriter<'_>);
     let as_any_writer = quote!(<#any_writer_type as #any_writer_trait<W>>);
     let as_struct_writer = quote!(<#struct_writer_type as #struct_writer_trait<W>>);
+
+    let struct_variant_writer_type = quote!(<W as #writer_trait>::StructVariantWriter<'_>);
+    let as_struct_variant_writer =
+        quote!(<#struct_variant_writer_type as #struct_variant_writer_trait<W>>);
+    let tuple_variant_writer_type = quote!(<W as #writer_trait>::TupleVariantWriter<'_>);
+    let as_tuple_variant_writer =
+        quote!(<#tuple_variant_writer_type as #tuple_variant_writer_trait<W>>);
 
     let tuple_struct_writer_type = quote!(<W as #writer_trait>::TupleStructWriter<'_>);
     let as_tuple_struct_writer =
@@ -379,9 +463,40 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 } = variant;
                 let variant_name = ident_to_lit(&variant_ident);
                 let variant_index = variant_index as u32;
-                match variant.fields {
-                    Fields::Named(_) => todo!("struct variant"),
-                    Fields::Unnamed(_) => todo!("tuple variant"),
+                match &variant.fields {
+                    Fields::Named(fields) => {
+                        let field_idents: Vec<_> = fields
+                            .named
+                            .iter()
+                            .map(|x| x.ident.as_ref().unwrap())
+                            .collect();
+                        let field_names: Vec<_> =
+                            field_idents.iter().map(|x| ident_to_lit(x)).collect();
+                        matches.push(quote! {
+                            Self::#variant_ident{ #(#field_idents),* } => {
+                                let mut writer = #as_any_writer::write_struct_variant(writer, #type_name, &[#( #variant_names ),*], #variant_index, &[#(#field_names),*])?;
+                                #(
+                                    #serialize_trait::<W>::serialize(#field_idents, #as_struct_variant_writer::write_field(&mut writer)?, ctx)?;
+                                )*
+                                Ok(())
+                            },
+                        });
+                    }
+                    Fields::Unnamed(fields) => {
+                        let field_count = fields.unnamed.len();
+                        let field_idents: Vec<_> = (0..field_count)
+                            .map(|x| format_ident!("field_{}", x))
+                            .collect();
+                        matches.push(quote! {
+                            Self::#variant_ident(#( #field_idents ),*) => {
+                                let mut writer = #as_any_writer::write_tuple_variant(writer, #type_name, &[#( #variant_names ),*], #variant_index, #field_count)?;
+                                #(
+                                    #serialize_trait::<W>::serialize(#field_idents, #as_tuple_variant_writer::write_field(&mut writer)?, ctx)?;
+                                )*
+                                Ok(())
+                            },
+                        });
+                    }
                     Fields::Unit => {
                         matches.push(quote!{
                             Self::#variant_ident => {

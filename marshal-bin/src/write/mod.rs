@@ -255,7 +255,13 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         variant_index: u32,
         len: usize,
     ) -> anyhow::Result<Self::TupleVariantWriter> {
-        todo!()
+        let enum_def=self.get_or_write_enum_def(variants)?;
+        self.write_tag(TypeTag::Enum)?;
+        self.write_usize(enum_def)?;
+        self.write_vu128(variant_index)?;
+        self.write_tag(TypeTag::TupleStruct)?;
+        self.write_usize(len)?;
+        Ok(())
     }
 
     fn write_struct_variant(
@@ -264,9 +270,16 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
-        len: usize,
+        fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructVariantWriter> {
-        todo!()
+        let variant_def = self.get_or_write_enum_def(variants)?;
+        let field_def = self.get_or_write_enum_def(fields)?;
+        self.write_tag(TypeTag::Enum)?;
+        self.write_usize(variant_def)?;
+        self.write_vu128(variant_index)?;
+        self.write_tag(TypeTag::Struct)?;
+        self.write_usize(field_def)?;
+        Ok(())
     }
 
     fn write_seq(
@@ -370,7 +383,7 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         &mut self,
         map: &mut Self::TupleVariantWriter,
     ) -> anyhow::Result<Self::AnyWriter> {
-        todo!()
+        Ok(())
     }
 
     fn tuple_variant_end(&mut self, map: Self::TupleVariantWriter) -> anyhow::Result<()> {
@@ -382,7 +395,7 @@ impl<'s> SimpleWriter for SimpleBinWriter<'s> {
         map: &mut Self::StructVariantWriter,
         key: &'static str,
     ) -> anyhow::Result<Self::AnyWriter> {
-        todo!()
+        Ok(())
     }
 
     fn struct_variant_end(&mut self, map: Self::StructVariantWriter) -> anyhow::Result<()> {

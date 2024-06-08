@@ -70,7 +70,7 @@ pub trait AnyWriter<'w, W: Writer> {
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
-        len: usize,
+        fields: &'static [&'static str],
     ) -> anyhow::Result<<W as Writer>::StructVariantWriter<'w>>;
     fn write_seq(self, len: Option<usize>) -> anyhow::Result<<W as Writer>::SeqWriter<'w>>;
     fn write_tuple(self, len: usize) -> anyhow::Result<<W as Writer>::TupleWriter<'w>>;
@@ -118,6 +118,6 @@ pub trait TupleVariantWriter<'w, W: Writer> {
 }
 
 pub trait StructVariantWriter<'w, W: Writer> {
-    fn write_field(&mut self, key: &'static str) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
+    fn write_field(&mut self) -> anyhow::Result<<W as Writer>::AnyWriter<'_>>;
     fn end(self) -> anyhow::Result<()>;
 }

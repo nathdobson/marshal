@@ -160,3 +160,66 @@ fn test_tuple_struct() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_enum_variants() -> anyhow::Result<()> {
+    #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+    enum AllVariants {
+        U,
+        T(u8, u16),
+        V { x: u32, y: u64, z: u128 },
+    }
+    test_round_trip(
+        vec![
+            AllVariants::U,
+            AllVariants::T(51, 52),
+            AllVariants::V {
+                x: 53,
+                y: 54,
+                z: 55,
+            },
+        ],
+        &[
+            19, 3, //
+            21, 3, 1, b'U', 1, b'T', 1, b'V', //
+            18, 0, 0, 0, //
+            18, 0, 1, 17, 2, 7, 51, 8, 52, //
+            21, 3, 1, b'x', 1, b'y', 1, b'z', //
+            18, 0, 2, 16, 1, 9, 53, 10, 54, 11, 55, //
+        ],
+    )?;
+
+    Ok(())
+}
+
+#[test]
+fn test_enum_reorder() -> anyhow::Result<()> {
+    #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+    enum Foo1 {
+        A1,
+        A2,
+    }
+    #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+    enum Foo2 {
+        A2,
+        A1,
+    }
+    test_transmute(
+        Foo1::A1,
+        Foo2::A1,
+        &[
+            21, 2, 2, b'A', b'1', 2, b'A', b'2', //
+            18, 0, 0, 0,
+        ],
+    )?;
+    test_transmute(
+        Foo1::A2,
+        Foo2::A2,
+        &[
+            21, 2, 2, b'A', b'1', 2, b'A', b'2', //
+            18, 0, 1, 0,
+        ],
+    )?;
+
+    Ok(())
+}

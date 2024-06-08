@@ -301,7 +301,7 @@ impl SimpleWriter for SimpleJsonWriter {
         _name: &'static str,
         variants: &'static [&'static str],
         variant_index: u32,
-        _len: usize,
+        fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructVariantWriter> {
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
