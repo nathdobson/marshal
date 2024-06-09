@@ -14,3 +14,9 @@ marshal-derive = { workspace = true }
 
 [dev-dependencies]
 marshal = { workspace = true }
+criterion = { workspace=true, features = ["html_reports"] }
+serde_json = {workspace=true}
+
+[[bench]]
+name = "decode"
+harness = false
