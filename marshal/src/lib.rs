@@ -14,9 +14,9 @@ pub mod context;
 pub mod de;
 pub mod ser;
 
+pub use marshal_core::*;
+
 #[doc(hidden)]
 pub mod reexports {
     pub use anyhow;
-
-    pub use marshal_core;
 }

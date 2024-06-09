@@ -9,12 +9,12 @@
 
 use num_derive::FromPrimitive;
 
-mod decode;
+pub mod decode;
 #[cfg(test)]
 mod test;
 mod to_from_vu128;
 mod util;
-mod encode;
+pub mod encode;
 
 pub const VU128_MAX_PADDING: usize = 17;
 

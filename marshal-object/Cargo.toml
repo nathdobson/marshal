@@ -1,0 +1,13 @@
+[package]
+name = "marshal-object"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+marshal = {workspace=true}
+catalog = {workspace=true}
+
+[dev-dependencies]
+marshal-json = {workspace=true}
+marshal-bin = {workspace=true}
+anyhow= {workspace=true}
