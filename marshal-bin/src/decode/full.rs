@@ -1,4 +1,4 @@
-use crate::read::{BinAnyDecoder, BinDecoderSchema, SimpleBinDecoder};
+use crate::decode::{BinAnyDecoder, BinDecoderSchema, SimpleBinDecoder};
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::{PoisonAnyDecoder, PoisonDecoder, PoisonState};
 use marshal_core::decode::simple::{SimpleAnyDecoder, SimpleDecoderAdapter};

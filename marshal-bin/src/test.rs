@@ -1,5 +1,5 @@
-use crate::read::full::{BinDecoder, BinDecoderBuilder};
-use crate::read::BinDecoderSchema;
+use crate::decode::full::{BinDecoder, BinDecoderBuilder};
+use crate::decode::BinDecoderSchema;
 use crate::encode::full::{BinEncoder, BinEncoderBuilder};
 use crate::encode::BinEncoderSchema;
 use crate::VU128_MAX_PADDING;

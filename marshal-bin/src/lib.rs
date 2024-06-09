@@ -9,7 +9,7 @@
 
 use num_derive::FromPrimitive;
 
-mod read;
+mod decode;
 #[cfg(test)]
 mod test;
 mod to_from_vu128;
