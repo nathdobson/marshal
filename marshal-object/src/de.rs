@@ -6,7 +6,7 @@ use marshal::decode::{
 use std::ops::{CoerceUnsized, Deref};
 use type_map::concurrent::TypeMap;
 
-use crate::Object;
+use crate::{Object, ObjectPointer, VariantPointer};
 
 pub trait DeserializeVariant<'de, D: Decoder<'de>, P: Deref> {
     fn deserialize_variant(
@@ -59,8 +59,8 @@ pub fn deserialize_object<
 
 pub trait Format {}
 
-pub trait VariantFormat<V: 'static + Deref>: Format {
-    fn add_object_deserializer<T: 'static + Deref>(map: &mut TypeMap)
+pub trait VariantFormat<VP: VariantPointer>: Format {
+    fn add_object_deserializer<OP: ObjectPointer>(map: &mut TypeMap)
     where
-        V: CoerceUnsized<T>;
+        VP: CoerceUnsized<OP>;
 }

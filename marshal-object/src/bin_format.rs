@@ -1,11 +1,11 @@
 use std::any::{type_name, TypeId};
-use std::marker::{PhantomData};
-use std::ops::{CoerceUnsized, Deref};
+use std::marker::PhantomData;
+use std::ops::CoerceUnsized;
 
 use type_map::concurrent::TypeMap;
 
 use crate::de::{Format, VariantFormat};
-use crate::OBJECT_REGISTRY;
+use crate::{ObjectPointer, VariantPointer, OBJECT_REGISTRY};
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
@@ -15,25 +15,25 @@ use marshal_bin::encode::full::BinEncoder;
 
 pub trait SerializeDyn = for<'s> Serialize<BinEncoder<'s>>;
 
-pub trait BinObjectDeserializer<T: Deref>: 'static + Sync + Send {
+pub trait BinObjectDeserializer<OP: ObjectPointer>: 'static + Sync + Send {
     fn bin_object_deserialize<'p, 'de, 's>(
         &self,
         d: <BinDecoder<'de, 's> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<T>;
+    ) -> anyhow::Result<OP>;
 }
 
 impl<
-        T: 'static + Deref,
-        V: 'static + Deref + CoerceUnsized<T> + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
-    > BinObjectDeserializer<T> for PhantomData<fn() -> V>
+        OP: ObjectPointer,
+        VP: VariantPointer + CoerceUnsized<OP> + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
+    > BinObjectDeserializer<OP> for PhantomData<fn() -> VP>
 {
     fn bin_object_deserialize<'p, 'de, 's>(
         &self,
         d: <BinDecoder<'de, 's> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<T> {
-        Ok(V::deserialize(d, ctx)?)
+    ) -> anyhow::Result<OP> {
+        Ok(VP::deserialize(d, ctx)?)
     }
 }
 
@@ -41,28 +41,26 @@ pub struct FormatType;
 
 impl Format for FormatType {}
 
-impl<V: 'static + Deref + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>> VariantFormat<V>
+impl<VP: VariantPointer + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>> VariantFormat<VP>
     for FormatType
 {
-    fn add_object_deserializer<T: 'static + Deref>(map: &mut TypeMap)
+    fn add_object_deserializer<OP: ObjectPointer>(map: &mut TypeMap)
     where
-        V: CoerceUnsized<T>,
+        VP: CoerceUnsized<OP>,
     {
-        map.insert(Box::new(PhantomData::<fn() -> V>) as Box<dyn BinObjectDeserializer<T>>);
+        map.insert(Box::new(PhantomData::<fn() -> VP>) as Box<dyn BinObjectDeserializer<OP>>);
     }
 }
 
-pub struct BinDeserializerTable<T: 'static + Deref>(
-    Vec<&'static Box<dyn BinObjectDeserializer<T>>>,
+pub struct BinDeserializerTable<OP: ObjectPointer>(
+    Vec<&'static Box<dyn BinObjectDeserializer<OP>>>,
 );
 
-impl<T: 'static + Deref> BinDeserializerTable<T> {
-    pub fn new<O:'static + ?Sized>() -> Self {
+impl<OP: ObjectPointer> BinDeserializerTable<OP> {
+    pub fn new() -> Self {
         let object = OBJECT_REGISTRY
-            .object_descriptor(TypeId::of::<O>())
-            .unwrap_or_else(|| {
-                panic!("could not find object descriptor for {}", type_name::<T>())
-            });
+            .object_descriptor(TypeId::of::<OP::Object>())
+            .unwrap_or_else(|| panic!("could not find object descriptor for {}", type_name::<OP::Object>()));
         crate::bin_format::BinDeserializerTable(
             (0..object.discriminant_names().len())
                 .map(|i| object.variant_deserializer(i))
@@ -74,7 +72,7 @@ impl<T: 'static + Deref> BinDeserializerTable<T> {
         disc: usize,
         d: <BinDecoder<'de, 's> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<T> {
+    ) -> anyhow::Result<OP> {
         self.0[disc].bin_object_deserialize(d, ctx)
     }
 }
@@ -89,7 +87,7 @@ macro_rules! bin_format {
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::boxed::Box<Self>> {
                 static DESERIALIZERS: LazyLock<$crate::bin_format::BinDeserializerTable<Box<dyn $tr>>> =
-                    LazyLock::new($crate::bin_format::BinDeserializerTable::new::<dyn $tr>);
+                    LazyLock::new($crate::bin_format::BinDeserializerTable::new);
                 DESERIALIZERS.deserialize_object(disc, d, ctx)
             }
         }

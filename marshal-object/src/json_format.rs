@@ -1,6 +1,6 @@
 use std::any::{type_name, TypeId};
-use std::marker::{PhantomData};
-use std::ops::{CoerceUnsized, Deref};
+use std::marker::PhantomData;
+use std::ops::CoerceUnsized;
 
 use type_map::concurrent::TypeMap;
 
@@ -12,29 +12,29 @@ use marshal::ser::Serialize;
 use marshal_json::decode::full::JsonDecoder;
 use marshal_json::encode::full::JsonEncoder;
 
-use crate::OBJECT_REGISTRY;
+use crate::{ObjectPointer, VariantPointer, OBJECT_REGISTRY};
 
 pub trait SerializeDyn = Serialize<JsonEncoder>;
 
-pub trait JsonObjectDeserializer<T: Deref>: 'static + Sync + Send {
+pub trait JsonObjectDeserializer<OP: ObjectPointer>: 'static + Sync + Send {
     fn json_object_deserialize<'p, 'de>(
         &self,
         d: <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<T>;
+    ) -> anyhow::Result<OP>;
 }
 
 impl<
-        T: 'static + Deref,
-        V: 'static + CoerceUnsized<T> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
-    > JsonObjectDeserializer<T> for PhantomData<fn() -> V>
+        OP: ObjectPointer,
+        VP: VariantPointer + CoerceUnsized<OP> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
+    > JsonObjectDeserializer<OP> for PhantomData<fn() -> VP>
 {
     fn json_object_deserialize<'p, 'de, 's>(
         &self,
         d: <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<T> {
-        Ok(V::deserialize(d, ctx)?)
+    ) -> anyhow::Result<OP> {
+        Ok(VP::deserialize(d, ctx)?)
     }
 }
 
@@ -42,26 +42,31 @@ pub struct FormatType;
 
 impl Format for FormatType {}
 
-impl<V: 'static + Deref + for<'de> Deserialize<'de, JsonDecoder<'de>>> VariantFormat<V>
+impl<VP: VariantPointer + for<'de> Deserialize<'de, JsonDecoder<'de>>> VariantFormat<VP>
     for FormatType
 {
-    fn add_object_deserializer<T: 'static + Deref>(map: &mut TypeMap)
+    fn add_object_deserializer<OP: ObjectPointer>(map: &mut TypeMap)
     where
-        V: CoerceUnsized<T>,
+        VP: CoerceUnsized<OP>,
     {
-        map.insert(Box::new(PhantomData::<fn() -> V>) as Box<dyn JsonObjectDeserializer<T>>);
+        map.insert(Box::new(PhantomData::<fn() -> VP>) as Box<dyn JsonObjectDeserializer<OP>>);
     }
 }
 
-pub struct JsonDeserializerTable<T: 'static + ?Sized>(
-    Vec<&'static Box<dyn JsonObjectDeserializer<T>>>,
+pub struct JsonDeserializerTable<OP: ObjectPointer>(
+    Vec<&'static Box<dyn JsonObjectDeserializer<OP>>>,
 );
 
-impl<T: 'static + Deref> JsonDeserializerTable<T> {
-    pub fn new<O:'static+?Sized>() -> Self {
+impl<OP: ObjectPointer> JsonDeserializerTable<OP> {
+    pub fn new() -> Self {
         let object = OBJECT_REGISTRY
-            .object_descriptor(TypeId::of::<O>())
-            .unwrap_or_else(|| panic!("could not find object descriptor for {}", type_name::<T>()));
+            .object_descriptor(TypeId::of::<OP::Object>())
+            .unwrap_or_else(|| {
+                panic!(
+                    "could not find object descriptor for {}",
+                    type_name::<OP::Object>()
+                )
+            });
         JsonDeserializerTable(
             (0..object.discriminant_names().len())
                 .map(|i| object.variant_deserializer(i))
@@ -73,7 +78,7 @@ impl<T: 'static + Deref> JsonDeserializerTable<T> {
         disc: usize,
         d: <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<T> {
+    ) -> anyhow::Result<OP> {
         self.0[disc].json_object_deserialize(d, ctx)
     }
 }
@@ -88,7 +93,7 @@ macro_rules! json_format {
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::boxed::Box<Self>> {
                 static DESERIALIZERS: LazyLock<$crate::json_format::JsonDeserializerTable<Box<dyn $tr>>> =
-                    LazyLock::new($crate::json_format::JsonDeserializerTable::new::<dyn $tr>);
+                    LazyLock::new($crate::json_format::JsonDeserializerTable::new);
                 DESERIALIZERS.deserialize_object(disc, d, ctx)
             }
         }

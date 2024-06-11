@@ -7,6 +7,9 @@
 
 use std::any::{type_name, TypeId};
 use std::collections::HashMap;
+use std::marker::Unsize;
+use std::rc::Rc;
+use std::sync::Arc;
 
 use catalog::{Builder, BuilderFrom, Registry};
 use type_map::concurrent::TypeMap;
@@ -31,10 +34,36 @@ pub trait AsDiscriminant<Key> {
     fn as_discriminant(&self) -> usize;
 }
 
-pub trait Object: AsDiscriminant<Self::Key> {
+pub trait Object: 'static + AsDiscriminant<Self::Key> {
     type Key;
     type Format;
     fn object_descriptor() -> &'static ObjectDescriptor;
+}
+
+pub trait ObjectPointer: 'static + Sized {
+    type Object: 'static + ?Sized + Object;
+}
+impl<O: ?Sized + Object> ObjectPointer for Box<O> {
+    type Object = O;
+}
+impl<O: ?Sized + Object> ObjectPointer for Arc<O> {
+    type Object = O;
+}
+impl<O: ?Sized + Object> ObjectPointer for Rc<O> {
+    type Object = O;
+}
+
+pub trait VariantPointer: 'static + Sized {
+    type Variant: 'static;
+}
+impl<V: 'static> VariantPointer for Box<V> {
+    type Variant = V;
+}
+impl<V: 'static> VariantPointer for Arc<V> {
+    type Variant = V;
+}
+impl<V: 'static> VariantPointer for Rc<V> {
+    type Variant = V;
 }
 
 pub struct VariantDescriptor {
@@ -61,16 +90,16 @@ impl ObjectDescriptor {
     pub fn variant_index_of(&self, s: &str) -> Option<usize> {
         self.index_by_name.as_ref().unwrap().get(s).copied()
     }
-    pub fn variant_deserializer<T: 'static>(&self, index: usize) -> &T {
+    pub fn variant_deserializer<D: 'static>(&self, index: usize) -> &D {
         self.variants[index]
             .deserializers
-            .get::<T>()
+            .get::<D>()
             .unwrap_or_else(|| {
                 panic!(
                     "cannot find deserializer for object `{}' variant `{}' of type `{}'",
                     self.object_name,
                     self.variants[index].variant_name,
-                    type_name::<T>()
+                    type_name::<D>()
                 )
             })
     }
@@ -136,13 +165,16 @@ pub struct VariantRegistration {
 }
 
 impl VariantRegistration {
-    pub const fn new<T: 'static + ?Sized, V: 'static>(
+    pub const fn new<O: ?Sized + Object, V: 'static>(
         deserializers: &'static [fn(&mut TypeMap)],
-    ) -> Self {
+    ) -> Self
+    where
+        V: Unsize<O>,
+    {
         let variant_name = type_name::<V>();
         VariantRegistration {
-            object_type: TypeId::of::<T>(),
-            object_name: type_name::<T>(),
+            object_type: TypeId::of::<O>(),
+            object_name: type_name::<O>(),
             variant_type: TypeId::of::<V>(),
             discriminant_name: variant_name,
             deserializers,
@@ -222,17 +254,17 @@ macro_rules! derive_object {
             $( $format!($tr); )*
             pub struct CustomFormat;
             impl $crate::de::Format for CustomFormat {}
-            impl<V: 'static + ::std::ops::Deref> $crate::de::VariantFormat<V> for CustomFormat
+            impl<VP: $crate::VariantPointer> $crate::de::VariantFormat<VP> for CustomFormat
             where $(
-                $format::FormatType : $crate::de::VariantFormat<V>,
+                $format::FormatType : $crate::de::VariantFormat<VP>,
             )*{
-                fn add_object_deserializer<T: 'static + ::std::ops::Deref>(
+                fn add_object_deserializer<OP: $crate::ObjectPointer>(
                     map: &mut $crate::reexports::type_map::concurrent::TypeMap,
                 ) where
-                    V: ::std::ops::CoerceUnsized<T>,
+                    VP: ::std::ops::CoerceUnsized<OP>,
                 {
                     $(
-                        <$format::FormatType as $crate::de::VariantFormat<V>>::add_object_deserializer::<T>(map);
+                        <$format::FormatType as $crate::de::VariantFormat<VP>>::add_object_deserializer::<OP>(map);
                     )*
                 }
             }
