@@ -3,6 +3,7 @@
 #![feature(const_trait_impl)]
 #![feature(effects)]
 #![feature(unsize)]
+#![feature(coerce_unsized)]
 
 use std::any::{Any, TypeId};
 use std::fmt::Debug;

@@ -3,6 +3,7 @@
 #![feature(const_type_id)]
 #![feature(unsize)]
 #![feature(const_trait_impl)]
+#![feature(coerce_unsized)]
 
 use std::any::{type_name, TypeId};
 use std::collections::HashMap;
@@ -197,8 +198,8 @@ macro_rules! define_variant {
                     // ),*
                     |map| {
                         <<dyn $object as $crate::Object>::Format as $crate::de::VariantFormat<
-                            $concrete,
-                        >>::add_object_deserializer::<dyn $object>(map)
+                            Box<$concrete>,
+                        >>::add_object_deserializer::<Box<dyn $object>>(map)
                     },
                 ]);
             pub static VARIANT_INDEX: LazyLock<usize> = LazyLock::new(|| {
@@ -226,14 +227,14 @@ macro_rules! derive_object {
             $( $format!($tr); )*
             pub struct CustomFormat;
             impl $crate::de::Format for CustomFormat {}
-            impl<V: 'static> $crate::de::VariantFormat<V> for CustomFormat
+            impl<V: 'static + ::std::ops::Deref> $crate::de::VariantFormat<V> for CustomFormat
             where $(
                 $format::FormatType : $crate::de::VariantFormat<V>,
             )*{
-                fn add_object_deserializer<T: 'static + ?Sized>(
+                fn add_object_deserializer<T: 'static + ::std::ops::Deref>(
                     map: &mut $crate::reexports::type_map::concurrent::TypeMap,
                 ) where
-                    V: ::std::marker::Unsize<T>,
+                    V: ::std::ops::CoerceUnsized<T>,
                 {
                     $(
                         <$format::FormatType as $crate::de::VariantFormat<V>>::add_object_deserializer::<T>(map);

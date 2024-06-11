@@ -3,7 +3,7 @@ use marshal::de::SchemaError;
 use marshal::decode::{
     AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView, EnumDecoder, SeqDecoder,
 };
-use std::marker::Unsize;
+use std::ops::{CoerceUnsized, Deref};
 use type_map::concurrent::TypeMap;
 
 use crate::Object;
@@ -58,8 +58,8 @@ pub fn deserialize_object<
 
 pub trait Format {}
 
-pub trait VariantFormat<V: 'static>: Format {
-    fn add_object_deserializer<T: 'static + ?Sized>(map: &mut TypeMap)
+pub trait VariantFormat<V: 'static + Deref>: Format {
+    fn add_object_deserializer<T: 'static + Deref>(map: &mut TypeMap)
     where
-        V: Unsize<T>;
+        V: CoerceUnsized<T>;
 }
