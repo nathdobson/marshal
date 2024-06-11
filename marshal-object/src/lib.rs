@@ -4,6 +4,7 @@
 #![feature(unsize)]
 #![feature(const_trait_impl)]
 #![feature(coerce_unsized)]
+#![feature(arbitrary_self_types)]
 
 /// Serialize and deserialize trait objects, with type safety and monomorphization.
 ///
@@ -29,7 +30,7 @@ pub mod reexports {
 }
 
 pub trait AsDiscriminant<Key> {
-    fn as_discriminant(&self) -> usize;
+    fn as_discriminant(self: *const Self) -> usize;
 }
 
 pub trait Object: 'static + Sized {
@@ -43,7 +44,6 @@ pub struct VariantDescriptor {
     variant_name: &'static str,
     deserializers: TypeMap,
 }
-
 
 pub struct ObjectDescriptor {
     variants: Vec<VariantDescriptor>,
@@ -207,7 +207,7 @@ macro_rules! derive_variant {
                     .unwrap()
             });
             impl AsDiscriminant<$carrier> for $concrete {
-                fn as_discriminant(&self) -> usize {
+                fn as_discriminant(self:*const Self) -> usize {
                     *VARIANT_INDEX
                 }
             }
@@ -311,6 +311,28 @@ macro_rules! derive_arc_object {
         {
             fn deserialize_arc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<::std::sync::Arc<Self>> {
                 deserialize_object::<$carrier, D>(p, ctx)
+            }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! derive_rc_weak_object {
+    ($carrier:ident, $tr:ident $(, $format:ident)*) => {
+        derive_object!($carrier, T, ::std::rc::Weak<T>, $tr $(, $format)* );
+        impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeRcWeak<E> for dyn $tr
+            where dyn $tr: Serialize<E>,
+        {
+            fn serialize_rc_weak(this: &::std::rc::Weak<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+                $crate::ser::serialize_rc_weak_object::<$carrier,E>(this, e, ctx)
+            }
+        }
+        impl<'de, D: Decoder<'de>> $crate::reexports::marshal::de::rc::DeserializeRcWeak<'de, D> for dyn $tr
+        where
+            $carrier: DeserializeVariantForDiscriminant<'de, D>,
+        {
+            fn deserialize_rc_weak<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<::std::rc::Weak<Self>> {
+                $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }
     }
