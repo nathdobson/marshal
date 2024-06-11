@@ -60,13 +60,13 @@ pub fn deserialize_rc_weak_object<'p, 'de, O: Object, D: Decoder<'de>>(
 where
     O: DeserializeVariantForDiscriminant<'de, D>,
 {
-    todo!();
+    todo!("des");
 }
 
 pub trait DeserializeProvider {}
 
 pub trait DeserializeVariantProvider<V: 'static>: DeserializeProvider {
-    fn add_deserialize_variant(map: &mut TypeMap);
+    fn add_deserialize_variant(map: &mut DeserializeVariantSet);
 }
 
 pub struct DeserializeVariantTable<O: Object, DV: DeserializeVariant> {
@@ -98,7 +98,7 @@ impl<O: Object, DV: DeserializeVariant> Index<usize> for DeserializeVariantTable
 pub struct DeserializeVariantSet(TypeMap);
 
 impl DeserializeVariantSet {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         DeserializeVariantSet(TypeMap::new())
     }
     pub fn insert<DV: DeserializeVariant>(&mut self, dv: DV) {

@@ -34,7 +34,7 @@ use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_json::SerializeJson;
 use marshal_json::{json_object, DeserializeJson};
 use marshal_object::de::{deserialize_object, DeserializeVariantForDiscriminant};
-use marshal_object::ser::serialize_object;
+use marshal_object::ser::{RawAny, serialize_object};
 use marshal_object::{
     derive_arc_object, derive_box_object, derive_rc_object, derive_rc_weak_object, derive_variant,
     ObjectDescriptor,
@@ -55,9 +55,7 @@ derive_arc_object!(ArcMyTrait, MyTrait, bin_object, json_object);
 pub trait MyTrait:
     'static
     + Debug
-    + Any
-    + bin_object::SerializeDyn
-    + json_object::SerializeDyn
+    + RawAny
     + AsDiscriminant<BoxMyTrait>
     + AsDiscriminant<RcMyTrait>
     + AsDiscriminant<ArcMyTrait>
@@ -97,7 +95,7 @@ impl<'de, D: Decoder<'de>> DeserializeRcWeak<'de, D> for A {
         p: D::AnyDecoder<'p>,
         ctx: &mut Context,
     ) -> anyhow::Result<Weak<Self>> {
-        todo!()
+        todo!("p")
     }
 }
 
@@ -106,7 +104,7 @@ impl<'de, D: Decoder<'de>> DeserializeRcWeak<'de, D> for B {
         p: D::AnyDecoder<'p>,
         ctx: &mut Context,
     ) -> anyhow::Result<Weak<Self>> {
-        todo!()
+        todo!("q")
     }
 }
 
