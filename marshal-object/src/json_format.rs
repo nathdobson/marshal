@@ -1,4 +1,3 @@
-use std::any::{type_name, TypeId};
 use std::marker::PhantomData;
 use std::ops::CoerceUnsized;
 
@@ -8,65 +7,53 @@ use crate::de::{Format, VariantFormat};
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
-use marshal::ser::Serialize;
 use marshal_json::decode::full::JsonDecoder;
-use marshal_json::encode::full::JsonEncoder;
+use marshal_json::DeserializeJson;
+use marshal_json::SerializeJson;
 
-use crate::{ObjectPointer, VariantPointer, OBJECT_REGISTRY};
+use crate::{Object, OBJECT_REGISTRY};
 
-pub trait SerializeDyn = Serialize<JsonEncoder>;
+pub trait SerializeDyn = SerializeJson;
 
-pub trait JsonObjectDeserializer<OP: ObjectPointer>: 'static + Sync + Send {
+pub trait JsonObjectDeserializer<O: Object>: 'static + Sync + Send {
     fn json_object_deserialize<'p, 'de>(
         &self,
         d: <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<OP>;
+    ) -> anyhow::Result<O::Pointer<O::Dyn>>;
 }
 
-impl<
-        OP: ObjectPointer,
-        VP: VariantPointer + CoerceUnsized<OP> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
-    > JsonObjectDeserializer<OP> for PhantomData<fn() -> VP>
+impl<O: Object, V: 'static> JsonObjectDeserializer<O> for PhantomData<fn() -> V>
+where
+    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
 {
     fn json_object_deserialize<'p, 'de, 's>(
         &self,
         d: <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<OP> {
-        Ok(VP::deserialize(d, ctx)?)
+    ) -> anyhow::Result<O::Pointer<O::Dyn>> {
+        Ok(O::Pointer::<V>::deserialize(d, ctx)?)
     }
 }
 
-pub struct FormatType;
+pub struct FormatType<O: Object>(PhantomData<O>);
 
-impl Format for FormatType {}
+impl<O: Object> Format for FormatType<O> {}
 
-impl<VP: VariantPointer + for<'de> Deserialize<'de, JsonDecoder<'de>>> VariantFormat<VP>
-    for FormatType
+impl<O: Object, V: 'static> VariantFormat<V> for FormatType<O>
+where
+    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>> + for<'de> DeserializeJson<'de>,
 {
-    fn add_object_deserializer<OP: ObjectPointer>(map: &mut TypeMap)
-    where
-        VP: CoerceUnsized<OP>,
-    {
-        map.insert(Box::new(PhantomData::<fn() -> VP>) as Box<dyn JsonObjectDeserializer<OP>>);
+    fn add_object_deserializer(map: &mut TypeMap) {
+        map.insert(Box::new(PhantomData::<fn() -> V>) as Box<dyn JsonObjectDeserializer<O>>);
     }
 }
 
-pub struct JsonDeserializerTable<OP: ObjectPointer>(
-    Vec<&'static Box<dyn JsonObjectDeserializer<OP>>>,
-);
+pub struct JsonDeserializerTable<O: Object>(Vec<&'static Box<dyn JsonObjectDeserializer<O>>>);
 
-impl<OP: ObjectPointer> JsonDeserializerTable<OP> {
+impl<O: Object> JsonDeserializerTable<O> {
     pub fn new() -> Self {
-        let object = OBJECT_REGISTRY
-            .object_descriptor(TypeId::of::<OP::Object>())
-            .unwrap_or_else(|| {
-                panic!(
-                    "could not find object descriptor for {}",
-                    type_name::<OP::Object>()
-                )
-            });
+        let object = OBJECT_REGISTRY.object_descriptor::<O>();
         JsonDeserializerTable(
             (0..object.discriminant_names().len())
                 .map(|i| object.variant_deserializer(i))
@@ -78,21 +65,21 @@ impl<OP: ObjectPointer> JsonDeserializerTable<OP> {
         disc: usize,
         d: <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p>,
         ctx: &mut Context,
-    ) -> anyhow::Result<OP> {
+    ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         self.0[disc].json_object_deserialize(d, ctx)
     }
 }
 
 #[macro_export]
 macro_rules! json_format {
-    ($ptr:ident, $tr:ident) => {
-        impl<'de> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_json::decode::full::JsonDecoder<'de>, $ptr<dyn $tr>> for dyn $tr {
+    ($carrier:path) => {
+        impl<'de> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_json::decode::full::JsonDecoder<'de>> for $carrier {
             fn deserialize_variant(
                 disc: usize,
                 d: <$crate::reexports::marshal_json::decode::full::JsonDecoder<'de> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<$ptr<Self>> {
-                static DESERIALIZERS: LazyLock<$crate::json_format::JsonDeserializerTable<$ptr<dyn $tr>>> =
+            ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::Object>::Pointer<<$carrier as $crate::Object>::Dyn>> {
+                static DESERIALIZERS: LazyLock<$crate::json_format::JsonDeserializerTable<$carrier>> =
                     LazyLock::new($crate::json_format::JsonDeserializerTable::new);
                 DESERIALIZERS.deserialize_object(disc, d, ctx)
             }

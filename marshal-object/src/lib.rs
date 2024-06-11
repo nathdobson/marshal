@@ -8,8 +8,6 @@
 use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::marker::Unsize;
-use std::rc::Rc;
-use std::sync::Arc;
 
 use catalog::{Builder, BuilderFrom, Registry};
 use type_map::concurrent::TypeMap;
@@ -34,38 +32,37 @@ pub trait AsDiscriminant<Key> {
     fn as_discriminant(&self) -> usize;
 }
 
-pub trait Object: 'static + AsDiscriminant<Self::Key> {
-    type Key;
-    type Format;
-    type Pointer: ObjectPointer;
+pub trait Object: 'static + Sized {
+    type Dyn: ?Sized + AsDiscriminant<Self>;
+    type Pointer<T: ?Sized>;
     fn object_descriptor() -> &'static ObjectDescriptor;
 }
-
-pub trait ObjectPointer: 'static + Sized {
-    type Object: 'static + ?Sized + Object;
-}
-impl<O: ?Sized + Object> ObjectPointer for Box<O> {
-    type Object = O;
-}
-impl<O: ?Sized + Object> ObjectPointer for Arc<O> {
-    type Object = O;
-}
-impl<O: ?Sized + Object> ObjectPointer for Rc<O> {
-    type Object = O;
-}
-
-pub trait VariantPointer: 'static + Sized {
-    type Variant: 'static;
-}
-impl<V: 'static> VariantPointer for Box<V> {
-    type Variant = V;
-}
-impl<V: 'static> VariantPointer for Arc<V> {
-    type Variant = V;
-}
-impl<V: 'static> VariantPointer for Rc<V> {
-    type Variant = V;
-}
+//
+// pub trait ObjectPointer: 'static + Sized {
+//     type Object: 'static + ?Sized + Object;
+// }
+// impl<O: ?Sized + Object> ObjectPointer for Box<O> {
+//     type Object = O;
+// }
+// impl<O: ?Sized + Object> ObjectPointer for Arc<O> {
+//     type Object = O;
+// }
+// impl<O: ?Sized + Object> ObjectPointer for Rc<O> {
+//     type Object = O;
+// }
+//
+// pub trait VariantPointer: 'static + Sized {
+//     type Variant: 'static;
+// }
+// impl<V: 'static> VariantPointer for Box<V> {
+//     type Variant = V;
+// }
+// impl<V: 'static> VariantPointer for Arc<V> {
+//     type Variant = V;
+// }
+// impl<V: 'static> VariantPointer for Rc<V> {
+//     type Variant = V;
+// }
 
 pub struct VariantDescriptor {
     variant_type: TypeId,
@@ -111,8 +108,10 @@ pub struct ObjectRegistry {
 }
 
 impl ObjectRegistry {
-    pub fn object_descriptor(&self, id: TypeId) -> Option<&ObjectDescriptor> {
-        self.objects.get(&id)
+    pub fn object_descriptor<O: Object>(&self) -> &ObjectDescriptor {
+        self.objects
+            .get(&TypeId::of::<O>())
+            .unwrap_or_else(|| panic!("Cannot find object descriptor for {}", type_name::<O>()))
     }
 }
 
@@ -162,15 +161,13 @@ pub struct VariantRegistration {
     object_name: &'static str,
     variant_type: TypeId,
     discriminant_name: &'static str,
-    deserializers: &'static [fn(&mut TypeMap)],
+    deserializers: fn(&mut TypeMap),
 }
 
 impl VariantRegistration {
-    pub const fn new<O: ?Sized + Object, V: 'static>(
-        deserializers: &'static [fn(&mut TypeMap)],
-    ) -> Self
+    pub const fn new<O: Object, V: 'static>(deserializers: fn(&mut TypeMap)) -> Self
     where
-        V: Unsize<O>,
+        V: Unsize<O::Dyn>,
     {
         let variant_name = type_name::<V>();
         VariantRegistration {
@@ -208,9 +205,7 @@ impl BuilderFrom<&'static VariantRegistration> for ObjectRegistry {
                 index_by_type: None,
             });
         let mut deserializers = TypeMap::new();
-        for f in element.deserializers {
-            f(&mut deserializers);
-        }
+        (element.deserializers)(&mut deserializers);
         object.variants.push(VariantDescriptor {
             variant_type: element.variant_type,
             variant_name: element.discriminant_name,
@@ -221,23 +216,22 @@ impl BuilderFrom<&'static VariantRegistration> for ObjectRegistry {
 
 #[macro_export]
 macro_rules! define_variant {
-    ($ptr:ident, $concrete:ty, $object:path) => {
+    ($carrier:path, $concrete:ty) => {
         const _: () = {
             #[$crate::reexports::catalog::register(OBJECT_REGISTRY)]
-            pub static REGISTER: VariantRegistration =
-                VariantRegistration::new::<dyn $object, $concrete>(&[|map| {
-                    <<dyn $object as $crate::Object>::Format as $crate::de::VariantFormat<
-                        $ptr<$concrete>,
-                    >>::add_object_deserializer::<$ptr<dyn $object>>(map)
-                }]);
+            pub static REGISTER: VariantRegistration = VariantRegistration::new::<
+                $carrier,
+                $concrete,
+            >(|map| {
+                <$carrier as $crate::de::VariantFormat<$concrete>>::add_object_deserializer(map);
+            });
             pub static VARIANT_INDEX: LazyLock<usize> = LazyLock::new(|| {
                 OBJECT_REGISTRY
-                    .object_descriptor(REGISTER.object_type())
-                    .unwrap()
+                    .object_descriptor::<$carrier>()
                     .variant_index_of(REGISTER.discriminant_name())
                     .unwrap()
             });
-            impl AsDiscriminant<<dyn $object as $crate::Object>::Key> for $concrete {
+            impl AsDiscriminant<$carrier> for $concrete {
                 fn as_discriminant(&self) -> usize {
                     *VARIANT_INDEX
                 }
@@ -248,73 +242,101 @@ macro_rules! define_variant {
 
 #[macro_export]
 macro_rules! derive_object {
-    ($ptr:ident, $tr:ident, $parent:ident $(, $format:ident)*) => {
-        pub struct Key;
-        pub trait $parent = AsDiscriminant<Key> $( + $format::SerializeDyn )*;
+    ($carrier:ident, $ptr_arg:ident, $ptr:ty, $tr:ident $(, $format:ident)*) => {
         const _: () = {
-            $( $format!($ptr, $tr); )*
-            pub struct CustomFormat;
-            impl $crate::de::Format for CustomFormat {}
-            impl<VP: $crate::VariantPointer> $crate::de::VariantFormat<VP> for CustomFormat
+            $( $format!($carrier); )*
+            impl $crate::de::Format for $carrier {}
+            impl<V: 'static> $crate::de::VariantFormat<V> for $carrier
             where $(
-                $format::FormatType : $crate::de::VariantFormat<VP>,
+                $format::FormatType::<$carrier> : $crate::de::VariantFormat<V>,
             )*{
-                fn add_object_deserializer<OP: $crate::ObjectPointer>(
+                fn add_object_deserializer(
                     map: &mut $crate::reexports::type_map::concurrent::TypeMap,
-                ) where
-                    VP: ::std::ops::CoerceUnsized<OP>,
-                {
+                ) {
                     $(
-                        <$format::FormatType as $crate::de::VariantFormat<VP>>::add_object_deserializer::<OP>(map);
+                        <$format::FormatType::<$carrier> as $crate::de::VariantFormat<V>>::add_object_deserializer(map);
                     )*
                 }
             }
 
-            impl $crate::Object for dyn $tr {
-                type Key = Key;
-                type Format = CustomFormat;
-                type Pointer = $ptr<dyn $tr>;
+            impl $crate::Object for $carrier {
+                type Dyn = dyn $tr;
+                type Pointer<$ptr_arg:?Sized> = $ptr;
                 fn object_descriptor() -> &'static ObjectDescriptor {
                     static ENTRY: LazyLock<&'static ObjectDescriptor> = LazyLock::new(|| {
-                        OBJECT_REGISTRY
-                            .object_descriptor(TypeId::of::<dyn $tr>())
-                            .unwrap()
+                        OBJECT_REGISTRY.object_descriptor::<$carrier>()
                     });
                     *ENTRY
                 }
             }
-            impl<E: Encoder> Serialize<E> for Box<dyn $tr>
-            where
-                dyn $tr: Serialize<E>,
-            {
-                fn serialize(&self, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-                    serialize_object(&**self, e, ctx)
-                }
-            }
-            impl<'de, D: Decoder<'de>> Deserialize<'de, D> for Box<dyn $tr>
-            where
-                dyn $tr: DeserializeVariant<'de, D,Box<dyn $tr>>,
-            {
-                fn deserialize(p: D::AnyDecoder<'_>, ctx: &mut Context) -> anyhow::Result<Self> {
-                    deserialize_object::<D, dyn $tr, Box<dyn $tr>>(p, ctx)
-                }
-            }
-            impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeRc<E> for dyn $tr
-            where
-                dyn $tr: Serialize<E>,
-            {
-                fn serialize_rc(this: &Rc<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-                    serialize_object(&**this, e, ctx)
-                }
-            }
-            impl<'de, D: Decoder<'de>> $crate::reexports::marshal::de::rc::DeserializeRc<'de, D> for dyn $tr
-            where
-                dyn $tr: DeserializeVariant<'de, D, Rc<dyn $tr>>,
-            {
-                fn deserialize_rc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Rc<Self>> {
-                    deserialize_object::<D, dyn $tr, Rc<dyn $tr>>(p, ctx)
-                }
-            }
+
+
         };
     };
+}
+
+#[macro_export]
+macro_rules! derive_box_object {
+    ($carrier:ident, $tr:ident $(, $format:ident)*) => {
+        derive_object!($carrier, T, ::std::boxed::Box<T>, $tr $(, $format)* );
+        impl<E: Encoder> Serialize<E> for Box<dyn $tr>
+            where dyn $tr: Serialize<E>,
+        {
+            fn serialize(&self, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+                serialize_object::<$carrier,E>(&**self, e, ctx)
+            }
+        }
+        impl<'de, D: Decoder<'de>> Deserialize<'de, D> for Box<dyn $tr>
+        where
+            $carrier: DeserializeVariant<'de, D>,
+        {
+            fn deserialize(p: D::AnyDecoder<'_>, ctx: &mut Context) -> anyhow::Result<Self> {
+                deserialize_object::<$carrier, D>(p, ctx)
+            }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! derive_rc_object {
+    ($carrier:ident, $tr:ident $(, $format:ident)*) => {
+        derive_object!($carrier, T, ::std::rc::Rc<T>, $tr $(, $format)* );
+        impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeRc<E> for dyn $tr
+            where dyn $tr: Serialize<E>,
+        {
+            fn serialize_rc(this: &Rc<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+                serialize_object::<$carrier,E>(&**this, e, ctx)
+            }
+        }
+        impl<'de, D: Decoder<'de>> $crate::reexports::marshal::de::rc::DeserializeRc<'de, D> for dyn $tr
+        where
+            $carrier: DeserializeVariant<'de, D>,
+        {
+            fn deserialize_rc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Rc<Self>> {
+                deserialize_object::<$carrier, D>(p, ctx)
+            }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! derive_arc_object {
+    ($carrier:ident, $tr:ident $(, $format:ident)*) => {
+        derive_object!($carrier, T, ::std::sync::Arc<T>, $tr $(, $format)* );
+        impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeArc<E> for dyn $tr
+            where dyn $tr: Serialize<E>,
+        {
+            fn serialize_arc(this: &::std::sync::Arc<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+                serialize_object::<$carrier,E>(&**this, e, ctx)
+            }
+        }
+        impl<'de, D: Decoder<'de>> $crate::reexports::marshal::de::rc::DeserializeArc<'de, D> for dyn $tr
+        where
+            $carrier: DeserializeVariant<'de, D>,
+        {
+            fn deserialize_arc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<::std::sync::Arc<Self>> {
+                deserialize_object::<$carrier, D>(p, ctx)
+            }
+        }
+    }
 }

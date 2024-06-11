@@ -1,38 +1,33 @@
+use crate::Object;
 use marshal::context::Context;
 use marshal::de::SchemaError;
 use marshal::decode::{
     AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView, EnumDecoder, SeqDecoder,
 };
-use std::ops::{CoerceUnsized, Deref};
 use type_map::concurrent::TypeMap;
 
-use crate::{Object, ObjectPointer, VariantPointer};
-
-pub trait DeserializeVariant<'de, D: Decoder<'de>, P: Deref> {
+pub trait DeserializeVariant<'de, D: Decoder<'de>>: Object {
     fn deserialize_variant(
         discriminant: usize,
         d: D::AnyDecoder<'_>,
         ctx: &mut Context,
-    ) -> anyhow::Result<P>;
+    ) -> anyhow::Result<Self::Pointer<Self::Dyn>>;
 }
 
-pub fn deserialize_object<
-    'p,
-    'de,
-    D: Decoder<'de>,
-    T: ?Sized + Object + DeserializeVariant<'de, D, P>,
-    P: Deref,
->(
+pub fn deserialize_object<'p, 'de, O: Object, D: Decoder<'de>>(
     d: D::AnyDecoder<'p>,
     ctx: &mut Context,
-) -> anyhow::Result<P> {
+) -> anyhow::Result<O::Pointer<O::Dyn>>
+where
+    O: DeserializeVariant<'de,D>,
+{
     match d.decode(DecodeHint::Enum {
-        name: T::object_descriptor().object_name(),
-        variants: T::object_descriptor().discriminant_names(),
+        name: O::object_descriptor().object_name(),
+        variants: O::object_descriptor().discriminant_names(),
     })? {
         DecoderView::Enum(mut d) => {
             let disc = match d.decode_discriminant()?.decode(DecodeHint::Identifier)? {
-                DecoderView::String(x) => T::object_descriptor()
+                DecoderView::String(x) => O::object_descriptor()
                     .variant_index_of(&*x)
                     .ok_or(SchemaError::UnknownVariant)?,
                 DecoderView::Primitive(p) => p.try_into()?,
@@ -42,7 +37,7 @@ pub fn deserialize_object<
                 DecoderView::Seq(mut d) => {
                     let variant = d.decode_next()?.ok_or(SchemaError::TupleTooShort)?;
                     let result =
-                        <T as DeserializeVariant<D, P>>::deserialize_variant(disc, variant, ctx)?;
+                        O::deserialize_variant(disc, variant, ctx)?;
                     if let Some(_) = d.decode_next()? {
                         return Err(SchemaError::TupleTooLong.into());
                     }
@@ -59,8 +54,6 @@ pub fn deserialize_object<
 
 pub trait Format {}
 
-pub trait VariantFormat<VP: VariantPointer>: Format {
-    fn add_object_deserializer<OP: ObjectPointer>(map: &mut TypeMap)
-    where
-        VP: CoerceUnsized<OP>;
+pub trait VariantFormat<V: 'static>: Format {
+    fn add_object_deserializer(map: &mut TypeMap);
 }

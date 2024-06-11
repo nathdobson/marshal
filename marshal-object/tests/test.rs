@@ -5,20 +5,19 @@
 #![feature(unsize)]
 #![feature(coerce_unsized)]
 
-use std::any::{Any, TypeId};
+use std::any::{Any};
 use std::fmt::Debug;
 use std::rc::Rc;
 
 use safe_once::sync::LazyLock;
 
 use marshal::context::Context;
-use marshal::de::rc::DeserializeRc;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::encode::Encoder;
 use marshal::ser::rc::SerializeRc;
 use marshal::ser::Serialize;
-use marshal::{derive_deserialize_rc_transparent, Deserialize, Serialize};
+use marshal::{derive_deserialize_arc_transparent, derive_deserialize_rc_transparent, Deserialize, Serialize};
 use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
@@ -31,12 +30,28 @@ use marshal_json::DeserializeJson;
 use marshal_json::SerializeJson;
 use marshal_object::de::{deserialize_object, DeserializeVariant};
 use marshal_object::ser::serialize_object;
-use marshal_object::{bin_format, json_format, ObjectDescriptor};
+use marshal_object::{bin_format, derive_arc_object, derive_box_object, derive_rc_object, json_format, ObjectDescriptor};
 use marshal_object::{define_variant, derive_object, AsDiscriminant};
 use marshal_object::{VariantRegistration, OBJECT_REGISTRY};
 
-derive_object!(Rc, MyTrait, MyTraitParent, bin_format, json_format);
-trait MyTrait: 'static + MyTraitParent + Debug + Any {}
+pub struct BoxMyTrait;
+derive_box_object!(BoxMyTrait, MyTrait, bin_format, json_format);
+pub struct RcMyTrait;
+derive_rc_object!(RcMyTrait, MyTrait, bin_format, json_format);
+
+pub struct ArcMyTrait;
+derive_arc_object!(ArcMyTrait, MyTrait, bin_format, json_format);
+pub trait MyTrait:
+    'static
+    + Debug
+    + Any
+    + SerializeJson
+    + SerializeBin
+    + AsDiscriminant<BoxMyTrait>
+    + AsDiscriminant<RcMyTrait>
+    + AsDiscriminant<ArcMyTrait>
+{
+}
 
 impl MyTrait for A {}
 impl MyTrait for B {}
@@ -47,11 +62,17 @@ struct A(u8);
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct B(u16);
 
-define_variant!(Rc, A, MyTrait);
-define_variant!(Rc, B, MyTrait);
+define_variant!(RcMyTrait, A);
+define_variant!(RcMyTrait, B);
+define_variant!(BoxMyTrait, A);
+define_variant!(BoxMyTrait, B);
+define_variant!(ArcMyTrait, A);
+define_variant!(ArcMyTrait, B);
 
 derive_deserialize_rc_transparent!(A);
 derive_deserialize_rc_transparent!(B);
+derive_deserialize_arc_transparent!(A);
+derive_deserialize_arc_transparent!(B);
 
 impl<E: Encoder> SerializeRc<E> for A {
     fn serialize_rc(
