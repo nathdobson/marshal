@@ -84,3 +84,17 @@ impl<O: Object, DV: DeserializeVariant> Index<usize> for DeserializeVariantTable
         &self.variants[index]
     }
 }
+
+pub struct DeserializeVariantSet(TypeMap);
+
+impl DeserializeVariantSet {
+    fn new() -> Self {
+        DeserializeVariantSet(TypeMap::new())
+    }
+    pub fn insert<DV: DeserializeVariant>(&mut self, dv: DV) {
+        self.0.insert(dv);
+    }
+    pub fn get<DV: DeserializeVariant>(&self) -> Option<&DV> {
+        self.0.get::<DV>()
+    }
+}

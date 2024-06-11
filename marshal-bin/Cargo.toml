@@ -14,6 +14,7 @@ safe-once-map = { workspace = true }
 safe-once = { workspace = true }
 lock_api = "0.4.12"
 marshal = { workspace = true }
+marshal-object = {workspace=true}
 
 [dev-dependencies]
 marshal-derive = { workspace = true }

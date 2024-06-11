@@ -1,17 +1,16 @@
 use std::marker::PhantomData;
 use std::ops::CoerceUnsized;
 
-use type_map::concurrent::TypeMap;
-
-use crate::de::{DeserializeProvider, DeserializeVariant, DeserializeVariantProvider};
+use crate::decode::full::JsonDecoder;
+use crate::SerializeJson;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
-use marshal_json::decode::full::JsonDecoder;
-use marshal_json::DeserializeJson;
-use marshal_json::SerializeJson;
+use marshal_object::de::{DeserializeProvider, DeserializeVariant, DeserializeVariantProvider};
+use marshal_object::reexports::type_map::concurrent::TypeMap;
+use marshal_object::Object;
 
-use crate::{Object};
+use crate::DeserializeJson;
 
 pub trait SerializeDyn = SerializeJson;
 
@@ -52,16 +51,16 @@ where
 impl<O: Object> DeserializeVariant for Box<dyn DeserializeVariantJson<O>> {}
 
 #[macro_export]
-macro_rules! json_format {
+macro_rules! json_object {
     ($carrier:path) => {
-        impl<'de> $crate::de::DeserializeVariantForDiscriminant<'de, $crate::reexports::marshal_json::decode::full::JsonDecoder<'de>> for $carrier {
+        impl<'de> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::JsonDecoder<'de>> for $carrier {
             fn deserialize_variant(
                 disc: usize,
-                d: <$crate::reexports::marshal_json::decode::full::JsonDecoder<'de> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
+                d: <$crate::decode::full::JsonDecoder<'de> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::Object>::Pointer<<$carrier as $crate::Object>::Dyn>> {
-                static DESERIALIZERS: LazyLock<$crate::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::json_format::DeserializeVariantJson<$carrier>>>> =
-                    LazyLock::new($crate::de::DeserializeVariantTable::new);
+            ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::reexports::marshal_object::Object>::Pointer<<$carrier as $crate::reexports::marshal_object::Object>::Dyn>> {
+                static DESERIALIZERS: LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::json_object::DeserializeVariantJson<$carrier>>>> =
+                    LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
                 DESERIALIZERS[disc].deserialize_variant_json(d, ctx)
             }
         }

@@ -24,34 +24,34 @@ use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
 use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::DeserializeBin;
 use marshal_bin::SerializeBin;
-use marshal_bin::{DeserializeBin, VU128_MAX_PADDING};
+use marshal_bin::{bin_object, VU128_MAX_PADDING};
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
-use marshal_json::DeserializeJson;
+use marshal_json::{DeserializeJson, json_object};
 use marshal_json::SerializeJson;
 use marshal_object::de::{deserialize_object, DeserializeVariantForDiscriminant};
 use marshal_object::ser::serialize_object;
 use marshal_object::{
-    bin_format, derive_arc_object, derive_box_object, derive_rc_object, derive_variant,
-    json_format, ObjectDescriptor,
+    derive_arc_object, derive_box_object, derive_rc_object, derive_variant, ObjectDescriptor,
 };
 use marshal_object::{derive_object, AsDiscriminant};
 use marshal_object::{VariantRegistration, OBJECT_REGISTRY};
 
 pub struct BoxMyTrait;
-derive_box_object!(BoxMyTrait, MyTrait, bin_format, json_format);
+derive_box_object!(BoxMyTrait, MyTrait, bin_object, json_object);
 pub struct RcMyTrait;
-derive_rc_object!(RcMyTrait, MyTrait, bin_format, json_format);
+derive_rc_object!(RcMyTrait, MyTrait, bin_object, json_object);
 
 pub struct ArcMyTrait;
-derive_arc_object!(ArcMyTrait, MyTrait, bin_format, json_format);
+derive_arc_object!(ArcMyTrait, MyTrait, bin_object, json_object);
 pub trait MyTrait:
     'static
     + Debug
     + Any
-    + bin_format::SerializeDyn
-    + json_format::SerializeDyn
+    + bin_object::SerializeDyn
+    + json_object::SerializeDyn
     + AsDiscriminant<BoxMyTrait>
     + AsDiscriminant<RcMyTrait>
     + AsDiscriminant<ArcMyTrait>

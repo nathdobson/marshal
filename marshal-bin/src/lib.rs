@@ -7,6 +7,7 @@
 #![feature(cell_update)]
 #![feature(never_type)]
 #![feature(trait_alias)]
+#![feature(coerce_unsized)]
 
 use crate::encode::full::BinEncoder;
 use num_derive::FromPrimitive;
@@ -20,6 +21,13 @@ pub mod encode;
 mod test;
 mod to_from_vu128;
 mod util;
+pub mod bin_object;
+
+pub mod reexports{
+    pub use marshal;
+    pub use marshal_object;
+    pub use anyhow;
+}
 
 pub const VU128_MAX_PADDING: usize = 17;
 

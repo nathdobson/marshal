@@ -498,6 +498,7 @@ dependencies = [
  "marshal",
  "marshal-core",
  "marshal-derive",
+ "marshal-object",
  "num-derive",
  "num-traits",
  "safe-once",
@@ -535,6 +536,7 @@ dependencies = [
  "marshal",
  "marshal-core",
  "marshal-derive",
+ "marshal-object",
  "serde_json",
  "utf8-width",
 ]

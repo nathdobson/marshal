@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 #![feature(never_type)]
 #![feature(trait_alias)]
+#![feature(coerce_unsized)]
 
 use crate::decode::full::JsonDecoder;
 use crate::encode::full::JsonEncoder;
@@ -16,6 +17,14 @@ pub mod encode;
 #[cfg(test)]
 mod test;
 pub mod value;
+pub mod json_object;
+
+#[doc(hidden)]
+pub mod reexports{
+    pub use marshal_object;
+    pub use marshal;
+    pub use anyhow;
+}
 
 pub trait SerializeJson = Serialize<JsonEncoder>;
 pub trait DeserializeJson<'de> = Deserialize<'de, JsonDecoder<'de>>;

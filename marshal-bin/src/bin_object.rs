@@ -1,15 +1,14 @@
 use std::marker::PhantomData;
 use std::ops::CoerceUnsized;
 
-use type_map::concurrent::TypeMap;
-
-use crate::de::{DeserializeProvider, DeserializeVariant, DeserializeVariantProvider};
-use crate::{Object};
+use crate::decode::full::BinDecoder;
+use crate::SerializeBin;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
-use marshal_bin::decode::full::BinDecoder;
-use marshal_bin::SerializeBin;
+use marshal_object::de::{DeserializeProvider, DeserializeVariant, DeserializeVariantProvider};
+use marshal_object::reexports::type_map::concurrent::TypeMap;
+use marshal_object::Object;
 
 pub trait SerializeDyn = SerializeBin;
 
@@ -52,16 +51,16 @@ where
 impl<O: Object> DeserializeVariant for Box<dyn DeserializeVariantBin<O>> {}
 
 #[macro_export]
-macro_rules! bin_format {
+macro_rules! bin_object {
     ($carrier:path) => {
-        impl<'de,'s> $crate::de::DeserializeVariantForDiscriminant<'de, $crate::reexports::marshal_bin::decode::full::BinDecoder<'de,'s>> for $carrier {
+        impl<'de,'s> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::BinDecoder<'de,'s>> for $carrier {
             fn deserialize_variant(
                 disc: usize,
-                d: <$crate::reexports::marshal_bin::decode::full::BinDecoder<'de,'s> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
+                d: <$crate::decode::full::BinDecoder<'de,'s> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::Object>::Pointer<<$carrier as $crate::Object>::Dyn>> {
-                static DESERIALIZERS: LazyLock<$crate::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::bin_format::DeserializeVariantBin<$carrier>>>> =
-                    LazyLock::new($crate::de::DeserializeVariantTable::new);
+            ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::reexports::marshal_object::Object>::Pointer<<$carrier as $crate::reexports::marshal_object::Object>::Dyn>> {
+                static DESERIALIZERS: LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::bin_object::DeserializeVariantBin<$carrier>>>> =
+                    LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
                 DESERIALIZERS[disc].bin_deserialize_variant(d, ctx)
             }
         }

@@ -7,7 +7,9 @@ edition = "2021"
 marshal = {workspace=true}
 catalog = {workspace=true}
 anyhow= {workspace=true}
-marshal-json = {workspace=true}
-marshal-bin = {workspace=true}
 safe-once = {workspace=true}
 type-map={workspace=true}
+
+[dev-dependencies]
+marshal-bin = {workspace=true}
+marshal-json = {workspace=true}

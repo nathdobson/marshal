@@ -16,9 +16,7 @@ use crate::de::DeserializeVariant;
 use catalog::{Builder, BuilderFrom, Registry};
 use type_map::concurrent::TypeMap;
 
-pub mod bin_format;
 pub mod de;
-pub mod json_format;
 pub mod ser;
 
 #[doc(hidden)]
@@ -26,8 +24,6 @@ pub mod reexports {
     pub use anyhow;
     pub use catalog;
     pub use marshal;
-    pub use marshal_bin;
-    pub use marshal_json;
     pub use safe_once;
     pub use type_map;
 }
@@ -41,32 +37,6 @@ pub trait Object: 'static + Sized {
     type Pointer<T: ?Sized>;
     fn object_descriptor() -> &'static ObjectDescriptor;
 }
-//
-// pub trait ObjectPointer: 'static + Sized {
-//     type Object: 'static + ?Sized + Object;
-// }
-// impl<O: ?Sized + Object> ObjectPointer for Box<O> {
-//     type Object = O;
-// }
-// impl<O: ?Sized + Object> ObjectPointer for Arc<O> {
-//     type Object = O;
-// }
-// impl<O: ?Sized + Object> ObjectPointer for Rc<O> {
-//     type Object = O;
-// }
-//
-// pub trait VariantPointer: 'static + Sized {
-//     type Variant: 'static;
-// }
-// impl<V: 'static> VariantPointer for Box<V> {
-//     type Variant = V;
-// }
-// impl<V: 'static> VariantPointer for Arc<V> {
-//     type Variant = V;
-// }
-// impl<V: 'static> VariantPointer for Rc<V> {
-//     type Variant = V;
-// }
 
 pub struct VariantDescriptor {
     variant_type: TypeId,
@@ -74,19 +44,6 @@ pub struct VariantDescriptor {
     deserializers: TypeMap,
 }
 
-pub struct DeserializeVariantSet(TypeMap);
-
-impl DeserializeVariantSet {
-    pub fn new() -> Self {
-        DeserializeVariantSet(TypeMap::new())
-    }
-    pub fn insert<DV: DeserializeVariant>(&mut self, dv: DV) {
-        self.0.insert(dv);
-    }
-    pub fn get<DV: DeserializeVariant>(&self) -> Option<&DV> {
-        self.0.get::<DV>()
-    }
-}
 
 pub struct ObjectDescriptor {
     variants: Vec<VariantDescriptor>,
