@@ -1,11 +1,13 @@
 use crate::decode::{BinAnyDecoder, BinDecoderSchema, SimpleBinDecoder};
+use crate::DeserializeBin;
+use marshal::context::Context;
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::{PoisonAnyDecoder, PoisonDecoder, PoisonState};
 use marshal_core::decode::simple::{SimpleAnyDecoder, SimpleDecoderAdapter};
 use marshal_core::decode::Decoder;
 
 pub type BinDecoder<'de, 's> =
-PoisonDecoder<DepthBudgetDecoder<SimpleDecoderAdapter<SimpleBinDecoder<'de, 's>>>>;
+    PoisonDecoder<DepthBudgetDecoder<SimpleDecoderAdapter<SimpleBinDecoder<'de, 's>>>>;
 
 pub struct BinDecoderBuilder<'de, 's> {
     inner: SimpleBinDecoder<'de, 's>,
@@ -29,6 +31,11 @@ impl<'de, 's> BinDecoderBuilder<'de, 's> {
                 SimpleAnyDecoder::new(&mut self.inner, BinAnyDecoder::Read),
             ),
         )
+    }
+    pub fn deserialize<T: DeserializeBin<'de>>(mut self, ctx: &mut Context) -> anyhow::Result<T> {
+        let result = T::deserialize(self.build(), ctx)?;
+        self.end()?;
+        Ok(result)
     }
     pub fn end(self) -> anyhow::Result<()> {
         self.poison.check()?;

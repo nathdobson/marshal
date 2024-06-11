@@ -265,11 +265,11 @@ impl SimpleEncoder for SimpleJsonEncoder {
         any: Self::AnyEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
     ) -> anyhow::Result<()> {
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
-        self.write_str_literal(ctx, variants[variant_index as usize])?;
+        self.write_str_literal(ctx, variants[variant_index])?;
         self.write_colon(ctx)?;
         self.write_null(ctx)?;
         self.close_map(any.ctx)?;
@@ -281,12 +281,12 @@ impl SimpleEncoder for SimpleJsonEncoder {
         any: Self::AnyEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         _len: usize,
     ) -> anyhow::Result<Self::TupleVariantEncoder> {
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
-        self.write_str_literal(ctx, variants[variant_index as usize])?;
+        self.write_str_literal(ctx, variants[variant_index])?;
         self.write_colon(ctx)?;
         self.open_list(ctx)?;
         Ok(JsonTupleVariantEncoder {
@@ -300,12 +300,12 @@ impl SimpleEncoder for SimpleJsonEncoder {
         any: Self::AnyEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         _fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructVariantEncoder> {
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
-        self.write_str_literal(ctx, variants[variant_index as usize])?;
+        self.write_str_literal(ctx, variants[variant_index])?;
         self.write_colon(ctx)?;
         self.open_map(ctx)?;
         Ok(JsonStructVariantEncoder {

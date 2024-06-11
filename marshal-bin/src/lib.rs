@@ -6,15 +6,20 @@
 #![feature(test)]
 #![feature(cell_update)]
 #![feature(never_type)]
+#![feature(trait_alias)]
 
+use crate::encode::full::BinEncoder;
 use num_derive::FromPrimitive;
+use marshal::de::Deserialize;
+use marshal::ser::Serialize;
+use crate::decode::full::BinDecoder;
 
 pub mod decode;
+pub mod encode;
 #[cfg(test)]
 mod test;
 mod to_from_vu128;
 mod util;
-pub mod encode;
 
 pub const VU128_MAX_PADDING: usize = 17;
 
@@ -48,3 +53,6 @@ pub enum TypeTag {
     None = 25,
     Some = 26,
 }
+
+pub trait SerializeBin = for<'s> Serialize<BinEncoder<'s>>;
+pub trait DeserializeBin<'de> = for<'s> Deserialize<'de, BinDecoder<'de, 's>>;

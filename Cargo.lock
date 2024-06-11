@@ -547,6 +547,8 @@ dependencies = [
  "marshal",
  "marshal-bin",
  "marshal-json",
+ "safe-once",
+ "type-map",
 ]
 
 [[package]]

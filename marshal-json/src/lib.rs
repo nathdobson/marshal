@@ -4,9 +4,18 @@
 #![allow(unused_mut)]
 #![allow(dead_code)]
 #![feature(never_type)]
+#![feature(trait_alias)]
+
+use crate::decode::full::JsonDecoder;
+use crate::encode::full::JsonEncoder;
+use marshal::de::Deserialize;
+use marshal::ser::Serialize;
 
 pub mod decode;
 pub mod encode;
-pub mod value;
 #[cfg(test)]
 mod test;
+pub mod value;
+
+pub trait SerializeJson = Serialize<JsonEncoder>;
+pub trait DeserializeJson<'de> = Deserialize<'de, JsonDecoder<'de>>;

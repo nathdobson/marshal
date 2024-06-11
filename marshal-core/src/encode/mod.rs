@@ -1,6 +1,7 @@
 use crate::Primitive;
 
 pub mod simple;
+pub mod poison;
 
 pub trait Encoder: Sized {
     type AnyEncoder<'w>: AnyEncoder<'w, Self>
@@ -56,20 +57,20 @@ pub trait AnyEncoder<'w, W: Encoder> {
         self,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
     ) -> anyhow::Result<()>;
     fn encode_tuple_variant(
         self,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         len: usize,
     ) -> anyhow::Result<<W as Encoder>::TupleVariantEncoder<'w>>;
     fn encode_struct_variant(
         self,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         fields: &'static [&'static str],
     ) -> anyhow::Result<<W as Encoder>::StructVariantEncoder<'w>>;
     fn encode_seq(self, len: Option<usize>) -> anyhow::Result<<W as Encoder>::SeqEncoder<'w>>;

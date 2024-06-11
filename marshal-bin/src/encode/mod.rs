@@ -242,12 +242,12 @@ impl<'s> SimpleEncoder for SimpleBinEncoder<'s> {
         _any: Self::AnyEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
     ) -> anyhow::Result<()> {
         let enum_def = self.get_or_write_enum_def(variants)?;
         self.write_tag(TypeTag::Enum)?;
         self.write_usize(enum_def)?;
-        self.write_vu128(variant_index)?;
+        self.write_usize(variant_index)?;
         self.write_tag(TypeTag::Unit)?;
         Ok(())
     }
@@ -257,13 +257,13 @@ impl<'s> SimpleEncoder for SimpleBinEncoder<'s> {
         _any: Self::AnyEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         len: usize,
     ) -> anyhow::Result<Self::TupleVariantEncoder> {
         let enum_def = self.get_or_write_enum_def(variants)?;
         self.write_tag(TypeTag::Enum)?;
         self.write_usize(enum_def)?;
-        self.write_vu128(variant_index)?;
+        self.write_usize(variant_index)?;
         self.write_tag(TypeTag::TupleStruct)?;
         self.write_usize(len)?;
         Ok(())
@@ -274,14 +274,14 @@ impl<'s> SimpleEncoder for SimpleBinEncoder<'s> {
         _any: Self::AnyEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructVariantEncoder> {
         let variant_def = self.get_or_write_enum_def(variants)?;
         let field_def = self.get_or_write_enum_def(fields)?;
         self.write_tag(TypeTag::Enum)?;
         self.write_usize(variant_def)?;
-        self.write_vu128(variant_index)?;
+        self.write_usize(variant_index)?;
         self.write_tag(TypeTag::Struct)?;
         self.write_usize(field_def)?;
         Ok(())
@@ -304,7 +304,7 @@ impl<'s> SimpleEncoder for SimpleBinEncoder<'s> {
         len: usize,
     ) -> anyhow::Result<Self::TupleEncoder> {
         self.write_tag(TypeTag::Tuple)?;
-        self.write_vu128(len as u32)?;
+        self.write_usize(len)?;
         Ok(())
     }
 

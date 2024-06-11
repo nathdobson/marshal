@@ -46,14 +46,14 @@ pub trait SimpleEncoder {
         any: Self::AnyEncoder,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
     ) -> anyhow::Result<()>;
     fn encode_tuple_variant(
         &mut self,
         any: Self::AnyEncoder,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         len: usize,
     ) -> anyhow::Result<Self::TupleVariantEncoder>;
     fn encode_struct_variant(
@@ -61,7 +61,7 @@ pub trait SimpleEncoder {
         any: Self::AnyEncoder,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructVariantEncoder>;
     fn encode_seq(
@@ -202,7 +202,7 @@ impl<'w, T: SimpleEncoder> AnyEncoder<'w, SimpleEncoderAdapter<T>> for SimpleAny
         mut self,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
     ) -> anyhow::Result<()> {
         self.encoder
             .encode_unit_variant(self.inner, name, variants, variant_index)
@@ -212,7 +212,7 @@ impl<'w, T: SimpleEncoder> AnyEncoder<'w, SimpleEncoderAdapter<T>> for SimpleAny
         mut self,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         len: usize,
     ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::TupleVariantEncoder<'w>> {
         let inner =
@@ -228,7 +228,7 @@ impl<'w, T: SimpleEncoder> AnyEncoder<'w, SimpleEncoderAdapter<T>> for SimpleAny
         mut self,
         name: &'static str,
         variants: &'static [&'static str],
-        variant_index: u32,
+        variant_index: usize,
         fields: &'static [&'static str],
     ) -> anyhow::Result<<SimpleEncoderAdapter<T> as Encoder>::StructVariantEncoder<'w>> {
         let inner =

@@ -477,7 +477,6 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     fields: _,
                     discriminant: _,
                 } = variant;
-                let variant_index = variant_index as u32;
                 match &variant.fields {
                     Fields::Named(fields) => {
                         let field_idents: Vec<_> = fields
