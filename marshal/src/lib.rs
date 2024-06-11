@@ -15,6 +15,7 @@ pub mod de;
 pub mod ser;
 
 pub use marshal_core::*;
+pub use marshal_derive::*;
 
 #[doc(hidden)]
 pub mod reexports {

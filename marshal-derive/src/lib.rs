@@ -134,7 +134,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 #(
                                     let #field_names = #field_names.ok_or(#schema_error::MissingField{field_name:#field_name_literals})?;
                                 )*
-                                Ok(#type_ident {
+                                ::std::result::Result::Ok(#type_ident {
                                     #(
                                         #field_names
                                     ),*
@@ -164,7 +164,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                             )*
                                         );
                                         #as_seq_decoder::ignore(decoder)?;
-                                        Ok(result)
+                                        ::std::result::Result::Ok(result)
                                     },
                                     v => v.mismatch("seq")?
                                 }
@@ -177,7 +177,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
                             fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
                                 match #as_any_decoder::decode(decoder, #decode_hint_type::UnitStruct{name:#type_name})?{
-                                    #decoder_view_type::Primitive(#primitive_type::Unit) => Ok(#type_ident),
+                                    #decoder_view_type::Primitive(#primitive_type::Unit) => ::std::result::Result::Ok(#type_ident),
                                     v => v.mismatch("unit")?,
                                 }
                             }
@@ -337,7 +337,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                     _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
                                 };
                                 #as_enum_decoder::decode_end(decoder)?;
-                                Ok(result)
+                                ::std::result::Result::Ok(result)
                             },
                             v => v.mismatch("enum")?,
                         }
@@ -397,7 +397,8 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
     let tuple_struct_encoder_type = quote!(<W as #encoder_trait>::TupleStructEncoder<'_>);
     let as_tuple_struct_encoder =
         quote!(<#tuple_struct_encoder_type as #tuple_struct_encoder_trait<W>>);
-    let result_type = quote!(::marshal::reexports::anyhow::Result);
+    let anyhow = quote!(::marshal::reexports::anyhow);
+    let result_type = quote!(#anyhow::Result);
 
     match data {
         Data::Struct(data) => {
@@ -410,7 +411,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 Fields::Unit => {
                     output = quote! {
                         impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
-                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
                                 #as_any_encoder::encode_unit_struct(encoder,#type_name)
                             }
                         }
@@ -429,7 +430,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
 
                     output = quote! {
                         impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
-                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
                                 let mut encoder = #as_any_encoder::encode_struct(encoder, #type_name, &[
                                         #(
                                             #field_name_literals
@@ -439,7 +440,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                                     #serialize_trait::<W>::serialize(&self.#field_names, #as_struct_encoder::encode_field(&mut encoder)?, ctx)?;
                                 )*
                                 #as_struct_encoder::end(encoder)?;
-                                Ok(())
+                                ::std::result::Result::Ok(())
                             }
                         }
                     }
@@ -449,7 +450,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     let field_index: Vec<_> = (0..field_count).map(syn::Index::from).collect();
                     output = quote! {
                         impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
-                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
                                 let mut encoder=#as_any_encoder::encode_tuple_struct(encoder, #type_name, #field_count)?;
                                 #(
                                     #serialize_trait::<W>::serialize(&self.#field_index, #as_tuple_struct_encoder::encode_field(&mut encoder)?, ctx)?;
@@ -493,7 +494,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                                     #serialize_trait::<W>::serialize(#field_idents, #as_struct_variant_encoder::encode_field(&mut encoder)?, ctx)?;
                                 )*
                                 #as_struct_variant_encoder::end(encoder)?;
-                                Ok(())
+                                ::std::result::Result::Ok(())
                             },
                         });
                     }
@@ -509,7 +510,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                                     #serialize_trait::<W>::serialize(#field_idents, #as_tuple_variant_encoder::encode_field(&mut encoder)?, ctx)?;
                                 )*
                                 #as_tuple_variant_encoder::end(encoder)?;
-                                Ok(())
+                                ::std::result::Result::Ok(())
                             },
                         });
                     }
@@ -517,7 +518,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                         matches.push(quote! {
                             Self::#variant_ident => {
                                 #as_any_encoder::encode_unit_variant(encoder, #type_name, &[#( #variant_names ),*], #variant_index)?;
-                                Ok(())
+                                ::std::result::Result::Ok(())
                             },
                         });
                     }
@@ -525,7 +526,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
             }
             output = quote! {
                 impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
-                    fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> anyhow::Result<()> {
+                    fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
                         match self{
                             #(
                                 #matches

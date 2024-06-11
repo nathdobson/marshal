@@ -484,6 +484,7 @@ dependencies = [
  "base64",
  "itertools 0.13.0",
  "marshal-core",
+ "marshal-derive",
  "type-map",
 ]
 

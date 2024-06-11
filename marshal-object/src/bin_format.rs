@@ -79,17 +79,18 @@ impl<OP: ObjectPointer> BinDeserializerTable<OP> {
 
 #[macro_export]
 macro_rules! bin_format {
-    ($tr:ident) => {
-        impl<'de,'s> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_bin::decode::full::BinDecoder<'de,'s>, ::std::boxed::Box<dyn $tr>> for dyn $tr {
+    ($ptr:ident, $tr:ident) => {
+        impl<'de,'s> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_bin::decode::full::BinDecoder<'de,'s>, $ptr<dyn $tr>> for dyn $tr {
             fn deserialize_variant(
                 disc: usize,
                 d: <$crate::reexports::marshal_bin::decode::full::BinDecoder<'de,'s> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<::std::boxed::Box<Self>> {
-                static DESERIALIZERS: LazyLock<$crate::bin_format::BinDeserializerTable<Box<dyn $tr>>> =
+            ) -> $crate::reexports::anyhow::Result<$ptr<Self>> {
+                static DESERIALIZERS: LazyLock<$crate::bin_format::BinDeserializerTable<$ptr<dyn $tr>>> =
                     LazyLock::new($crate::bin_format::BinDeserializerTable::new);
                 DESERIALIZERS.deserialize_object(disc, d, ctx)
             }
         }
+
     };
 }

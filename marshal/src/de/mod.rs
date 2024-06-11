@@ -12,7 +12,7 @@ mod vec;
 mod never;
 mod option;
 mod boxed;
-mod rc;
+pub mod rc;
 
 pub trait Deserialize<'de, P: Decoder<'de>>: Sized {
     fn deserialize<'p>(p: P::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self>;

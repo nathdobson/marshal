@@ -85,14 +85,14 @@ impl<OP: ObjectPointer> JsonDeserializerTable<OP> {
 
 #[macro_export]
 macro_rules! json_format {
-    ($tr:ident) => {
-        impl<'de> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_json::decode::full::JsonDecoder<'de>, std::boxed::Box<dyn $tr>> for dyn $tr {
+    ($ptr:ident, $tr:ident) => {
+        impl<'de> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_json::decode::full::JsonDecoder<'de>, $ptr<dyn $tr>> for dyn $tr {
             fn deserialize_variant(
                 disc: usize,
                 d: <$crate::reexports::marshal_json::decode::full::JsonDecoder<'de> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<::std::boxed::Box<Self>> {
-                static DESERIALIZERS: LazyLock<$crate::json_format::JsonDeserializerTable<Box<dyn $tr>>> =
+            ) -> $crate::reexports::anyhow::Result<$ptr<Self>> {
+                static DESERIALIZERS: LazyLock<$crate::json_format::JsonDeserializerTable<$ptr<dyn $tr>>> =
                     LazyLock::new($crate::json_format::JsonDeserializerTable::new);
                 DESERIALIZERS.deserialize_object(disc, d, ctx)
             }

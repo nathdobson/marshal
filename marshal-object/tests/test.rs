@@ -7,14 +7,18 @@
 
 use std::any::{Any, TypeId};
 use std::fmt::Debug;
+use std::rc::Rc;
 
 use safe_once::sync::LazyLock;
 
 use marshal::context::Context;
+use marshal::de::rc::DeserializeRc;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::encode::Encoder;
+use marshal::ser::rc::SerializeRc;
 use marshal::ser::Serialize;
+use marshal::{derive_deserialize_rc_transparent, Deserialize, Serialize};
 use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
@@ -31,14 +35,43 @@ use marshal_object::{bin_format, json_format, ObjectDescriptor};
 use marshal_object::{define_variant, derive_object, AsDiscriminant};
 use marshal_object::{VariantRegistration, OBJECT_REGISTRY};
 
-derive_object!(MyTrait, MyTraitParent, bin_format, json_format);
+derive_object!(Rc, MyTrait, MyTraitParent, bin_format, json_format);
 trait MyTrait: 'static + MyTraitParent + Debug + Any {}
 
-impl MyTrait for u8 {}
-impl MyTrait for u16 {}
+impl MyTrait for A {}
+impl MyTrait for B {}
 
-define_variant!(Box, u8, MyTrait);
-define_variant!(Box, u16, MyTrait);
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct A(u8);
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct B(u16);
+
+define_variant!(Rc, A, MyTrait);
+define_variant!(Rc, B, MyTrait);
+
+derive_deserialize_rc_transparent!(A);
+derive_deserialize_rc_transparent!(B);
+
+impl<E: Encoder> SerializeRc<E> for A {
+    fn serialize_rc(
+        this: &Rc<Self>,
+        e: E::AnyEncoder<'_>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        <Self as Serialize<E>>::serialize(&*this, e, ctx)
+    }
+}
+
+impl<E: Encoder> SerializeRc<E> for B {
+    fn serialize_rc(
+        this: &Rc<Self>,
+        e: E::AnyEncoder<'_>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        <Self as Serialize<E>>::serialize(&*this, e, ctx)
+    }
+}
 
 #[track_caller]
 pub fn json_round_trip<T: Debug + SerializeJson + for<'de> DeserializeJson<'de>>(
@@ -61,7 +94,12 @@ pub fn bin_round_trip<T: Debug + SerializeBin + for<'de> DeserializeBin<'de>>(
     let found = BinEncoderBuilder::new(&mut BinEncoderSchema::new())
         .serialize(input, &mut Context::new())?;
     let compare = &found[0..found.len() - VU128_MAX_PADDING];
-    assert!(expected.contains(&compare), "{:?}", compare);
+    assert!(
+        expected.contains(&compare),
+        "{:?} \n{:?}",
+        compare,
+        expected
+    );
     let output = BinDecoderBuilder::new(&found, &mut BinDecoderSchema::new())
         .deserialize::<T>(&mut Context::new())?;
     Ok(output)
@@ -69,38 +107,44 @@ pub fn bin_round_trip<T: Debug + SerializeBin + for<'de> DeserializeBin<'de>>(
 
 #[test]
 fn test_json() -> anyhow::Result<()> {
-    let input = Box::new(42u8) as Box<dyn MyTrait>;
+    let input = Rc::new(A(42u8)) as Rc<dyn MyTrait>;
     let output = json_round_trip(
         &input,
         r#"{
-  "u8": [
-    42
+  "test::A": [
+    [
+      42
+    ]
   ]
 }"#,
     )?;
-    let output: u8 = *Box::<dyn Any>::downcast::<u8>(output).unwrap();
-    assert_eq!(output, 42);
+    let output: &A = &*Rc::<dyn Any>::downcast::<A>(output).unwrap();
+    assert_eq!(output, &A(42));
     Ok(())
 }
 
 #[test]
 fn test_bin() -> anyhow::Result<()> {
-    let input = Box::new(42u8) as Box<dyn MyTrait>;
+    let input = Rc::new(A(42u8)) as Rc<dyn MyTrait>;
     let output = bin_round_trip(
         &input,
         &[
             &[
-                21, 2, 2, b'u', b'8', 3, b'u', b'1', b'6', //
-                18, 0, 0, 17, 1, 7, 42,
+                21, 2, //
+                7, b't', b'e', b's', b't', b':', b':', b'A', //
+                7, b't', b'e', b's', b't', b':', b':', b'B', //
+                18, 0, 0, 17, 1, 17, 1, 7, 42,
             ],
             &[
-                21, 2, 3, b'u', b'1', b'6', 2, b'u', b'8', //
-                18, 0, 1, 17, 1, 7, 42,
+                21, 2, //
+                7, b't', b'e', b's', b't', b':', b':', b'B', //
+                7, b't', b'e', b's', b't', b':', b':', b'A', //
+                18, 0, 1, 17, 1, 17, 1, 7, 42,
             ],
             //
         ],
     )?;
-    let output: u8 = *Box::<dyn Any>::downcast::<u8>(output).unwrap();
-    assert_eq!(output, 42);
+    let output: &A = &*Rc::<dyn Any>::downcast::<A>(output).unwrap();
+    assert_eq!(output, &A(42));
     Ok(())
 }

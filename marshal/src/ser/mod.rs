@@ -10,7 +10,7 @@ mod string;
 mod tuple;
 mod vec;
 mod boxed;
-mod rc;
+pub mod rc;
 
 pub trait Serialize<W: Encoder> {
     fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()>;

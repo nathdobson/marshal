@@ -37,6 +37,7 @@ pub trait AsDiscriminant<Key> {
 pub trait Object: 'static + AsDiscriminant<Self::Key> {
     type Key;
     type Format;
+    type Pointer: ObjectPointer;
     fn object_descriptor() -> &'static ObjectDescriptor;
 }
 
@@ -247,11 +248,11 @@ macro_rules! define_variant {
 
 #[macro_export]
 macro_rules! derive_object {
-    ($tr:ident, $parent:ident $(, $format:ident)*) => {
+    ($ptr:ident, $tr:ident, $parent:ident $(, $format:ident)*) => {
         pub struct Key;
         pub trait $parent = AsDiscriminant<Key> $( + $format::SerializeDyn )*;
         const _: () = {
-            $( $format!($tr); )*
+            $( $format!($ptr, $tr); )*
             pub struct CustomFormat;
             impl $crate::de::Format for CustomFormat {}
             impl<VP: $crate::VariantPointer> $crate::de::VariantFormat<VP> for CustomFormat
@@ -272,6 +273,7 @@ macro_rules! derive_object {
             impl $crate::Object for dyn $tr {
                 type Key = Key;
                 type Format = CustomFormat;
+                type Pointer = $ptr<dyn $tr>;
                 fn object_descriptor() -> &'static ObjectDescriptor {
                     static ENTRY: LazyLock<&'static ObjectDescriptor> = LazyLock::new(|| {
                         OBJECT_REGISTRY
@@ -295,6 +297,22 @@ macro_rules! derive_object {
             {
                 fn deserialize(p: D::AnyDecoder<'_>, ctx: &mut Context) -> anyhow::Result<Self> {
                     deserialize_object::<D, dyn $tr, Box<dyn $tr>>(p, ctx)
+                }
+            }
+            impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeRc<E> for dyn $tr
+            where
+                dyn $tr: Serialize<E>,
+            {
+                fn serialize_rc(this: &Rc<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+                    serialize_object(&**this, e, ctx)
+                }
+            }
+            impl<'de, D: Decoder<'de>> $crate::reexports::marshal::de::rc::DeserializeRc<'de, D> for dyn $tr
+            where
+                dyn $tr: DeserializeVariant<'de, D, Rc<dyn $tr>>,
+            {
+                fn deserialize_rc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Rc<Self>> {
+                    deserialize_object::<D, dyn $tr, Rc<dyn $tr>>(p, ctx)
                 }
             }
         };
