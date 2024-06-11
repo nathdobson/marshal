@@ -53,3 +53,33 @@ pub trait SerializeArcWeak<E: Encoder> {
         ctx: &mut Context,
     ) -> anyhow::Result<()>;
 }
+
+#[macro_export]
+macro_rules! derive_serialize_rc_transparent {
+    ($ty:ty) => {
+        impl<E: $crate::encode::Encoder> $crate::ser::rc::SerializeRc<E> for $ty {
+            fn serialize_rc(
+                this: &::std::rc::Rc<Self>,
+                e: <E as $crate::encode::Encoder>::AnyEncoder<'_>,
+                ctx: &mut $crate::context::Context,
+            ) -> $crate::reexports::anyhow::Result<()> {
+                <Self as $crate::ser::Serialize<E>>::serialize(&**this, e, ctx)
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! derive_serialize_arc_transparent {
+    ($ty:ty) => {
+        impl<E: $crate::encode::Encoder> $crate::ser::rc::SerializeArc<E> for $ty {
+            fn serialize_arc(
+                this: &::std::sync::Arc<Self>,
+                e: <E as $crate::encode::Encoder>::AnyEncoder<'_>,
+                ctx: &mut $crate::context::Context,
+            ) -> $crate::reexports::anyhow::Result<()> {
+                <Self as $crate::ser::Serialize<E>>::serialize(&**this, e, ctx)
+            }
+        }
+    };
+}

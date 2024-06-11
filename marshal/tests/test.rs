@@ -6,4 +6,6 @@ mod test_no_prelude {
     struct Foo;
     marshal::derive_deserialize_rc_transparent!(Foo);
     marshal::derive_deserialize_arc_transparent!(Foo);
+    marshal::derive_serialize_rc_transparent!(Foo);
+    marshal::derive_serialize_arc_transparent!(Foo);
 }

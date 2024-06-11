@@ -5,7 +5,7 @@
 #![feature(unsize)]
 #![feature(coerce_unsized)]
 
-use std::any::{Any};
+use std::any::Any;
 use std::fmt::Debug;
 use std::rc::Rc;
 
@@ -15,9 +15,11 @@ use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::encode::Encoder;
-use marshal::ser::rc::SerializeRc;
 use marshal::ser::Serialize;
-use marshal::{derive_deserialize_arc_transparent, derive_deserialize_rc_transparent, Deserialize, Serialize};
+use marshal::{
+    derive_deserialize_arc_transparent, derive_deserialize_rc_transparent,
+    derive_serialize_arc_transparent, derive_serialize_rc_transparent, Deserialize, Serialize,
+};
 use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
@@ -28,10 +30,13 @@ use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_json::DeserializeJson;
 use marshal_json::SerializeJson;
-use marshal_object::de::{deserialize_object, DeserializeVariant};
+use marshal_object::de::{deserialize_object, DeserializeVariantForDiscriminant};
 use marshal_object::ser::serialize_object;
-use marshal_object::{bin_format, derive_arc_object, derive_box_object, derive_rc_object, json_format, ObjectDescriptor};
-use marshal_object::{define_variant, derive_object, AsDiscriminant};
+use marshal_object::{
+    bin_format, derive_arc_object, derive_box_object, derive_rc_object, derive_variant,
+    json_format, ObjectDescriptor,
+};
+use marshal_object::{derive_object, AsDiscriminant};
 use marshal_object::{VariantRegistration, OBJECT_REGISTRY};
 
 pub struct BoxMyTrait;
@@ -45,8 +50,8 @@ pub trait MyTrait:
     'static
     + Debug
     + Any
-    + SerializeJson
-    + SerializeBin
+    + bin_format::SerializeDyn
+    + json_format::SerializeDyn
     + AsDiscriminant<BoxMyTrait>
     + AsDiscriminant<RcMyTrait>
     + AsDiscriminant<ArcMyTrait>
@@ -62,37 +67,21 @@ struct A(u8);
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct B(u16);
 
-define_variant!(RcMyTrait, A);
-define_variant!(RcMyTrait, B);
-define_variant!(BoxMyTrait, A);
-define_variant!(BoxMyTrait, B);
-define_variant!(ArcMyTrait, A);
-define_variant!(ArcMyTrait, B);
+derive_variant!(RcMyTrait, A);
+derive_variant!(RcMyTrait, B);
+derive_variant!(BoxMyTrait, A);
+derive_variant!(BoxMyTrait, B);
+derive_variant!(ArcMyTrait, A);
+derive_variant!(ArcMyTrait, B);
 
 derive_deserialize_rc_transparent!(A);
 derive_deserialize_rc_transparent!(B);
 derive_deserialize_arc_transparent!(A);
 derive_deserialize_arc_transparent!(B);
-
-impl<E: Encoder> SerializeRc<E> for A {
-    fn serialize_rc(
-        this: &Rc<Self>,
-        e: E::AnyEncoder<'_>,
-        ctx: &mut Context,
-    ) -> anyhow::Result<()> {
-        <Self as Serialize<E>>::serialize(&*this, e, ctx)
-    }
-}
-
-impl<E: Encoder> SerializeRc<E> for B {
-    fn serialize_rc(
-        this: &Rc<Self>,
-        e: E::AnyEncoder<'_>,
-        ctx: &mut Context,
-    ) -> anyhow::Result<()> {
-        <Self as Serialize<E>>::serialize(&*this, e, ctx)
-    }
-}
+derive_serialize_rc_transparent!(A);
+derive_serialize_rc_transparent!(B);
+derive_serialize_arc_transparent!(A);
+derive_serialize_arc_transparent!(B);
 
 #[track_caller]
 pub fn json_round_trip<T: Debug + SerializeJson + for<'de> DeserializeJson<'de>>(
@@ -126,20 +115,28 @@ pub fn bin_round_trip<T: Debug + SerializeBin + for<'de> DeserializeBin<'de>>(
     Ok(output)
 }
 
-#[test]
-fn test_json() -> anyhow::Result<()> {
-    let input = Rc::new(A(42u8)) as Rc<dyn MyTrait>;
-    let output = json_round_trip(
-        &input,
-        r#"{
+const EXPECTED_JSON: &'static str = r#"{
   "test::A": [
     [
       42
     ]
   ]
-}"#,
-    )?;
+}"#;
+
+#[test]
+fn test_json_rc() -> anyhow::Result<()> {
+    let input = Rc::new(A(42u8)) as Rc<dyn MyTrait>;
+    let output = json_round_trip(&input, EXPECTED_JSON)?;
     let output: &A = &*Rc::<dyn Any>::downcast::<A>(output).unwrap();
+    assert_eq!(output, &A(42));
+    Ok(())
+}
+
+#[test]
+fn test_json_box() -> anyhow::Result<()> {
+    let input = Box::new(A(42u8)) as Box<dyn MyTrait>;
+    let output = json_round_trip(&input, EXPECTED_JSON)?;
+    let output: &A = &*Box::<dyn Any>::downcast::<A>(output).unwrap();
     assert_eq!(output, &A(42));
     Ok(())
 }

@@ -5,10 +5,14 @@
 #![feature(const_trait_impl)]
 #![feature(coerce_unsized)]
 
+/// Serialize and deserialize trait objects, with type safety and monomorphization.
+///
+///
 use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::marker::Unsize;
 
+use crate::de::DeserializeVariant;
 use catalog::{Builder, BuilderFrom, Registry};
 use type_map::concurrent::TypeMap;
 
@@ -70,6 +74,20 @@ pub struct VariantDescriptor {
     deserializers: TypeMap,
 }
 
+pub struct DeserializeVariantSet(TypeMap);
+
+impl DeserializeVariantSet {
+    pub fn new() -> Self {
+        DeserializeVariantSet(TypeMap::new())
+    }
+    pub fn insert<DV: DeserializeVariant>(&mut self, dv: DV) {
+        self.0.insert(dv);
+    }
+    pub fn get<DV: DeserializeVariant>(&self) -> Option<&DV> {
+        self.0.get::<DV>()
+    }
+}
+
 pub struct ObjectDescriptor {
     variants: Vec<VariantDescriptor>,
     object_name: &'static str,
@@ -88,16 +106,16 @@ impl ObjectDescriptor {
     pub fn variant_index_of(&self, s: &str) -> Option<usize> {
         self.index_by_name.as_ref().unwrap().get(s).copied()
     }
-    pub fn variant_deserializer<D: 'static>(&self, index: usize) -> &D {
+    pub fn deserialize_variant<DV: 'static + DeserializeVariant>(&self, index: usize) -> &DV {
         self.variants[index]
             .deserializers
-            .get::<D>()
+            .get::<DV>()
             .unwrap_or_else(|| {
                 panic!(
                     "cannot find deserializer for object `{}' variant `{}' of type `{}'",
                     self.object_name,
                     self.variants[index].variant_name,
-                    type_name::<D>()
+                    type_name::<DV>()
                 )
             })
     }
@@ -215,7 +233,7 @@ impl BuilderFrom<&'static VariantRegistration> for ObjectRegistry {
 }
 
 #[macro_export]
-macro_rules! define_variant {
+macro_rules! derive_variant {
     ($carrier:path, $concrete:ty) => {
         const _: () = {
             #[$crate::reexports::catalog::register(OBJECT_REGISTRY)]
@@ -223,7 +241,7 @@ macro_rules! define_variant {
                 $carrier,
                 $concrete,
             >(|map| {
-                <$carrier as $crate::de::VariantFormat<$concrete>>::add_object_deserializer(map);
+                <$carrier as $crate::de::DeserializeVariantProvider<$concrete>>::add_deserialize_variant(map);
             });
             pub static VARIANT_INDEX: LazyLock<usize> = LazyLock::new(|| {
                 OBJECT_REGISTRY
@@ -245,16 +263,16 @@ macro_rules! derive_object {
     ($carrier:ident, $ptr_arg:ident, $ptr:ty, $tr:ident $(, $format:ident)*) => {
         const _: () = {
             $( $format!($carrier); )*
-            impl $crate::de::Format for $carrier {}
-            impl<V: 'static> $crate::de::VariantFormat<V> for $carrier
+            impl $crate::de::DeserializeProvider for $carrier {}
+            impl<V: 'static> $crate::de::DeserializeVariantProvider<V> for $carrier
             where $(
-                $format::FormatType::<$carrier> : $crate::de::VariantFormat<V>,
+                $format::FormatDeserializeProvider::<$carrier> : $crate::de::DeserializeVariantProvider<V>,
             )*{
-                fn add_object_deserializer(
+                fn add_deserialize_variant(
                     map: &mut $crate::reexports::type_map::concurrent::TypeMap,
                 ) {
                     $(
-                        <$format::FormatType::<$carrier> as $crate::de::VariantFormat<V>>::add_object_deserializer(map);
+                        <$format::FormatDeserializeProvider::<$carrier> as $crate::de::DeserializeVariantProvider<V>>::add_deserialize_variant(map);
                     )*
                 }
             }
@@ -288,7 +306,7 @@ macro_rules! derive_box_object {
         }
         impl<'de, D: Decoder<'de>> Deserialize<'de, D> for Box<dyn $tr>
         where
-            $carrier: DeserializeVariant<'de, D>,
+            $carrier: DeserializeVariantForDiscriminant<'de, D>,
         {
             fn deserialize(p: D::AnyDecoder<'_>, ctx: &mut Context) -> anyhow::Result<Self> {
                 deserialize_object::<$carrier, D>(p, ctx)
@@ -310,7 +328,7 @@ macro_rules! derive_rc_object {
         }
         impl<'de, D: Decoder<'de>> $crate::reexports::marshal::de::rc::DeserializeRc<'de, D> for dyn $tr
         where
-            $carrier: DeserializeVariant<'de, D>,
+            $carrier: DeserializeVariantForDiscriminant<'de, D>,
         {
             fn deserialize_rc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Rc<Self>> {
                 deserialize_object::<$carrier, D>(p, ctx)
@@ -332,7 +350,7 @@ macro_rules! derive_arc_object {
         }
         impl<'de, D: Decoder<'de>> $crate::reexports::marshal::de::rc::DeserializeArc<'de, D> for dyn $tr
         where
-            $carrier: DeserializeVariant<'de, D>,
+            $carrier: DeserializeVariantForDiscriminant<'de, D>,
         {
             fn deserialize_arc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<::std::sync::Arc<Self>> {
                 deserialize_object::<$carrier, D>(p, ctx)
