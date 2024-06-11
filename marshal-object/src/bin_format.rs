@@ -57,9 +57,9 @@ pub struct BinDeserializerTable<T: 'static + Deref>(
 );
 
 impl<T: 'static + Deref> BinDeserializerTable<T> {
-    pub fn new() -> Self {
+    pub fn new<O:'static + ?Sized>() -> Self {
         let object = OBJECT_REGISTRY
-            .object_descriptor(TypeId::of::<T::Target>())
+            .object_descriptor(TypeId::of::<O>())
             .unwrap_or_else(|| {
                 panic!("could not find object descriptor for {}", type_name::<T>())
             });
@@ -82,14 +82,14 @@ impl<T: 'static + Deref> BinDeserializerTable<T> {
 #[macro_export]
 macro_rules! bin_format {
     ($tr:ident) => {
-        impl<'de,'s> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_bin::decode::full::BinDecoder<'de,'s>> for dyn $tr {
+        impl<'de,'s> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_bin::decode::full::BinDecoder<'de,'s>, ::std::boxed::Box<dyn $tr>> for dyn $tr {
             fn deserialize_variant(
                 disc: usize,
                 d: <$crate::reexports::marshal_bin::decode::full::BinDecoder<'de,'s> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::boxed::Box<Self>> {
                 static DESERIALIZERS: LazyLock<$crate::bin_format::BinDeserializerTable<Box<dyn $tr>>> =
-                    LazyLock::new($crate::bin_format::BinDeserializerTable::new);
+                    LazyLock::new($crate::bin_format::BinDeserializerTable::new::<dyn $tr>);
                 DESERIALIZERS.deserialize_object(disc, d, ctx)
             }
         }

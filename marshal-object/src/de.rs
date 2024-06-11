@@ -8,23 +8,24 @@ use type_map::concurrent::TypeMap;
 
 use crate::Object;
 
-pub trait DeserializeVariant<'de, D: Decoder<'de>> {
+pub trait DeserializeVariant<'de, D: Decoder<'de>, P: Deref> {
     fn deserialize_variant(
         discriminant: usize,
         d: D::AnyDecoder<'_>,
         ctx: &mut Context,
-    ) -> anyhow::Result<Box<Self>>;
+    ) -> anyhow::Result<P>;
 }
 
 pub fn deserialize_object<
     'p,
     'de,
     D: Decoder<'de>,
-    T: ?Sized + Object + DeserializeVariant<'de, D>,
+    T: ?Sized + Object + DeserializeVariant<'de, D, P>,
+    P: Deref,
 >(
     d: D::AnyDecoder<'p>,
     ctx: &mut Context,
-) -> anyhow::Result<Box<T>> {
+) -> anyhow::Result<P> {
     match d.decode(DecodeHint::Enum {
         name: T::object_descriptor().object_name(),
         variants: T::object_descriptor().discriminant_names(),
@@ -41,7 +42,7 @@ pub fn deserialize_object<
                 DecoderView::Seq(mut d) => {
                     let variant = d.decode_next()?.ok_or(SchemaError::TupleTooShort)?;
                     let result =
-                        <T as DeserializeVariant<D>>::deserialize_variant(disc, variant, ctx)?;
+                        <T as DeserializeVariant<D, P>>::deserialize_variant(disc, variant, ctx)?;
                     if let Some(_) = d.decode_next()? {
                         return Err(SchemaError::TupleTooLong.into());
                     }

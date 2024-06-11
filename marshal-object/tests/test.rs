@@ -37,8 +37,8 @@ trait MyTrait: 'static + MyTraitParent + Debug + Any {}
 impl MyTrait for u8 {}
 impl MyTrait for u16 {}
 
-define_variant!(u8, MyTrait);
-define_variant!(u16, MyTrait);
+define_variant!(Box, u8, MyTrait);
+define_variant!(Box, u16, MyTrait);
 
 #[track_caller]
 pub fn json_round_trip<T: Debug + SerializeJson + for<'de> DeserializeJson<'de>>(

@@ -58,9 +58,9 @@ pub struct JsonDeserializerTable<T: 'static + ?Sized>(
 );
 
 impl<T: 'static + Deref> JsonDeserializerTable<T> {
-    pub fn new() -> Self {
+    pub fn new<O:'static+?Sized>() -> Self {
         let object = OBJECT_REGISTRY
-            .object_descriptor(TypeId::of::<T::Target>())
+            .object_descriptor(TypeId::of::<O>())
             .unwrap_or_else(|| panic!("could not find object descriptor for {}", type_name::<T>()));
         JsonDeserializerTable(
             (0..object.discriminant_names().len())
@@ -81,14 +81,14 @@ impl<T: 'static + Deref> JsonDeserializerTable<T> {
 #[macro_export]
 macro_rules! json_format {
     ($tr:ident) => {
-        impl<'de> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_json::decode::full::JsonDecoder<'de>> for dyn $tr {
+        impl<'de> $crate::de::DeserializeVariant<'de, $crate::reexports::marshal_json::decode::full::JsonDecoder<'de>, std::boxed::Box<dyn $tr>> for dyn $tr {
             fn deserialize_variant(
                 disc: usize,
                 d: <$crate::reexports::marshal_json::decode::full::JsonDecoder<'de> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::boxed::Box<Self>> {
                 static DESERIALIZERS: LazyLock<$crate::json_format::JsonDeserializerTable<Box<dyn $tr>>> =
-                    LazyLock::new($crate::json_format::JsonDeserializerTable::new);
+                    LazyLock::new($crate::json_format::JsonDeserializerTable::new::<dyn $tr>);
                 DESERIALIZERS.deserialize_object(disc, d, ctx)
             }
         }

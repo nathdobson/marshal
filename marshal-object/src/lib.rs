@@ -20,11 +20,11 @@ pub mod ser;
 pub mod reexports {
     pub use anyhow;
     pub use catalog;
+    pub use marshal;
+    pub use marshal_bin;
+    pub use marshal_json;
     pub use safe_once;
     pub use type_map;
-    pub use marshal_json;
-    pub use marshal_bin;
-    pub use marshal;
 }
 
 pub trait AsDiscriminant<Key> {
@@ -188,20 +188,15 @@ impl BuilderFrom<&'static VariantRegistration> for ObjectRegistry {
 
 #[macro_export]
 macro_rules! define_variant {
-    ($concrete:ty, $object:path) => {
+    ($ptr:ident, $concrete:ty, $object:path) => {
         const _: () = {
             #[$crate::reexports::catalog::register(OBJECT_REGISTRY)]
             pub static REGISTER: VariantRegistration =
-                VariantRegistration::new::<dyn $object, $concrete>(&[
-                    // $(
-                    // |map| <$format as $crate::de::VariantFormat<$concrete>>::add_object_deserializer::<dyn $object>(map)
-                    // ),*
-                    |map| {
-                        <<dyn $object as $crate::Object>::Format as $crate::de::VariantFormat<
-                            Box<$concrete>,
-                        >>::add_object_deserializer::<Box<dyn $object>>(map)
-                    },
-                ]);
+                VariantRegistration::new::<dyn $object, $concrete>(&[|map| {
+                    <<dyn $object as $crate::Object>::Format as $crate::de::VariantFormat<
+                        $ptr<$concrete>,
+                    >>::add_object_deserializer::<$ptr<dyn $object>>(map)
+                }]);
             pub static VARIANT_INDEX: LazyLock<usize> = LazyLock::new(|| {
                 OBJECT_REGISTRY
                     .object_descriptor(REGISTER.object_type())
@@ -264,10 +259,10 @@ macro_rules! derive_object {
             }
             impl<'de, D: Decoder<'de>> Deserialize<'de, D> for Box<dyn $tr>
             where
-                dyn $tr: DeserializeVariant<'de, D>,
+                dyn $tr: DeserializeVariant<'de, D,Box<dyn $tr>>,
             {
                 fn deserialize(p: D::AnyDecoder<'_>, ctx: &mut Context) -> anyhow::Result<Self> {
-                    deserialize_object::<D, dyn $tr>(p, ctx)
+                    deserialize_object::<D, dyn $tr, Box<dyn $tr>>(p, ctx)
                 }
             }
         };
