@@ -555,6 +555,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "marshal-pointer"
+version = "0.1.0"
+
+[[package]]
 name = "marshal-refs"
 version = "0.1.0"
 dependencies = [
