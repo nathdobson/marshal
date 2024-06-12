@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 weak-table = {workspace=true}
 marshal = {workspace=true}
+anyhow = {workspace=true}
+
+[dev-dependencies]
+marshal-json={workspace=true}

@@ -1,15 +1,23 @@
-mod de;
-mod ser;
+use std::fmt::{Debug, Display, Formatter};
 
-use marshal::context::Context;
-use marshal::encode::{AnyEncoder, Encoder, TupleVariantEncoder};
-use marshal::reexports::anyhow;
-use marshal::reexports::anyhow::anyhow;
-use marshal::ser::Serialize;
-use std::any::Any;
-use std::rc;
-use std::rc::{Rc, Weak};
-use weak_table::ptr_weak_key_hash_map::Entry;
-use weak_table::PtrWeakKeyHashMap;
+pub mod de;
+pub mod ser;
 
+pub mod reexports{
+    pub use marshal;
+    pub use anyhow;
+}
 
+#[derive(Debug)]
+pub enum SharedError {
+    UnknownReference(usize),
+    TypeMismatch,
+}
+
+impl Display for SharedError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for SharedError {}

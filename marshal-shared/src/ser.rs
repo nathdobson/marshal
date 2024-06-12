@@ -18,10 +18,10 @@ pub struct SharedSerializeContext {
 #[derive(Serialize)]
 struct Shared<'a, T> {
     id: usize,
-    value: Option<&'a T>,
+    inner: Option<&'a T>,
 }
 
-fn serialize_shared<E: Encoder, T: 'static + Serialize<E>>(
+pub fn serialize_shared<E: Encoder, T: 'static + Serialize<E>>(
     ptr: &Rc<T>,
     e: E::AnyEncoder<'_>,
     ctx: &mut Context,
@@ -31,7 +31,7 @@ fn serialize_shared<E: Encoder, T: 'static + Serialize<E>>(
         Entry::Occupied(entry) => {
             Shared::<T> {
                 id: *entry.get(),
-                value: None,
+                inner: None,
             }
             .serialize(e, ctx)?;
             Ok(())
@@ -42,10 +42,27 @@ fn serialize_shared<E: Encoder, T: 'static + Serialize<E>>(
             shared_ctx.next_id += 1;
             Shared {
                 id,
-                value: Some(&**ptr),
+                inner: Some(&**ptr),
             }
             .serialize(e, ctx)?;
             Ok(())
         }
     }
+}
+
+#[macro_export]
+macro_rules! derive_serialize_rc_shared {
+    ($ty:ty) => {
+        impl<E: $crate::reexports::marshal::encode::Encoder>
+            $crate::reexports::marshal::ser::rc::SerializeRc<E> for $ty
+        {
+            fn serialize_rc(
+                this: &Rc<Self>,
+                e: E::AnyEncoder<'_>,
+                ctx: &mut $crate::reexports::marshal::context::Context,
+            ) -> anyhow::Result<()> {
+                $crate::ser::serialize_shared::<E, Self>(this, e, ctx)
+            }
+        }
+    };
 }
