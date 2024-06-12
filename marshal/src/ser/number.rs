@@ -31,3 +31,15 @@ derive_number!(f64, F64);
 derive_number!(char, Char);
 
 derive_number!(bool, Bool);
+
+impl<W: Encoder> Serialize<W> for usize {
+    fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+        w.encode_prim(Primitive::U64(*self as u64))
+    }
+}
+
+impl<W: Encoder> Serialize<W> for isize {
+    fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+        w.encode_prim(Primitive::I64(*self as i64))
+    }
+}

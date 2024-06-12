@@ -70,3 +70,28 @@ impl TryFrom<Primitive> for usize {
         })
     }
 }
+
+
+impl TryFrom<Primitive> for isize {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Primitive) -> Result<Self, Self::Error> {
+        Ok(match value {
+            Primitive::Unit => 0,
+            Primitive::Bool(x) => x as Self,
+            Primitive::I8(x) => Self::try_from(x)?,
+            Primitive::I16(x) => Self::try_from(x)?,
+            Primitive::I32(x) => Self::try_from(x)?,
+            Primitive::I64(x) => Self::try_from(x)?,
+            Primitive::I128(x) => Self::try_from(x)?,
+            Primitive::U8(x) => Self::try_from(x)?,
+            Primitive::U16(x) => Self::try_from(x)?,
+            Primitive::U32(x) => Self::try_from(x)?,
+            Primitive::U64(x) => Self::try_from(x)?,
+            Primitive::U128(x) => Self::try_from(x)?,
+            Primitive::F32(_) => value.mismatch("u8")?,
+            Primitive::F64(_) => value.mismatch("u8")?,
+            Primitive::Char(x) => Self::try_from(x as u32)?,
+        })
+    }
+}

@@ -1,0 +1,8 @@
+[package]
+name = "marshal-refs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+weak-table = {workspace=true}
+marshal = {workspace=true}

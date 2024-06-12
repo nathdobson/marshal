@@ -2,7 +2,7 @@
 resolver = "2"
 
 members = [
-    "marshal", "marshal-bin",  "marshal-core", "marshal-derive", "marshal-json", "marshal-object", "marshal-structural",
+    "marshal", "marshal-bin",  "marshal-core", "marshal-derive", "marshal-json", "marshal-object", "marshal-shared", "marshal-structural",
 ]
 
 [workspace.dependencies]
@@ -29,6 +29,6 @@ criterion = "0.5.1"
 serde_json = "1.0.117"
 catalog = {path="../catalog/catalog"}
 marshal-object = {path ="marshal-object"}
-
+weak-table= "0.3.2"
 [profile.bench]
 debug = true

@@ -11,6 +11,7 @@ mod tuple;
 mod vec;
 mod boxed;
 pub mod rc;
+mod reference;
 
 pub trait Serialize<W: Encoder> {
     fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()>;

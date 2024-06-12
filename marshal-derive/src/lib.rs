@@ -6,7 +6,10 @@ extern crate proc_macro;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::__private::TokenStream2;
-use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields, LitStr, Variant};
+use syn::{
+    parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields, GenericParam, Generics,
+    LitStr, TypeParam, Variant,
+};
 
 #[proc_macro_derive(Deserialize)]
 pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -25,10 +28,51 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
         attrs: _,
         vis: _,
         ident: type_ident,
-        generics: _,
+        generics:
+            Generics {
+                lt_token: _,
+                params: generics,
+                gt_token: _,
+                where_clause: _,
+            },
         data,
     } = input;
     let output: TokenStream2;
+    let mut generic_params = vec![];
+    let mut generic_args = vec![];
+    for generic in generics {
+        match generic {
+            GenericParam::Lifetime(x) => {
+                let p = &x.lifetime;
+                generic_params.push(quote! {#x});
+                generic_args.push(quote!(#p));
+            }
+            GenericParam::Type(TypeParam {
+                                   attrs,
+                                   ident,
+                                   colon_token,
+                                   bounds,
+                                   eq_token,
+                                   default,
+                               }) => {
+                let colon_token = colon_token.map_or_else(|| quote!(:), |x| quote!(#x));
+                let extra_bound = quote! {::marshal::de::Deserialize<'de,P>};
+                let bounds = if bounds.is_empty() {
+                    extra_bound
+                } else {
+                    quote! {#bounds + #extra_bound}
+                };
+                generic_params
+                    .push(quote! {#(#attrs)* #ident #colon_token #bounds #eq_token #default});
+                generic_args.push(quote!(#ident));
+            }
+            GenericParam::Const(x) => {
+                let p = &x.ident;
+                generic_params.push(quote! {#x});
+                generic_args.push(quote!(#p));
+            }
+        }
+    }
     let decoder_trait = quote!(::marshal::decode::Decoder);
     let primitive_type = quote!(::marshal::Primitive);
 
@@ -83,7 +127,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         .collect::<Vec<_>>();
                     let field_name_indexes = (0..fields.named.len()).collect::<Vec<_>>();
                     output = quote! {
-                        impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                        impl<'de, #(#generic_params,)* P:#decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident <#(#generic_args),*> {
                             #[allow(unreachable_code)]
                             fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
                                 let hint = #decode_hint_type::Struct{
@@ -147,7 +191,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                     let field_count = fields.unnamed.len();
                     let field_types = fields.unnamed.iter().map(|x| &x.ty).collect::<Vec<_>>();
                     output = quote! {
-                        impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                        impl<'de, #(#generic_params,)* P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident <#(#generic_args),*> {
                             fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
                                 match #as_any_decoder::decode(decoder, #decode_hint_type::TupleStruct{name:#type_name, len:#field_count})?{
                                     #decoder_view_type::Seq(mut decoder) => {
@@ -174,7 +218,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 }
                 Fields::Unit => {
                     output = quote! {
-                        impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                        impl<'de, #(#generic_params,)* P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident <#(#generic_args),*> {
                             fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
                                 match #as_any_decoder::decode(decoder, #decode_hint_type::UnitStruct{name:#type_name})?{
                                     #decoder_view_type::Primitive(#primitive_type::Unit) => ::std::result::Result::Ok(#type_ident),
@@ -305,7 +349,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 }
             }
             output = quote! {
-                impl<'de, P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident {
+                impl<'de, #(#generic_params,)* P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident <#(#generic_args),*> {
                     fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
                         let hint = #decode_hint_type::Enum {
                             variants: &[
@@ -358,7 +402,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
 #[proc_macro_derive(Serialize)]
 pub fn derive_serialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    crate::derive_serialize_impl(&input)
+    derive_serialize_impl(&input)
         .unwrap_or_else(|e| e.into_compile_error())
         .into()
 }
@@ -368,9 +412,50 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
         attrs: _,
         vis: _,
         ident: type_ident,
-        generics: _,
+        generics:
+            Generics {
+                lt_token: _,
+                params: generics,
+                gt_token: _,
+                where_clause: _,
+            },
         data,
     } = input;
+    let mut generic_params = vec![];
+    let mut generic_args = vec![];
+    for generic in generics {
+        match generic {
+            GenericParam::Lifetime(x) => {
+                let p = &x.lifetime;
+                generic_params.push(quote! {#x});
+                generic_args.push(quote!(#p));
+            }
+            GenericParam::Type(TypeParam {
+                                   attrs,
+                                   ident,
+                                   colon_token,
+                                   bounds,
+                                   eq_token,
+                                   default,
+                               }) => {
+                let colon_token = colon_token.map_or_else(|| quote!(:), |x| quote!(#x));
+                let extra_bound = quote! {::marshal::ser::Serialize<W>};
+                let bounds = if bounds.is_empty() {
+                    extra_bound
+                } else {
+                    quote! {#bounds + #extra_bound}
+                };
+                generic_params
+                    .push(quote! {#(#attrs)* #ident #colon_token #bounds #eq_token #default});
+                generic_args.push(quote!(#ident));
+            }
+            GenericParam::Const(x) => {
+                let p = &x.ident;
+                generic_params.push(quote! {#x});
+                generic_args.push(quote!(#p));
+            }
+        }
+    }
     let output: TokenStream2;
     let encoder_trait = quote! { ::marshal::encode::Encoder };
     let any_encoder_trait = quote! { ::marshal::encode::AnyEncoder };
@@ -410,7 +495,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
             match fields {
                 Fields::Unit => {
                     output = quote! {
-                        impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
+                        impl<#(#generic_params,)* W: #encoder_trait> #serialize_trait<W> for #type_ident <#(#generic_args),*> {
                             fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
                                 #as_any_encoder::encode_unit_struct(encoder,#type_name)
                             }
@@ -429,7 +514,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                         .collect::<Vec<_>>();
 
                     output = quote! {
-                        impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
+                        impl<#(#generic_params,)* W: #encoder_trait> #serialize_trait<W> for #type_ident <#(#generic_args),*>{
                             fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
                                 let mut encoder = #as_any_encoder::encode_struct(encoder, #type_name, &[
                                         #(
@@ -449,7 +534,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     let field_count = fields.unnamed.len();
                     let field_index: Vec<_> = (0..field_count).map(syn::Index::from).collect();
                     output = quote! {
-                        impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
+                        impl<#(#generic_params,)* W: #encoder_trait> #serialize_trait<W> for #type_ident <#(#generic_args),*> {
                             fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
                                 let mut encoder=#as_any_encoder::encode_tuple_struct(encoder, #type_name, #field_count)?;
                                 #(
@@ -525,7 +610,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 }
             }
             output = quote! {
-                impl<W: #encoder_trait> #serialize_trait<W> for #type_ident {
+                impl<#(#generic_params,)* W: #encoder_trait> #serialize_trait<W> for #type_ident <#( #generic_args ),*> {
                     fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
                         match self{
                             #(
