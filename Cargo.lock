@@ -550,6 +550,7 @@ dependencies = [
  "marshal",
  "marshal-bin",
  "marshal-json",
+ "marshal-pointer",
  "safe-once",
  "type-map",
 ]

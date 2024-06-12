@@ -19,6 +19,7 @@ use std::{rc, sync};
 
 use crate::de::{DeserializeVariant, DeserializeVariantSet};
 use catalog::{Builder, BuilderFrom, Registry};
+use marshal_pointer::PtrDeref;
 
 pub mod de;
 pub mod ser;
@@ -38,7 +39,7 @@ pub trait AsDiscriminant<Key> {
 
 pub trait Object: 'static + Sized {
     type Dyn: ?Sized + AsDiscriminant<Self>;
-    type Pointer<T: ?Sized>;
+    type Pointer<T: ?Sized>: PtrDeref;
     fn object_descriptor() -> &'static ObjectDescriptor;
     fn discriminant_of(p: &Self::Pointer<Self::Dyn>) -> usize;
 }

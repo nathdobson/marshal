@@ -9,6 +9,7 @@ catalog = {workspace=true}
 anyhow= {workspace=true}
 safe-once = {workspace=true}
 type-map={workspace=true}
+marshal-pointer = {workspace=true}
 
 [dev-dependencies]
 marshal-bin = {workspace=true}

@@ -6,11 +6,12 @@ use crate::SerializeJson;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
+use marshal::ser::Serialize;
 use marshal_core::encode::{Encoder};
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
 };
-use marshal_object::ser::DowncastSerialize;
+// use marshal_object::ser::DowncastSerialize;
 use marshal_object::Object;
 
 use crate::encode::full::JsonEncoder;
@@ -36,7 +37,7 @@ impl<O: Object, V: 'static> DeserializeVariantJson<O> for PhantomData<fn() -> V>
 where
     O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,
     O::Pointer<V>: for<'de> Deserialize<'de, JsonDecoder<'de>>,
-    O::Pointer<O::Dyn>: DowncastSerialize<V, JsonEncoder>,
+    O::Pointer<O::Dyn>::PtrTarget: Serialize<V, JsonEncoder>,
 {
     fn deserialize_variant_json<'p, 'de, 's>(
         &self,

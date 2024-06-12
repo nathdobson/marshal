@@ -30,5 +30,7 @@ serde_json = "1.0.117"
 catalog = {path="../catalog/catalog"}
 marshal-object = {path ="marshal-object"}
 weak-table= "0.3.2"
+marshal-pointer = {path="marshal-pointer"}
+
 [profile.bench]
 debug = true
