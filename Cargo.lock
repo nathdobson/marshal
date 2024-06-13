@@ -485,6 +485,7 @@ dependencies = [
  "itertools 0.13.0",
  "marshal-core",
  "marshal-derive",
+ "marshal-pointer",
  "type-map",
 ]
 
@@ -499,6 +500,7 @@ dependencies = [
  "marshal-core",
  "marshal-derive",
  "marshal-object",
+ "marshal-pointer",
  "num-derive",
  "num-traits",
  "safe-once",
@@ -537,6 +539,7 @@ dependencies = [
  "marshal-core",
  "marshal-derive",
  "marshal-object",
+ "marshal-pointer",
  "serde_json",
  "utf8-width",
 ]
@@ -551,6 +554,7 @@ dependencies = [
  "marshal-bin",
  "marshal-json",
  "marshal-pointer",
+ "marshal-shared",
  "safe-once",
  "type-map",
 ]
@@ -560,12 +564,13 @@ name = "marshal-pointer"
 version = "0.1.0"
 
 [[package]]
-name = "marshal-refs"
+name = "marshal-shared"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "marshal",
  "marshal-json",
+ "marshal-pointer",
  "weak-table",
 ]
 

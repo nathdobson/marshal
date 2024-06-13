@@ -17,6 +17,7 @@ use marshal::de::rc::DeserializeRcWeak;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::encode::Encoder;
+use marshal::ser::rc::SerializeRcWeak;
 use marshal::ser::Serialize;
 use marshal::{
     derive_deserialize_arc_transparent, derive_deserialize_rc_transparent,
@@ -34,13 +35,19 @@ use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_json::SerializeJson;
 use marshal_json::{json_object, DeserializeJson};
 use marshal_object::de::{deserialize_object, DeserializeVariantForDiscriminant};
-use marshal_object::ser::{RawAny, serialize_object};
+use marshal_object::ser::serialize_object;
 use marshal_object::{
     derive_arc_object, derive_box_object, derive_rc_object, derive_rc_weak_object, derive_variant,
     ObjectDescriptor,
 };
 use marshal_object::{derive_object, AsDiscriminant};
 use marshal_object::{VariantRegistration, OBJECT_REGISTRY};
+use marshal_pointer::rc_weak_ref::RcWeakRef;
+use marshal_pointer::RawAny;
+use marshal_shared::{
+    derive_deserialize_arc_shared, derive_deserialize_rc_shared, derive_serialize_arc_shared,
+    derive_serialize_rc_shared,
+};
 
 pub struct BoxMyTrait;
 derive_box_object!(BoxMyTrait, MyTrait, bin_object, json_object);
@@ -81,14 +88,14 @@ derive_variant!(BoxMyTrait, B);
 derive_variant!(ArcMyTrait, A);
 derive_variant!(ArcMyTrait, B);
 
-derive_deserialize_rc_transparent!(A);
-derive_deserialize_rc_transparent!(B);
-derive_deserialize_arc_transparent!(A);
-derive_deserialize_arc_transparent!(B);
-derive_serialize_rc_transparent!(A);
-derive_serialize_rc_transparent!(B);
-derive_serialize_arc_transparent!(A);
-derive_serialize_arc_transparent!(B);
+derive_deserialize_rc_shared!(A);
+derive_deserialize_rc_shared!(B);
+derive_deserialize_arc_shared!(A);
+derive_deserialize_arc_shared!(B);
+derive_serialize_rc_shared!(A);
+derive_serialize_rc_shared!(B);
+derive_serialize_arc_shared!(A);
+derive_serialize_arc_shared!(B);
 
 impl<'de, D: Decoder<'de>> DeserializeRcWeak<'de, D> for A {
     fn deserialize_rc_weak<'p>(
@@ -105,6 +112,26 @@ impl<'de, D: Decoder<'de>> DeserializeRcWeak<'de, D> for B {
         ctx: &mut Context,
     ) -> anyhow::Result<Weak<Self>> {
         todo!("q")
+    }
+}
+
+impl<E: Encoder> SerializeRcWeak<E> for A {
+    fn serialize_rc_weak(
+        this: &RcWeakRef<Self>,
+        e: E::AnyEncoder<'_>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        todo!()
+    }
+}
+
+impl<E: Encoder> SerializeRcWeak<E> for B {
+    fn serialize_rc_weak(
+        this: &RcWeakRef<Self>,
+        e: E::AnyEncoder<'_>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        todo!()
     }
 }
 
@@ -140,18 +167,22 @@ pub fn bin_round_trip<T: Debug + SerializeBin + for<'de> DeserializeBin<'de>>(
     Ok(output)
 }
 
-const EXPECTED_JSON: &'static str = r#"{
-  "test::A": [
-    [
-      42
-    ]
-  ]
-}"#;
-
 #[test]
 fn test_json_rc() -> anyhow::Result<()> {
     let input = Rc::new(A(42u8)) as Rc<dyn MyTrait>;
-    let output = json_round_trip(&input, EXPECTED_JSON)?;
+    let output = json_round_trip(
+        &input,
+        r#"{
+  "test::A": [
+    {
+      "id": 0,
+      "inner": [
+        42
+      ]
+    }
+  ]
+}"#,
+    )?;
     let output: &A = &*Rc::<dyn Any>::downcast::<A>(output).unwrap();
     assert_eq!(output, &A(42));
     Ok(())
@@ -160,7 +191,16 @@ fn test_json_rc() -> anyhow::Result<()> {
 #[test]
 fn test_json_box() -> anyhow::Result<()> {
     let input = Box::new(A(42u8)) as Box<dyn MyTrait>;
-    let output = json_round_trip(&input, EXPECTED_JSON)?;
+    let output = json_round_trip(
+        &input,
+        r#"{
+  "test::A": [
+    [
+      42
+    ]
+  ]
+}"#,
+    )?;
     let output: &A = &*Box::<dyn Any>::downcast::<A>(output).unwrap();
     assert_eq!(output, &A(42));
     Ok(())
@@ -176,13 +216,19 @@ fn test_bin() -> anyhow::Result<()> {
                 21, 2, //
                 7, b't', b'e', b's', b't', b':', b':', b'A', //
                 7, b't', b'e', b's', b't', b':', b':', b'B', //
-                18, 0, 0, 17, 1, 17, 1, 7, 42,
+                18, 0, 0, //
+                17, 1, //
+                21, 2, 2, b'i', b'd', 5, b'i', b'n', b'n', b'e', b'r', //
+                16, 1, 10, 0, 26, 17, 1, 7, 42,
             ],
             &[
                 21, 2, //
                 7, b't', b'e', b's', b't', b':', b':', b'B', //
                 7, b't', b'e', b's', b't', b':', b':', b'A', //
-                18, 0, 1, 17, 1, 17, 1, 7, 42,
+                18, 0, 1, //
+                17, 1, //
+                21, 2, 2, b'i', b'd', 5, b'i', b'n', b'n', b'e', b'r', //
+                16, 1, 10, 0, 26, 17, 1, 7, 42,
             ],
             //
         ],

@@ -1,5 +1,5 @@
 [package]
-name = "marshal-refs"
+name = "marshal-shared"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,7 @@ edition = "2021"
 weak-table = {workspace=true}
 marshal = {workspace=true}
 anyhow = {workspace=true}
+marshal-pointer = {workspace=true}
 
 [dev-dependencies]
 marshal-json={workspace=true}

@@ -1,7 +1,9 @@
+use std::any::TypeId;
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::AsFlatRef;
+use crate::boxed::BoxRef;
 
 #[repr(transparent)]
 pub struct RcRef<T: ?Sized> {
@@ -30,6 +32,32 @@ impl<T: ?Sized> Deref for RcRef<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl<T: ?Sized> DerefRaw for Rc<T> {
+    type RawTarget = T;
+    fn deref_raw(&self) -> *const Self::RawTarget {
+        &**self
+    }
+}
+
+impl<T: ?Sized> DerefRaw for RcRef<T> {
+    type RawTarget = T;
+    fn deref_raw(&self) -> *const Self::RawTarget {
+        &**self
+    }
+}
+
+impl<T: 'static> DowncastRef<RcRef<T>> for RcRef<dyn RawAny> {
+    fn downcast_ref(&self) -> Option<&RcRef<T>> {
+        unsafe {
+            if self.deref_raw().raw_type_id() == TypeId::of::<T>() {
+                Some(&*(self as *const RcRef<dyn RawAny> as *const RcRef<T>))
+            } else {
+                None
+            }
+        }
     }
 }
 

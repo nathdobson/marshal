@@ -10,3 +10,4 @@ type-map = { workspace = true }
 base64 = { workspace = true }
 marshal-core = { workspace = true }
 marshal-derive = {workspace=true}
+marshal-pointer = {workspace=true}

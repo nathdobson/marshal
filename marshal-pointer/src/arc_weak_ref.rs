@@ -2,7 +2,7 @@ use std::cell::UnsafeCell;
 use std::fmt::Formatter;
 use std::{fmt::Debug, marker::PhantomData, mem, sync};
 
-use crate::AsFlatRef;
+use crate::{AsFlatRef, DerefRaw};
 
 #[repr(transparent)]
 pub struct ArcWeakRef<T: ?Sized> {
@@ -34,6 +34,20 @@ impl<T: ?Sized> ArcWeakRef<T> {
 impl<T: ?Sized> Debug for ArcWeakRef<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ArcWeak").finish_non_exhaustive()
+    }
+}
+
+impl<T: ?Sized> DerefRaw for sync::Weak<T> {
+    type RawTarget = T;
+    fn deref_raw(&self) -> *const Self::RawTarget {
+        self.as_ptr()
+    }
+}
+
+impl<T: ?Sized> DerefRaw for ArcWeakRef<T> {
+    type RawTarget = T;
+    fn deref_raw(&self) -> *const Self::RawTarget {
+        self as *const ArcWeakRef<T> as *const T
     }
 }
 

@@ -12,6 +12,7 @@ itertools = { workspace = true }
 marshal-core = { workspace = true }
 marshal-derive = { workspace = true }
 marshal-object = {workspace=true}
+marshal-pointer = {workspace=true}
 
 [dev-dependencies]
 marshal = { workspace = true }

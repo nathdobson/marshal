@@ -5,6 +5,7 @@ pub mod ser;
 
 pub mod reexports{
     pub use marshal;
+    pub use marshal_pointer;
     pub use anyhow;
 }
 

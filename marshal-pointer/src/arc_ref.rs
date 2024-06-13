@@ -1,7 +1,9 @@
-use crate::AsFlatRef;
+use std::any::TypeId;
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::Arc;
+use crate::rc_weak_ref::RcWeakRef;
 
 #[repr(transparent)]
 pub struct ArcRef<T: ?Sized> {
@@ -35,6 +37,33 @@ impl<T: ?Sized> Deref for ArcRef<T> {
         &self.inner
     }
 }
+
+impl<T: ?Sized> DerefRaw for Arc<T> {
+    type RawTarget = T;
+    fn deref_raw(&self) -> *const Self::RawTarget {
+        &**self
+    }
+}
+
+impl<T: ?Sized> DerefRaw for ArcRef<T> {
+    type RawTarget = T;
+    fn deref_raw(&self) -> *const Self::RawTarget {
+        &**self
+    }
+}
+
+impl<T: 'static> DowncastRef<ArcRef<T>> for ArcRef<dyn RawAny> {
+    fn downcast_ref(&self) -> Option<&ArcRef<T>> {
+        unsafe {
+            if self.deref_raw().raw_type_id() == TypeId::of::<T>() {
+                Some(&*(self as *const ArcRef<dyn RawAny> as *const ArcRef<T>))
+            } else {
+                None
+            }
+        }
+    }
+}
+
 
 #[test]
 fn test() {

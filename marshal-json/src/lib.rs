@@ -6,6 +6,7 @@
 #![feature(never_type)]
 #![feature(trait_alias)]
 #![feature(coerce_unsized)]
+#![feature(unsize)]
 
 use crate::decode::full::JsonDecoder;
 use crate::encode::full::JsonEncoder;
@@ -22,6 +23,7 @@ pub mod json_object;
 #[doc(hidden)]
 pub mod reexports{
     pub use marshal_object;
+    pub use marshal_pointer;
     pub use marshal;
     pub use anyhow;
 }

@@ -14,3 +14,4 @@ marshal-pointer = {workspace=true}
 [dev-dependencies]
 marshal-bin = {workspace=true}
 marshal-json = {workspace=true}
+marshal-shared = {workspace=true}

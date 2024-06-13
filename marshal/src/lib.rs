@@ -20,4 +20,5 @@ pub use marshal_derive::*;
 #[doc(hidden)]
 pub mod reexports {
     pub use anyhow;
+    pub use marshal_pointer;
 }

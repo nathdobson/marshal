@@ -8,6 +8,7 @@
 #![feature(never_type)]
 #![feature(trait_alias)]
 #![feature(coerce_unsized)]
+#![feature(unsize)]
 
 use crate::encode::full::BinEncoder;
 use num_derive::FromPrimitive;
@@ -27,6 +28,7 @@ pub mod reexports{
     pub use marshal;
     pub use marshal_object;
     pub use anyhow;
+    pub use marshal_pointer;
 }
 
 pub const VU128_MAX_PADDING: usize = 17;

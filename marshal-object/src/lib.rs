@@ -19,7 +19,8 @@ use std::{rc, sync};
 
 use crate::de::{DeserializeVariant, DeserializeVariantSet};
 use catalog::{Builder, BuilderFrom, Registry};
-use marshal_pointer::PtrDeref;
+use marshal_pointer::boxed::BoxRef;
+use marshal_pointer::AsFlatRef;
 
 pub mod de;
 pub mod ser;
@@ -29,8 +30,8 @@ pub mod reexports {
     pub use anyhow;
     pub use catalog;
     pub use marshal;
+    pub use marshal_pointer;
     pub use safe_once;
-    pub use type_map;
 }
 
 pub trait AsDiscriminant<Key> {
@@ -39,9 +40,9 @@ pub trait AsDiscriminant<Key> {
 
 pub trait Object: 'static + Sized {
     type Dyn: ?Sized + AsDiscriminant<Self>;
-    type Pointer<T: ?Sized>: PtrDeref;
+    type Pointer<T: ?Sized>: AsFlatRef;
     fn object_descriptor() -> &'static ObjectDescriptor;
-    fn discriminant_of(p: &Self::Pointer<Self::Dyn>) -> usize;
+    fn discriminant_of(p: &<Self::Pointer<Self::Dyn> as AsFlatRef>::FlatRef) -> usize;
 }
 
 pub struct VariantDescriptor {
@@ -194,46 +195,6 @@ impl BuilderFrom<&'static VariantRegistration> for ObjectRegistry {
     }
 }
 
-pub trait DerefRaw {
-    type RawTarget: ?Sized;
-    fn deref_raw(&self) -> *const Self::RawTarget;
-}
-
-impl<T: ?Sized> DerefRaw for Box<T> {
-    type RawTarget = T;
-    fn deref_raw(&self) -> *const Self::RawTarget {
-        &**self
-    }
-}
-
-impl<T: ?Sized> DerefRaw for Rc<T> {
-    type RawTarget = T;
-    fn deref_raw(&self) -> *const Self::RawTarget {
-        &**self
-    }
-}
-
-impl<T: ?Sized> DerefRaw for rc::Weak<T> {
-    type RawTarget = T;
-    fn deref_raw(&self) -> *const Self::RawTarget {
-        self.as_ptr()
-    }
-}
-
-impl<T: ?Sized> DerefRaw for Arc<T> {
-    type RawTarget = T;
-    fn deref_raw(&self) -> *const Self::RawTarget {
-        &**self
-    }
-}
-
-impl<T: ?Sized> DerefRaw for sync::Weak<T> {
-    type RawTarget = T;
-    fn deref_raw(&self) -> *const Self::RawTarget {
-        self.as_ptr()
-    }
-}
-
 #[macro_export]
 macro_rules! derive_variant {
     ($carrier:path, $concrete:ty) => {
@@ -288,8 +249,8 @@ macro_rules! derive_object {
                     });
                     *ENTRY
                 }
-                fn discriminant_of(p: &Self::Pointer<Self::Dyn>) -> usize {
-                    <Self::Dyn as AsDiscriminant<$carrier>>::as_discriminant(<Self::Pointer<Self::Dyn> as $crate::DerefRaw>::deref_raw(p))
+                fn discriminant_of(p: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef) -> usize {
+                    <Self::Dyn as AsDiscriminant<$carrier>>::as_discriminant(<<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef as $crate::reexports::marshal_pointer::DerefRaw>::deref_raw(p))
                 }
             }
 
@@ -306,8 +267,7 @@ macro_rules! derive_box_object {
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
             fn serialize(&self, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-                serialize_object::<$carrier,E>(self, e, ctx)
-                // todo!("Z");
+                serialize_object::<$carrier,E>(<Box<dyn $tr> as $crate::reexports::marshal_pointer::AsFlatRef>::as_flat_ref(self), e, ctx)
             }
         }
         impl<'de, D: Decoder<'de>> Deserialize<'de, D> for Box<dyn $tr>
@@ -328,7 +288,7 @@ macro_rules! derive_rc_object {
         impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeRc<E> for dyn $tr
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize_rc(this: &Rc<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize_rc(this: &$crate::reexports::marshal_pointer::rc_ref::RcRef<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
                 serialize_object::<$carrier,E>(this, e, ctx)
             }
         }
@@ -350,7 +310,7 @@ macro_rules! derive_arc_object {
         impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeArc<E> for dyn $tr
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize_arc(this: &::std::sync::Arc<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize_arc(this: &$crate::reexports::marshal_pointer::arc_ref::ArcRef<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
                 //serialize_object::<$carrier,E>(&**this, e, ctx)
                 todo!("X");
             }
@@ -373,8 +333,9 @@ macro_rules! derive_rc_weak_object {
         impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeRcWeak<E> for dyn $tr
             where dyn $tr: Serialize<E>,
         {
-            fn serialize_rc_weak(this: &::std::rc::Weak<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-                $crate::ser::serialize_rc_weak_object::<$carrier,E>(this, e, ctx)
+            fn serialize_rc_weak(this: &$crate::reexports::marshal_pointer::rc_weak_ref::RcWeakRef<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+                todo!();
+                // $crate::ser::serialize_rc_weak_object::<$carrier,E>(this, e, ctx)
             }
         }
         impl<'de, D: Decoder<'de>> $crate::reexports::marshal::de::rc::DeserializeRcWeak<'de, D> for dyn $tr

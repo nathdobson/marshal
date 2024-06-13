@@ -1,6 +1,7 @@
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder, SomeEncoder, TupleVariantEncoder};
 use marshal::ser::Serialize;
+use marshal_pointer::AsFlatRef;
 use std::any::{type_name, Any, TypeId};
 use std::marker::Unsize;
 use std::rc;
@@ -10,7 +11,7 @@ use std::sync::Arc;
 use crate::{AsDiscriminant, Object};
 
 pub fn serialize_object<O: Object, E: Encoder>(
-    value: &O::Pointer<O::Dyn>,
+    value: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
     e: E::AnyEncoder<'_>,
     ctx: &mut Context,
 ) -> anyhow::Result<()>
@@ -56,7 +57,7 @@ where
 
 pub trait SerializeVariantForDiscriminant<E: Encoder>: Object {
     fn serialize_variant(
-        this: &Self::Pointer<Self::Dyn>,
+        this: &<Self::Pointer<Self::Dyn> as AsFlatRef>::FlatRef,
         disc: usize,
         e: E::AnyEncoder<'_>,
         ctx: &mut Context,
@@ -110,12 +111,3 @@ pub trait SerializeVariantForDiscriminant<E: Encoder>: Object {
 //     }
 // }
 
-pub trait RawAny: Any {
-    fn raw_type_id(self: *const Self) -> TypeId;
-}
-
-impl<T: Any> RawAny for T {
-    fn raw_type_id(self: *const Self) -> TypeId {
-        TypeId::of::<T>()
-    }
-}

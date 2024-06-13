@@ -2,7 +2,7 @@ use marshal::context::Context;
 use marshal::{Deserialize, Serialize};
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
-use marshal_refs::{derive_deserialize_rc_shared, derive_serialize_rc_shared};
+use marshal_shared::{derive_deserialize_rc_shared, derive_serialize_rc_shared};
 use std::rc::Rc;
 
 #[derive(Serialize, Deserialize)]

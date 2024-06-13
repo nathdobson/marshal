@@ -1,4 +1,5 @@
-use std::marker::PhantomData;
+use std::any::Any;
+use std::marker::{PhantomData, Unsize};
 use std::ops::CoerceUnsized;
 
 use crate::decode::full::BinDecoder;
@@ -7,12 +8,13 @@ use crate::SerializeBin;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
+use marshal::ser::Serialize;
 use marshal_core::encode::Encoder;
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
 };
-use marshal_object::ser::DowncastSerialize;
 use marshal_object::Object;
+use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 pub trait SerializeDyn = SerializeBin;
 
@@ -24,7 +26,7 @@ pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn bin_serialize_variant<'p, 's>(
         &self,
-        this: &O::Pointer<O::Dyn>,
+        this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
         e: <BinEncoder<'s> as Encoder>::AnyEncoder<'p>,
         ctx: &mut Context,
     ) -> anyhow::Result<()>;
@@ -34,7 +36,11 @@ impl<O: Object, V: 'static> DeserializeVariantBin<O> for PhantomData<fn() -> V>
 where
     O::Pointer<V>: for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
     O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,
-    O::Pointer<O::Dyn>: for<'s> DowncastSerialize<V, BinEncoder<'s>>,
+    <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
+        Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
+    <O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
+        DowncastRef<<O::Pointer<V> as AsFlatRef>::FlatRef>,
+    <O::Pointer<V> as AsFlatRef>::FlatRef: SerializeBin,
 {
     fn bin_deserialize_variant<'p, 'de, 's>(
         &self,
@@ -46,11 +52,17 @@ where
 
     fn bin_serialize_variant<'p, 's>(
         &self,
-        this: &O::Pointer<O::Dyn>,
+        this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
         e: <BinEncoder<'s> as Encoder>::AnyEncoder<'p>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
-        this.downcast_serialize(e, ctx)
+        let upcast = this as &<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef;
+        let downcast = upcast
+            .downcast_ref()
+            .expect("failed to downcast for serializer");
+        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<BinEncoder<'s>>>::serialize(
+            downcast, e, ctx,
+        )
     }
 }
 
@@ -62,7 +74,11 @@ impl<O: Object, V: 'static> DeserializeVariantProvider<V> for FormatDeserializeP
 where
     O::Pointer<V>:
         CoerceUnsized<O::Pointer<O::Dyn>> + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
-    O::Pointer<O::Dyn>: for<'s> DowncastSerialize<V, BinEncoder<'s>>,
+    <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
+        Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
+    <O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
+        DowncastRef<<O::Pointer<V> as AsFlatRef>::FlatRef>,
+    <O::Pointer<V> as AsFlatRef>::FlatRef: SerializeBin,
 {
     fn add_deserialize_variant(map: &mut DeserializeVariantSet) {
         map.insert(Box::new(PhantomData::<fn() -> V>) as Box<dyn DeserializeVariantBin<O>>);
@@ -89,7 +105,7 @@ macro_rules! bin_object {
             }
             impl<'s> $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::BinEncoder<'s>> for $carrier {
                 fn serialize_variant(
-                    this: &Self::Pointer<Self::Dyn>,
+                    this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc: usize,
                     e: <$crate::encode::full::BinEncoder<'s> as $crate::reexports::marshal::encode::Encoder>::AnyEncoder<'_>,
                     ctx: &mut Context
