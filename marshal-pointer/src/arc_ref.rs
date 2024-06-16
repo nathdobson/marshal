@@ -3,7 +3,6 @@ use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::Arc;
-use crate::rc_weak_ref::RcWeakRef;
 
 #[repr(transparent)]
 pub struct ArcRef<T: ?Sized> {

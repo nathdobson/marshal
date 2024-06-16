@@ -20,8 +20,7 @@ use marshal::encode::Encoder;
 use marshal::ser::rc::SerializeRcWeak;
 use marshal::ser::Serialize;
 use marshal::{
-    derive_deserialize_arc_transparent, derive_deserialize_rc_transparent,
-    derive_serialize_arc_transparent, derive_serialize_rc_transparent, Deserialize, Serialize,
+ Deserialize, Serialize,
 };
 use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::decode::BinDecoderSchema;
@@ -44,10 +43,7 @@ use marshal_object::{derive_object, AsDiscriminant};
 use marshal_object::{VariantRegistration, OBJECT_REGISTRY};
 use marshal_pointer::rc_weak_ref::RcWeakRef;
 use marshal_pointer::RawAny;
-use marshal_shared::{
-    derive_deserialize_arc_shared, derive_deserialize_rc_shared, derive_serialize_arc_shared,
-    derive_serialize_rc_shared,
-};
+use marshal_shared::{derive_deserialize_arc_shared, derive_deserialize_rc_shared, derive_deserialize_rc_weak_shared, derive_serialize_arc_shared, derive_serialize_rc_shared};
 
 pub struct BoxMyTrait;
 derive_box_object!(BoxMyTrait, MyTrait, bin_object, json_object);
@@ -90,30 +86,14 @@ derive_variant!(ArcMyTrait, B);
 
 derive_deserialize_rc_shared!(A);
 derive_deserialize_rc_shared!(B);
+derive_deserialize_rc_weak_shared!(A);
+derive_deserialize_rc_weak_shared!(B);
 derive_deserialize_arc_shared!(A);
 derive_deserialize_arc_shared!(B);
 derive_serialize_rc_shared!(A);
 derive_serialize_rc_shared!(B);
 derive_serialize_arc_shared!(A);
 derive_serialize_arc_shared!(B);
-
-impl<'de, D: Decoder<'de>> DeserializeRcWeak<'de, D> for A {
-    fn deserialize_rc_weak<'p>(
-        p: D::AnyDecoder<'p>,
-        ctx: &mut Context,
-    ) -> anyhow::Result<Weak<Self>> {
-        todo!("p")
-    }
-}
-
-impl<'de, D: Decoder<'de>> DeserializeRcWeak<'de, D> for B {
-    fn deserialize_rc_weak<'p>(
-        p: D::AnyDecoder<'p>,
-        ctx: &mut Context,
-    ) -> anyhow::Result<Weak<Self>> {
-        todo!("q")
-    }
-}
 
 impl<E: Encoder> SerializeRcWeak<E> for A {
     fn serialize_rc_weak(

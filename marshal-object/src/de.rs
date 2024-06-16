@@ -53,16 +53,6 @@ where
     }
 }
 
-pub fn deserialize_rc_weak_object<'p, 'de, O: Object, D: Decoder<'de>>(
-    d: D::AnyDecoder<'p>,
-    ctx: &mut Context,
-) -> anyhow::Result<O::Pointer<O::Dyn>>
-where
-    O: DeserializeVariantForDiscriminant<'de, D>,
-{
-    todo!("des");
-}
-
 pub trait DeserializeProvider {}
 
 pub trait DeserializeVariantProvider<V: 'static>: DeserializeProvider {

@@ -2,11 +2,7 @@ use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder, SomeEncoder, TupleVariantEncoder};
 use marshal::ser::Serialize;
 use marshal_pointer::AsFlatRef;
-use std::any::{type_name, Any, TypeId};
-use std::marker::Unsize;
 use std::rc;
-use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::{AsDiscriminant, Object};
 

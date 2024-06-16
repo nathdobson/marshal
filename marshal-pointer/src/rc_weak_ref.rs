@@ -4,7 +4,6 @@ use std::{fmt::Debug, marker::PhantomData, mem, rc};
 use std::any::TypeId;
 
 use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
-use crate::boxed::BoxRef;
 
 #[repr(transparent)]
 pub struct RcWeakRef<T: ?Sized> {

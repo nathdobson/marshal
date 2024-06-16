@@ -6,7 +6,6 @@ use marshal::Serialize;
 use marshal_pointer::rc_ref::RcRef;
 use std::any::Any;
 use std::{rc, sync};
-use std::rc::Rc;
 use weak_table::ptr_weak_key_hash_map::Entry;
 use weak_table::PtrWeakKeyHashMap;
 use marshal_pointer::arc_ref::ArcRef;

@@ -1,3 +1,5 @@
+#![feature(trait_upcasting)]
+
 use std::fmt::{Debug, Display, Formatter};
 
 pub mod de;
@@ -11,8 +13,10 @@ pub mod reexports{
 
 #[derive(Debug)]
 pub enum SharedError {
-    UnknownReference(usize),
+    UnknownReference,
+    DoubleDefinition,
     TypeMismatch,
+    MissingDefinition,
 }
 
 impl Display for SharedError {

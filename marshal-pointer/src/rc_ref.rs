@@ -3,7 +3,6 @@ use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::boxed::BoxRef;
 
 #[repr(transparent)]
 pub struct RcRef<T: ?Sized> {

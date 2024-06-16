@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::marker::{PhantomData, Unsize};
 use std::ops::CoerceUnsized;
 

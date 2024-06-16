@@ -13,13 +13,9 @@
 use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::marker::Unsize;
-use std::rc::Rc;
-use std::sync::Arc;
-use std::{rc, sync};
 
 use crate::de::{DeserializeVariant, DeserializeVariantSet};
 use catalog::{Builder, BuilderFrom, Registry};
-use marshal_pointer::boxed::BoxRef;
 use marshal_pointer::AsFlatRef;
 
 pub mod de;
