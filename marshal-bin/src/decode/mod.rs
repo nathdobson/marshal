@@ -1,18 +1,19 @@
-pub mod full;
+use std::borrow::Cow;
+use std::fmt::{Debug, Display, Formatter};
 
 use by_address::ByAddress;
 use num_traits::FromPrimitive;
 use safe_once_map::cell::OnceCellMap;
-use std::borrow::Cow;
-use std::fmt::{Debug, Display, Formatter};
 
-use marshal_core::decode::simple::{SimpleDecoder, SimpleDecoderView};
-use marshal_core::decode::{DecodeHint, DecodeVariantHint};
 use marshal_core::{Primitive, PrimitiveType};
+use marshal_core::decode::{DecodeHint, DecodeVariantHint};
+use marshal_core::decode::simple::{SimpleDecoder, SimpleDecoderView};
 
+use crate::{TypeTag, VU128_MAX_PADDING};
 use crate::to_from_vu128::{Array, ToFromVu128};
 use crate::util::StableCellVec;
-use crate::{TypeTag, VU128_MAX_PADDING};
+
+pub mod full;
 
 type EnumDefNative = &'static [&'static str];
 

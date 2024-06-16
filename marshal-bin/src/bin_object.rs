@@ -1,9 +1,6 @@
 use std::marker::{PhantomData, Unsize};
 use std::ops::CoerceUnsized;
 
-use crate::decode::full::BinDecoder;
-use crate::encode::full::BinEncoder;
-use crate::SerializeBin;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
@@ -14,6 +11,10 @@ use marshal_object::de::{
 };
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
+
+use crate::decode::full::BinDecoder;
+use crate::encode::full::BinEncoder;
+use crate::SerializeBin;
 
 pub trait SerializeDyn = SerializeBin;
 

@@ -10,11 +10,13 @@
 #![feature(coerce_unsized)]
 #![feature(unsize)]
 
-use crate::encode::full::BinEncoder;
 use num_derive::FromPrimitive;
+
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
+
 use crate::decode::full::BinDecoder;
+use crate::encode::full::BinEncoder;
 
 pub mod decode;
 pub mod encode;
@@ -25,9 +27,10 @@ mod util;
 pub mod bin_object;
 
 pub mod reexports{
+    pub use anyhow;
+
     pub use marshal;
     pub use marshal_object;
-    pub use anyhow;
     pub use marshal_pointer;
 }
 

@@ -1,7 +1,8 @@
-use crate::context::Context;
-use crate::ser::Serialize;
 use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_core::Primitive;
+
+use crate::context::Context;
+use crate::ser::Serialize;
 
 macro_rules! derive_number {
     ($t:ty, $v:ident) => {

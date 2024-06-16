@@ -1,9 +1,11 @@
-use crate::context::Context;
-use crate::de::Deserialize;
-use marshal_core::decode::Decoder;
+use std::{rc, sync};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{rc, sync};
+
+use marshal_core::decode::Decoder;
+
+use crate::context::Context;
+use crate::de::Deserialize;
 
 impl<'de, D: Decoder<'de>, T: ?Sized + DeserializeArc<'de, D>> Deserialize<'de, D> for Arc<T> {
     fn deserialize<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self> {

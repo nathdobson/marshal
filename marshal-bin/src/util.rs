@@ -1,6 +1,7 @@
+use std::cell::Cell;
+
 use safe_once::cell::{OnceCell, RawFusedCell};
 use safe_once_map::util::index_arena::IndexArena;
-use std::cell::Cell;
 
 pub struct StableCellVec<T> {
     arena: IndexArena<RawFusedCell, OnceCell<T>>,

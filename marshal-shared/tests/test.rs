@@ -1,9 +1,10 @@
-use marshal::context::Context;
+use std::rc::Rc;
+
 use marshal::{Deserialize, Serialize};
+use marshal::context::Context;
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_shared::{derive_deserialize_rc_shared, derive_serialize_rc_shared};
-use std::rc::Rc;
 
 #[derive(Serialize, Deserialize)]
 struct Foo(u8);

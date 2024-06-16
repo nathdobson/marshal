@@ -1,11 +1,12 @@
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
+use std::marker::PhantomData;
+
 use crate::encode::{
     AnyEncoder, Encoder, EntryEncoder, MapEncoder, SeqEncoder, SomeEncoder, StructEncoder,
     StructVariantEncoder, TupleEncoder, TupleStructEncoder, TupleVariantEncoder,
 };
 use crate::Primitive;
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::marker::PhantomData;
 
 pub struct PoisonEncoder<E>(PhantomData<E>);
 

@@ -1,8 +1,8 @@
-use marshal_core::encode::simple::SimpleAnyEncoder;
 use marshal_core::encode::{
-    AnyEncoder, EntryEncoder, MapEncoder, SeqEncoder, SomeEncoder, StructVariantEncoder, StructEncoder,
-    TupleStructEncoder, TupleVariantEncoder, TupleEncoder,
+    AnyEncoder, EntryEncoder, MapEncoder, SeqEncoder, SomeEncoder, StructEncoder, StructVariantEncoder,
+    TupleEncoder, TupleStructEncoder, TupleVariantEncoder,
 };
+use marshal_core::encode::simple::SimpleAnyEncoder;
 use marshal_core::Primitive;
 
 use crate::encode::SimpleJsonEncoder;

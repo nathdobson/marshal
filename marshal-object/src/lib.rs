@@ -14,9 +14,11 @@ use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::marker::Unsize;
 
-use crate::de::{DeserializeVariant, DeserializeVariantSet};
 use catalog::{Builder, BuilderFrom, Registry};
+
 use marshal_pointer::AsFlatRef;
+
+use crate::de::{DeserializeVariant, DeserializeVariantSet};
 
 pub mod de;
 pub mod ser;
@@ -25,9 +27,10 @@ pub mod ser;
 pub mod reexports {
     pub use anyhow;
     pub use catalog;
+    pub use safe_once;
+
     pub use marshal;
     pub use marshal_pointer;
-    pub use safe_once;
 }
 
 pub trait AsDiscriminant<Key> {

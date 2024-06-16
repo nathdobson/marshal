@@ -1,8 +1,8 @@
 #![deny(unused_must_use)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{black_box, Criterion, criterion_group, criterion_main};
+use rand::{RngCore, SeedableRng};
 use rand::seq::SliceRandom;
-use rand::{Rng, RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 use serde::{Deserialize, Serialize};
 

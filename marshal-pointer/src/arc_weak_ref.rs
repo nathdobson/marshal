@@ -1,6 +1,6 @@
+use std::{fmt::Debug, marker::PhantomData, mem, sync};
 use std::cell::UnsafeCell;
 use std::fmt::Formatter;
-use std::{fmt::Debug, marker::PhantomData, mem, sync};
 
 use crate::{AsFlatRef, DerefRaw};
 
@@ -53,8 +53,9 @@ impl<T: ?Sized> DerefRaw for ArcWeakRef<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::AsFlatRef;
     use std::sync::Arc;
+
+    use crate::AsFlatRef;
 
     #[test]
     fn test() {

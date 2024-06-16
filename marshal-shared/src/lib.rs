@@ -6,9 +6,10 @@ pub mod de;
 pub mod ser;
 
 pub mod reexports{
+    pub use anyhow;
+
     pub use marshal;
     pub use marshal_pointer;
-    pub use anyhow;
 }
 
 #[derive(Debug)]

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::marker::PhantomData;
 
 use crate::decode::{
-    AnyDecoder, EntryDecoder, EnumDecoder, MapDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView,
+    AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint, EntryDecoder, EnumDecoder, MapDecoder,
     SeqDecoder, SomeDecoder,
 };
 use crate::Primitive;

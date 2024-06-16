@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::decode::{
-    AnyDecoder, EntryDecoder, EnumDecoder, MapDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint,
+    AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint, EntryDecoder, EnumDecoder, MapDecoder,
     SeqDecoder, SomeDecoder,
 };
 

@@ -6,10 +6,8 @@ use std::{
     mem::MaybeUninit,
     ops::{CoerceUnsized, Deref, DerefMut},
     rc,
-    sync::Arc,
 };
 
-use crate::arc_inner::ArcInner;
 use crate::rc_inner::RcInner;
 
 pub struct UniqueRc<T: ?Sized>(*mut RcInner<T>);
@@ -129,11 +127,12 @@ impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<UniqueRc<U>> for UniqueRc<T
 
 #[cfg(test)]
 mod test {
-    use crate::unique_arc::UniqueArc;
     use std::any::Any;
     use std::mem;
     use std::mem::MaybeUninit;
     use std::sync::Arc;
+
+    use crate::unique_arc::UniqueArc;
 
     struct AssertDropped {
         dropped: bool,

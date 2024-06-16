@@ -2,12 +2,12 @@ use std::fs;
 use std::fs::read_dir;
 
 use marshal::context::Context;
-use marshal_core::decode::simple::SimpleAnyDecoder;
-use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, SeqDecoder};
 use marshal_core::{Primitive, PrimitiveType};
+use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, SeqDecoder};
+use marshal_core::decode::simple::SimpleAnyDecoder;
 
-use crate::decode::full::JsonDecoderBuilder;
 use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};
+use crate::decode::full::JsonDecoderBuilder;
 use crate::value::JsonValue;
 
 #[test]

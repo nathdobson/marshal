@@ -6,8 +6,8 @@
 #![allow(incomplete_features)]
 #![allow(internal_features)]
 
-#[cfg(test)]
-mod test;
+use std::intrinsics::const_allocate;
+use std::mem::{align_of, size_of};
 
 use marshal::context::Context;
 use marshal::de::{Deserialize, SchemaError};
@@ -16,8 +16,9 @@ use marshal_core::decode::{
     AnyDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, MapDecoder,
 };
 use marshal_core::encode::{AnyEncoder, Encoder, StructEncoder};
-use std::intrinsics::const_allocate;
-use std::mem::{align_of, size_of};
+
+#[cfg(test)]
+mod test;
 
 #[derive(Default, Eq, Ord, PartialEq, PartialOrd, Debug, Hash, Copy, Clone)]
 pub struct StructNil<const STRUCT: &'static str>;

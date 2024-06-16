@@ -1,14 +1,16 @@
-use crate::decode::full::{BinDecoder, BinDecoderBuilder};
-use crate::decode::BinDecoderSchema;
-use crate::encode::full::{BinEncoder, BinEncoderBuilder};
-use crate::encode::BinEncoderSchema;
-use crate::VU128_MAX_PADDING;
+use std::collections::BTreeMap;
+use std::fmt::Debug;
+
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::fmt::Debug;
+
+use crate::decode::BinDecoderSchema;
+use crate::decode::full::{BinDecoder, BinDecoderBuilder};
+use crate::encode::BinEncoderSchema;
+use crate::encode::full::{BinEncoder, BinEncoderBuilder};
+use crate::VU128_MAX_PADDING;
 
 #[track_caller]
 fn test_round_trip<

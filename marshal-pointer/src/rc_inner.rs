@@ -1,9 +1,9 @@
-use std::alloc::{handle_alloc_error, Allocator, Global, Layout};
+use std::{hint, mem, rc};
+use std::alloc::{Allocator, Global, handle_alloc_error, Layout};
 use std::cell::Cell;
 use std::intrinsics::{abort, unlikely};
 use std::mem::{align_of_val_raw, size_of_val_raw};
 use std::rc::Rc;
-use std::{hint, mem, rc};
 
 #[repr(C)]
 pub struct RcInner<T: ?Sized> {
@@ -113,5 +113,3 @@ impl<T: ?Sized> RcInner<T> {
         mem::transmute_copy::<Rc<T>, *const RcInner<T>>(arc)
     }
 }
-
-const MAX_REFCOUNT: usize = (isize::MAX) as usize;

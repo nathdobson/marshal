@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 use std::slice;
 
 use crate::encode::{
-    AnyEncoder, EntryEncoder, MapEncoder, SeqEncoder, SomeEncoder, StructVariantEncoder, StructEncoder,
-    TupleStructEncoder, TupleVariantEncoder, TupleEncoder, Encoder,
+    AnyEncoder, Encoder, EntryEncoder, MapEncoder, SeqEncoder, SomeEncoder, StructEncoder,
+    StructVariantEncoder, TupleEncoder, TupleStructEncoder, TupleVariantEncoder,
 };
 use crate::Primitive;
 

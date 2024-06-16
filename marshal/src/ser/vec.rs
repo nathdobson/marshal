@@ -1,4 +1,4 @@
-use marshal_core::encode::{AnyEncoder, SeqEncoder, Encoder};
+use marshal_core::encode::{AnyEncoder, Encoder, SeqEncoder};
 
 use crate::context::Context;
 use crate::ser::Serialize;

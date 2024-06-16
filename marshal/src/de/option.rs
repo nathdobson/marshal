@@ -1,6 +1,7 @@
+use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, SomeDecoder};
+
 use crate::context::Context;
 use crate::de::Deserialize;
-use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, SomeDecoder};
 
 impl<'de, P: Decoder<'de>, T: Deserialize<'de, P>> Deserialize<'de, P> for Option<T> {
     fn deserialize<'p>(p: P::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self> {

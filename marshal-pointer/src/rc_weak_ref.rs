@@ -1,7 +1,7 @@
-use std::cell::UnsafeCell;
-use std::fmt::Formatter;
 use std::{fmt::Debug, marker::PhantomData, mem, rc};
 use std::any::TypeId;
+use std::cell::UnsafeCell;
+use std::fmt::Formatter;
 
 use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
@@ -63,8 +63,9 @@ impl<T: 'static> DowncastRef<RcWeakRef<T>> for RcWeakRef<dyn RawAny> {
 
 #[cfg(test)]
 mod test {
-    use crate::AsFlatRef;
     use std::rc::Rc;
+
+    use crate::AsFlatRef;
 
     #[test]
     fn test() {

@@ -1,4 +1,9 @@
-use crate::SharedError;
+use std::collections::HashMap;
+use std::mem::MaybeUninit;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::{rc, sync};
+
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
@@ -6,13 +11,8 @@ use marshal::Deserialize;
 use marshal_pointer::unique_arc::UniqueArc;
 use marshal_pointer::unique_rc::UniqueRc;
 use marshal_pointer::{arc_downcast, arc_weak_downcast, rc_downcast, rc_weak_downcast, RawAny};
-use std::any::{Any, TypeId};
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::mem::MaybeUninit;
-use std::rc::Rc;
-use std::sync::Arc;
-use std::{rc, sync};
+
+use crate::SharedError;
 
 struct ArcState {
     weak: sync::Weak<dyn RawAny + Sync + Send>,
@@ -184,7 +184,13 @@ pub fn deserialize_rc_weak<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D
     d: D::AnyDecoder<'_>,
     ctx: &mut Context,
 ) -> anyhow::Result<rc::Weak<T>> {
-    todo!();
+    let id = <usize as Deserialize<D>>::deserialize(d, ctx)?;
+    let shared_ctx = ctx.get_or_default::<SharedRcDeserializeContext>();
+    shared_ctx
+        .shared
+        .entry(id)
+        .or_insert_with(|| RcState::new_uninit::<T>())
+        .weak()
 }
 
 #[macro_export]
@@ -214,6 +220,22 @@ macro_rules! derive_deserialize_rc_weak_shared {
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> anyhow::Result<::std::rc::Weak<Self>> {
                 $crate::de::deserialize_rc_weak::<D, Self>(p, ctx)
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! derive_deserialize_arc_weak_shared {
+    ($ty:ty) => {
+        impl<'de, D: $crate::reexports::marshal::decode::Decoder<'de>>
+            $crate::reexports::marshal::de::rc::DeserializeArcWeak<'de, D> for $ty
+        {
+            fn deserialize_arc_weak<'p>(
+                p: D::AnyDecoder<'p>,
+                ctx: &mut $crate::reexports::marshal::context::Context,
+            ) -> anyhow::Result<::std::sync::Weak<Self>> {
+                $crate::de::deserialize_arc_weak::<D, Self>(p, ctx)
             }
         }
     };

@@ -1,8 +1,8 @@
 use marshal::context::Context;
 use marshal::ser::Serialize;
+use marshal_core::encode::Encoder;
 use marshal_core::encode::poison::{PoisonAnyEncoder, PoisonEncoder, PoisonState};
 use marshal_core::encode::simple::{SimpleAnyEncoder, SimpleEncoderAdapter};
-use marshal_core::encode::Encoder;
 
 use crate::encode::{JsonAnyEncoder, SimpleJsonEncoder};
 

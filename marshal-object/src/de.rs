@@ -1,12 +1,15 @@
-use crate::{Object, OBJECT_REGISTRY};
+use std::marker::PhantomData;
+use std::ops::Index;
+
+use type_map::concurrent::TypeMap;
+
 use marshal::context::Context;
 use marshal::de::SchemaError;
 use marshal::decode::{
-    AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView, EnumDecoder, SeqDecoder,
+    AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint, EnumDecoder, SeqDecoder,
 };
-use std::marker::PhantomData;
-use std::ops::Index;
-use type_map::concurrent::TypeMap;
+
+use crate::{Object, OBJECT_REGISTRY};
 
 pub trait DeserializeVariantForDiscriminant<'de, D: Decoder<'de>>: Object {
     fn deserialize_variant(

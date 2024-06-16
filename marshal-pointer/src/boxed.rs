@@ -1,6 +1,7 @@
 use std::any::TypeId;
-use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use std::ops::Deref;
+
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 #[repr(transparent)]
 pub struct BoxRef<T: ?Sized>(T);

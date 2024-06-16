@@ -1,7 +1,8 @@
-use crate::{StructCons, StructNil};
 use marshal::context::Context;
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
+
+use crate::{StructCons, StructNil};
 
 #[test]
 fn test_json() -> anyhow::Result<()> {

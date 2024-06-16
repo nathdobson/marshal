@@ -1,6 +1,7 @@
+use marshal_core::encode::{AnyEncoder, Encoder, SomeEncoder};
+
 use crate::context::Context;
 use crate::ser::Serialize;
-use marshal_core::encode::{AnyEncoder, SomeEncoder, Encoder};
 
 impl<W: Encoder, T: Serialize<W>> Serialize<W> for Option<T> {
     fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {

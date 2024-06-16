@@ -1,11 +1,12 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use std::fs;
+use std::path::Path;
+
+use criterion::{BenchmarkId, black_box, Criterion, criterion_group, criterion_main};
+use serde_json::Value;
+
 use marshal::context::Context;
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::value::JsonValue;
-use serde_json::Value;
-use std::fs;
-use std::path::Path;
-use std::time::Duration;
 
 fn parse_serde(data: &[u8]) {
     black_box(serde_json::from_slice::<Value>(black_box(data)).unwrap());

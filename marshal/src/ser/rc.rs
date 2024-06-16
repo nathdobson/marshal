@@ -1,14 +1,16 @@
-use crate::context::Context;
-use crate::ser::Serialize;
-use marshal_core::encode::Encoder;
+use std::{rc, sync};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{rc, sync};
+
+use marshal_core::encode::Encoder;
 use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
 use marshal_pointer::AsFlatRef;
 use marshal_pointer::rc_ref::RcRef;
 use marshal_pointer::rc_weak_ref::RcWeakRef;
+
+use crate::context::Context;
+use crate::ser::Serialize;
 
 impl<E: Encoder, T: ?Sized + SerializeRc<E>> Serialize<E> for Rc<T> {
     fn serialize(&self, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {

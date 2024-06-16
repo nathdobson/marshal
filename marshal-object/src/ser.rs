@@ -1,8 +1,9 @@
+use std::rc;
+
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder, SomeEncoder, TupleVariantEncoder};
 use marshal::ser::Serialize;
 use marshal_pointer::AsFlatRef;
-use std::rc;
 
 use crate::{AsDiscriminant, Object};
 

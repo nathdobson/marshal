@@ -1,13 +1,15 @@
-pub mod full;
-
-use by_address::ByAddress;
-use marshal_core::encode::simple::SimpleEncoder;
-use marshal_core::Primitive;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
-use crate::to_from_vu128::{Array, ToFromVu128};
+use by_address::ByAddress;
+
+use marshal_core::encode::simple::SimpleEncoder;
+use marshal_core::Primitive;
+
 use crate::{TypeTag, VU128_MAX_PADDING};
+use crate::to_from_vu128::{Array, ToFromVu128};
+
+pub mod full;
 
 pub struct BinEncoderSchema {
     enum_def_indexes: HashMap<ByAddress<&'static [&'static str]>, usize>,

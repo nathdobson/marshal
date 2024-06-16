@@ -1,8 +1,6 @@
 use std::marker::{PhantomData, Unsize};
 use std::ops::CoerceUnsized;
 
-use crate::decode::full::JsonDecoder;
-use crate::SerializeJson;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
@@ -15,8 +13,10 @@ use marshal_object::de::{
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
-use crate::encode::full::JsonEncoder;
+use crate::decode::full::JsonDecoder;
 use crate::DeserializeJson;
+use crate::encode::full::JsonEncoder;
+use crate::SerializeJson;
 
 pub trait SerializeDyn = SerializeJson;
 

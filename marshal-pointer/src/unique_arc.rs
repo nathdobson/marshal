@@ -122,6 +122,7 @@ mod test {
     use std::mem;
     use std::mem::MaybeUninit;
     use std::sync::Arc;
+
     use crate::unique_arc::UniqueArc;
 
     struct AssertDropped {

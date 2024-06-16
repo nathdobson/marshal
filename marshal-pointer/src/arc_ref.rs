@@ -1,8 +1,10 @@
 use std::any::TypeId;
-use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use std::marker::PhantomData;
 use std::ops::Deref;
+use std::sync;
 use std::sync::Arc;
+
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 #[repr(transparent)]
 pub struct ArcRef<T: ?Sized> {
@@ -27,6 +29,9 @@ impl<T: ?Sized> ArcRef<T> {
             Arc::increment_strong_count(ptr);
             Arc::from_raw(ptr)
         }
+    }
+    pub fn weak(&self) -> sync::Weak<T> {
+        Arc::downgrade(&self.arc())
     }
 }
 
@@ -62,7 +67,6 @@ impl<T: 'static> DowncastRef<ArcRef<T>> for ArcRef<dyn RawAny> {
         }
     }
 }
-
 
 #[test]
 fn test() {

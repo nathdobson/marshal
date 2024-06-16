@@ -8,10 +8,11 @@
 #![feature(coerce_unsized)]
 #![feature(unsize)]
 
-use crate::decode::full::JsonDecoder;
-use crate::encode::full::JsonEncoder;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
+
+use crate::decode::full::JsonDecoder;
+use crate::encode::full::JsonEncoder;
 
 pub mod decode;
 pub mod encode;
@@ -22,10 +23,11 @@ pub mod json_object;
 
 #[doc(hidden)]
 pub mod reexports{
+    pub use anyhow;
+
+    pub use marshal;
     pub use marshal_object;
     pub use marshal_pointer;
-    pub use marshal;
-    pub use anyhow;
 }
 
 pub trait SerializeJson = Serialize<JsonEncoder>;

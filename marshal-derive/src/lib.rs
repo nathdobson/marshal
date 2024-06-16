@@ -5,11 +5,11 @@ extern crate proc_macro;
 
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
-use syn::__private::TokenStream2;
 use syn::{
-    parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields, GenericParam, Generics,
-    LitStr, TypeParam, Variant,
+    Data, DataEnum, DataStruct, DeriveInput, Fields, GenericParam, Generics, LitStr,
+    parse_macro_input, TypeParam, Variant,
 };
+use syn::__private::TokenStream2;
 
 #[proc_macro_derive(Deserialize)]
 pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

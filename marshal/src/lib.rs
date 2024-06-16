@@ -10,15 +10,16 @@
 #![allow(incomplete_features)]
 #![feature(macro_metavar_expr)]
 
+pub use marshal_core::*;
+pub use marshal_derive::*;
+
 pub mod context;
 pub mod de;
 pub mod ser;
 
-pub use marshal_core::*;
-pub use marshal_derive::*;
-
 #[doc(hidden)]
 pub mod reexports {
     pub use anyhow;
+
     pub use marshal_pointer;
 }

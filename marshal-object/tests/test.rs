@@ -8,42 +8,41 @@
 
 use std::any::Any;
 use std::fmt::Debug;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 
 use safe_once::sync::LazyLock;
 
+use marshal::{
+    Deserialize, Serialize,
+};
 use marshal::context::Context;
-use marshal::de::rc::DeserializeRcWeak;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::encode::Encoder;
 use marshal::ser::rc::SerializeRcWeak;
 use marshal::ser::Serialize;
-use marshal::{
- Deserialize, Serialize,
-};
-use marshal_bin::decode::full::BinDecoderBuilder;
-use marshal_bin::decode::BinDecoderSchema;
-use marshal_bin::encode::full::BinEncoderBuilder;
-use marshal_bin::encode::BinEncoderSchema;
-use marshal_bin::DeserializeBin;
-use marshal_bin::SerializeBin;
 use marshal_bin::{bin_object, VU128_MAX_PADDING};
+use marshal_bin::decode::BinDecoderSchema;
+use marshal_bin::decode::full::BinDecoderBuilder;
+use marshal_bin::DeserializeBin;
+use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::encode::full::BinEncoderBuilder;
+use marshal_bin::SerializeBin;
+use marshal_json::{DeserializeJson, json_object};
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_json::SerializeJson;
-use marshal_json::{json_object, DeserializeJson};
-use marshal_object::de::{deserialize_object, DeserializeVariantForDiscriminant};
-use marshal_object::ser::serialize_object;
 use marshal_object::{
     derive_arc_object, derive_box_object, derive_rc_object, derive_rc_weak_object, derive_variant,
     ObjectDescriptor,
 };
-use marshal_object::{derive_object, AsDiscriminant};
-use marshal_object::{VariantRegistration, OBJECT_REGISTRY};
-use marshal_pointer::rc_weak_ref::RcWeakRef;
+use marshal_object::{AsDiscriminant, derive_object};
+use marshal_object::{OBJECT_REGISTRY, VariantRegistration};
+use marshal_object::de::{deserialize_object, DeserializeVariantForDiscriminant};
+use marshal_object::ser::serialize_object;
 use marshal_pointer::RawAny;
-use marshal_shared::{derive_deserialize_arc_shared, derive_deserialize_rc_shared, derive_deserialize_rc_weak_shared, derive_serialize_arc_shared, derive_serialize_rc_shared};
+use marshal_pointer::rc_weak_ref::RcWeakRef;
+use marshal_shared::{derive_deserialize_arc_shared, derive_deserialize_arc_weak_shared, derive_deserialize_rc_shared, derive_deserialize_rc_weak_shared, derive_serialize_arc_shared, derive_serialize_arc_weak_shared, derive_serialize_rc_shared, derive_serialize_rc_weak_shared};
 
 pub struct BoxMyTrait;
 derive_box_object!(BoxMyTrait, MyTrait, bin_object, json_object);
@@ -90,30 +89,16 @@ derive_deserialize_rc_weak_shared!(A);
 derive_deserialize_rc_weak_shared!(B);
 derive_deserialize_arc_shared!(A);
 derive_deserialize_arc_shared!(B);
+derive_deserialize_arc_weak_shared!(A);
+derive_deserialize_arc_weak_shared!(B);
 derive_serialize_rc_shared!(A);
 derive_serialize_rc_shared!(B);
 derive_serialize_arc_shared!(A);
 derive_serialize_arc_shared!(B);
-
-impl<E: Encoder> SerializeRcWeak<E> for A {
-    fn serialize_rc_weak(
-        this: &RcWeakRef<Self>,
-        e: E::AnyEncoder<'_>,
-        ctx: &mut Context,
-    ) -> anyhow::Result<()> {
-        todo!()
-    }
-}
-
-impl<E: Encoder> SerializeRcWeak<E> for B {
-    fn serialize_rc_weak(
-        this: &RcWeakRef<Self>,
-        e: E::AnyEncoder<'_>,
-        ctx: &mut Context,
-    ) -> anyhow::Result<()> {
-        todo!()
-    }
-}
+derive_serialize_rc_weak_shared!(A);
+derive_serialize_rc_weak_shared!(B);
+derive_serialize_arc_weak_shared!(A);
+derive_serialize_arc_weak_shared!(B);
 
 #[track_caller]
 pub fn json_round_trip<T: Debug + SerializeJson + for<'de> DeserializeJson<'de>>(

@@ -1,7 +1,8 @@
+use marshal_core::{Primitive, PrimitiveType};
+use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
+
 use crate::context::Context;
 use crate::de::Deserialize;
-use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
-use marshal_core::{Primitive, PrimitiveType};
 
 macro_rules! derive_number {
     ($t:ty, $v:ident) => {

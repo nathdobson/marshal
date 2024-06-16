@@ -1,8 +1,10 @@
 use std::any::TypeId;
-use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use std::marker::PhantomData;
 use std::ops::Deref;
+use std::rc;
 use std::rc::Rc;
+
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 #[repr(transparent)]
 pub struct RcRef<T: ?Sized> {
@@ -24,6 +26,9 @@ impl<T: ?Sized> RcRef<T> {
             Rc::<Self>::increment_strong_count(self);
             Rc::<T>::from_raw(self as *const RcRef<T> as *const T)
         }
+    }
+    pub fn weak(&self) -> rc::Weak<T> {
+        Rc::downgrade(&self.rc())
     }
 }
 
