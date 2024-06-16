@@ -1,7 +1,3 @@
-use crate::rc_inner::RcInner;
-use crate::RawAny;
-use std::any::TypeId;
-use std::rc::Rc;
 use std::{
     any::Any,
     marker::Unsize,
@@ -9,6 +5,11 @@ use std::{
     ops::{CoerceUnsized, Deref, DerefMut},
     rc,
 };
+use std::any::TypeId;
+use std::rc::Rc;
+
+use crate::RawAny;
+use crate::rc_inner::RcInner;
 
 pub struct EmptyRc<T: ?Sized>(*mut RcInner<T>);
 
@@ -73,11 +74,10 @@ impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<EmptyRc<U>> for EmptyRc<T> 
 
 #[cfg(test)]
 mod test {
-    use crate::empty_arc::EmptyArc;
-    use std::any::Any;
-    use std::mem;
     use std::mem::MaybeUninit;
     use std::sync::Arc;
+
+    use crate::empty_arc::EmptyArc;
 
     struct AssertDropped {
         dropped: bool,

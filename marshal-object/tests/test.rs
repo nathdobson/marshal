@@ -41,7 +41,6 @@ use marshal_object::{OBJECT_REGISTRY, VariantRegistration};
 use marshal_object::de::{deserialize_object, DeserializeVariantForDiscriminant};
 use marshal_object::ser::serialize_object;
 use marshal_pointer::RawAny;
-use marshal_pointer::rc_weak_ref::RcWeakRef;
 use marshal_shared::{derive_deserialize_arc_shared, derive_deserialize_arc_weak_shared, derive_deserialize_rc_shared, derive_deserialize_rc_weak_shared, derive_serialize_arc_shared, derive_serialize_arc_weak_shared, derive_serialize_rc_shared, derive_serialize_rc_weak_shared};
 
 pub struct BoxMyTrait;

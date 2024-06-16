@@ -594,6 +594,9 @@ dependencies = [
 [[package]]
 name = "marshal-pointer"
 version = "0.1.0"
+dependencies = [
+ "safe-once",
+]
 
 [[package]]
 name = "marshal-shared"

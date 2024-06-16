@@ -1,18 +1,15 @@
+use std::{rc, sync};
 use std::collections::HashMap;
-use std::mem::MaybeUninit;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{rc, sync};
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::Deserialize;
+use marshal_pointer::{arc_downcast, arc_weak_downcast, RawAny, rc_downcast, rc_weak_downcast};
 use marshal_pointer::empty_arc::EmptyArc;
 use marshal_pointer::empty_rc::EmptyRc;
-use marshal_pointer::unique_arc::UniqueArc;
-use marshal_pointer::unique_rc::UniqueRc;
-use marshal_pointer::{arc_downcast, arc_weak_downcast, rc_downcast, rc_weak_downcast, RawAny};
 
 use crate::SharedError;
 

@@ -1,12 +1,5 @@
 use std::any::TypeId;
-use std::{
-    any::Any,
-    marker::Unsize,
-    mem,
-    mem::MaybeUninit,
-    ops::{CoerceUnsized, Deref, DerefMut},
-    sync::{Arc, Weak},
-};
+use std::{marker::Unsize, mem, ops::{CoerceUnsized, Deref}, sync, sync::Arc};
 
 use crate::arc_inner::ArcInner;
 use crate::RawAny;
@@ -25,7 +18,7 @@ impl<T: ?Sized> EmptyArc<T> {
             EmptyArc(ptr)
         }
     }
-    pub fn downgrade(this: &Self) -> Weak<T> {
+    pub fn downgrade(this: &Self) -> sync::Weak<T> {
         unsafe {
             this.0.increment_weak();
             this.0.into_weak()
@@ -74,11 +67,10 @@ impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<EmptyArc<U>> for EmptyArc<T
 
 #[cfg(test)]
 mod test {
-    use crate::empty_arc::EmptyArc;
-    use std::any::Any;
-    use std::mem;
     use std::mem::MaybeUninit;
     use std::sync::Arc;
+
+    use crate::empty_arc::EmptyArc;
 
     struct AssertDropped {
         dropped: bool,

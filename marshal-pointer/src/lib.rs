@@ -9,11 +9,14 @@
 #![allow(internal_features)]
 #![feature(layout_for_ptr)]
 #![feature(hint_assert_unchecked)]
+#![feature(alloc_layout_extra)]
+#![feature(set_ptr_value)]
+#![feature(never_type)]
 
+use std::{rc, sync};
 use std::any::{Any, TypeId};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{rc, sync};
 
 mod arc_inner;
 pub mod arc_ref;

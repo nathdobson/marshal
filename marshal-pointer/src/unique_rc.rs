@@ -1,4 +1,3 @@
-use crate::rc_inner::RcInner;
 use std::{
     any::Any,
     marker::Unsize,
@@ -7,6 +6,8 @@ use std::{
     rc,
 };
 use std::rc::Rc;
+
+use crate::rc_inner::RcInner;
 
 pub struct UniqueRc<T: ?Sized>(*mut RcInner<T>);
 
