@@ -4,6 +4,7 @@ use std::cell::UnsafeCell;
 use std::fmt::Formatter;
 
 use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
+use crate::global_uninit::global_uninit_for_ptr;
 
 #[repr(transparent)]
 pub struct RcWeakRef<T: ?Sized> {
@@ -14,7 +15,14 @@ pub struct RcWeakRef<T: ?Sized> {
 impl<T: ?Sized> AsFlatRef for rc::Weak<T> {
     type FlatRef = RcWeakRef<T>;
     fn as_flat_ref(&self) -> &Self::FlatRef {
-        unsafe { &*(self.as_ptr() as *const RcWeakRef<T>) }
+        unsafe {
+            let ptr = self.as_ptr();
+            if ptr as *const () as usize == usize::MAX {
+                &*(global_uninit_for_ptr::<T>(ptr) as *const Self::FlatRef)
+            } else {
+                &*(self.as_ptr() as *const Self::FlatRef)
+            }
+        }
     }
 }
 
@@ -22,6 +30,12 @@ impl<T: ?Sized> RcWeakRef<T> {
     pub fn weak(&self) -> rc::Weak<T> {
         unsafe {
             let ptr = self as *const RcWeakRef<T> as *const T;
+            if ptr as *const () == global_uninit_for_ptr::<T>(ptr) as *const () {
+                return rc::Weak::from_raw(
+                    (std::ptr::without_provenance::<()>(usize::MAX) as *const ())
+                        .with_metadata_of(ptr),
+                );
+            }
             let result = rc::Weak::from_raw(ptr);
             mem::forget(result.clone());
             result
@@ -63,6 +77,7 @@ impl<T: 'static> DowncastRef<RcWeakRef<T>> for RcWeakRef<dyn RawAny> {
 
 #[cfg(test)]
 mod test {
+    use std::rc;
     use std::rc::Rc;
 
     use crate::AsFlatRef;
@@ -72,4 +87,67 @@ mod test {
         let x = Rc::new(123);
         Rc::downgrade(&x).as_flat_ref().weak();
     }
+
+
+    #[test]
+    fn test_fake_weak() {
+        fn get_fake<T>() -> rc::Weak<T> {
+            rc::Weak::new().as_flat_ref().weak()
+        }
+        struct Foo;
+        get_fake::<Foo>();
+
+        #[repr(align(2))]
+        struct Align2<T>(T);
+        #[repr(align(4))]
+        struct Align4<T>(T);
+        #[repr(align(8))]
+        struct Align8<T>(T);
+        #[repr(align(8192))]
+        struct Align8192<T>(T);
+        get_fake::<Align2<[u8; 0]>>();
+        get_fake::<Align2<[u8; 1]>>();
+        get_fake::<Align2<[u8; 2]>>();
+        get_fake::<Align2<[u8; 3]>>();
+        get_fake::<Align2<[u8; 4]>>();
+        get_fake::<Align2<[u8; 5]>>();
+        get_fake::<Align2<[u8; 6]>>();
+        get_fake::<Align2<[u8; 7]>>();
+        get_fake::<Align2<[u8; 8]>>();
+        get_fake::<Align2<[u8; 9]>>();
+
+        get_fake::<Align4<[u8; 0]>>();
+        get_fake::<Align4<[u8; 1]>>();
+        get_fake::<Align4<[u8; 2]>>();
+        get_fake::<Align4<[u8; 3]>>();
+        get_fake::<Align4<[u8; 4]>>();
+        get_fake::<Align4<[u8; 5]>>();
+        get_fake::<Align4<[u8; 6]>>();
+        get_fake::<Align4<[u8; 7]>>();
+        get_fake::<Align4<[u8; 8]>>();
+        get_fake::<Align4<[u8; 9]>>();
+
+        get_fake::<Align8<[u8; 0]>>();
+        get_fake::<Align8<[u8; 1]>>();
+        get_fake::<Align8<[u8; 2]>>();
+        get_fake::<Align8<[u8; 3]>>();
+        get_fake::<Align8<[u8; 4]>>();
+        get_fake::<Align8<[u8; 5]>>();
+        get_fake::<Align8<[u8; 6]>>();
+        get_fake::<Align8<[u8; 7]>>();
+        get_fake::<Align8<[u8; 8]>>();
+        get_fake::<Align8<[u8; 9]>>();
+
+        get_fake::<Align8192<[u8; 0]>>();
+        get_fake::<Align8192<[u8; 1]>>();
+        get_fake::<Align8192<[u8; 2]>>();
+        get_fake::<Align8192<[u8; 3]>>();
+        get_fake::<Align8192<[u8; 4]>>();
+        get_fake::<Align8192<[u8; 5]>>();
+        get_fake::<Align8192<[u8; 6]>>();
+        get_fake::<Align8192<[u8; 7]>>();
+        get_fake::<Align8192<[u8; 8]>>();
+        get_fake::<Align8192<[u8; 9]>>();
+    }
+
 }

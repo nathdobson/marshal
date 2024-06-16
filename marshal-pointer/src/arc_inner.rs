@@ -12,26 +12,6 @@ pub struct ArcInner<T: ?Sized> {
     inner: T,
 }
 
-fn wrap_layout(value: Layout) -> (Layout, usize) {
-    Layout::new::<()>()
-        .extend(Layout::new::<AtomicUsize>())
-        .unwrap()
-        .0
-        .extend(Layout::new::<AtomicUsize>())
-        .unwrap()
-        .0
-        .extend(value)
-        .unwrap()
-}
-
-pub unsafe fn allocate_arc_inner_raw_uninit(inner: Layout) -> (*mut ArcInner<!>, *mut ()) {
-    let (layout, offset) = wrap_layout(inner);
-    let ptr = Global
-        .allocate(layout)
-        .unwrap_or_else(|_| handle_alloc_error(layout))
-        .as_ptr() as *mut ();
-    (ptr as *mut ArcInner<!>, ptr.byte_add(offset))
-}
 
 impl<T: ?Sized> ArcInner<T> {
     pub fn allocate_uninit() -> *mut Self

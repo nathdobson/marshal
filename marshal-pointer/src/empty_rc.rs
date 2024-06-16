@@ -1,15 +1,9 @@
-use std::{
-    any::Any,
-    marker::Unsize,
-    mem,
-    ops::{CoerceUnsized, Deref, DerefMut},
-    rc,
-};
 use std::any::TypeId;
 use std::rc::Rc;
+use std::{marker::Unsize, mem, ops::CoerceUnsized, rc};
 
-use crate::RawAny;
 use crate::rc_inner::RcInner;
+use crate::RawAny;
 
 pub struct EmptyRc<T: ?Sized>(*mut RcInner<T>);
 

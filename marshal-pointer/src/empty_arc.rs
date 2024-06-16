@@ -1,5 +1,5 @@
+use std::{marker::Unsize, mem, ops::{CoerceUnsized}, sync, sync::Arc};
 use std::any::TypeId;
-use std::{marker::Unsize, mem, ops::{CoerceUnsized, Deref}, sync, sync::Arc};
 
 use crate::arc_inner::ArcInner;
 use crate::RawAny;

@@ -1,49 +1,14 @@
-use std::alloc::Layout;
+use std::{fmt::Debug, marker::PhantomData, mem, sync};
 use std::cell::UnsafeCell;
 use std::fmt::Formatter;
-use std::mem::{align_of_val_raw, size_of_val_raw};
-use std::{fmt::Debug, marker::PhantomData, mem, sync};
 
-use safe_once::sync::OnceLock;
-
-use crate::arc_inner::allocate_arc_inner_raw_uninit;
 use crate::{AsFlatRef, DerefRaw};
+use crate::global_uninit::global_uninit_for_ptr;
 
 #[repr(transparent)]
 pub struct ArcWeakRef<T: ?Sized> {
     phantom: PhantomData<*const ()>,
     inner: UnsafeCell<T>,
-}
-
-const FAKE_WEAK: OnceLock<&'static ()> = OnceLock::new();
-const FAKE_WEAKS_SLICE: [OnceLock<&'static ()>; 64] = [FAKE_WEAK; 64];
-pub static FAKE_WEAKS: [[OnceLock<&'static ()>; 64]; 64] = [FAKE_WEAKS_SLICE; 64];
-
-fn fake_weak(layout: Layout) -> *const () {
-    unsafe {
-        let align_index = layout.align().ilog2() as usize;
-        let size_index: usize;
-        let new_size: usize;
-        if let Some(size) = layout.size().checked_sub(1) {
-            if let Some(log) = size.checked_ilog2() {
-                size_index = log as usize + 2;
-                new_size = 1 << size_index;
-            } else {
-                size_index = 1;
-                new_size = 1;
-            };
-        } else {
-            size_index = 0;
-            new_size = 0;
-        }
-        *FAKE_WEAKS[align_index][size_index].get_or_init(|| {
-            let layout = Layout::from_size_align(new_size, 1 << align_index).unwrap();
-            let (arc_inner, value) = allocate_arc_inner_raw_uninit(layout);
-            arc_inner.write_strong(0);
-            arc_inner.write_weak(1);
-            &*value
-        })
-    }
 }
 
 impl<T: ?Sized> AsFlatRef for sync::Weak<T> {
@@ -52,12 +17,9 @@ impl<T: ?Sized> AsFlatRef for sync::Weak<T> {
         unsafe {
             let ptr = self.as_ptr();
             if ptr as *const () as usize == usize::MAX {
-                let layout =
-                    Layout::from_size_align(size_of_val_raw(ptr), align_of_val_raw(ptr)).unwrap();
-                let fake_weak = fake_weak(layout);
-                &*(fake_weak.with_metadata_of(ptr) as *const ArcWeakRef<T>)
+                &*(global_uninit_for_ptr::<T>(ptr) as *const Self::FlatRef)
             } else {
-                &*(self.as_ptr() as *const ArcWeakRef<T>)
+                &*(self.as_ptr() as *const Self::FlatRef)
             }
         }
     }
@@ -70,6 +32,12 @@ impl<T: ?Sized> ArcWeakRef<T> {
     pub fn weak(&self) -> sync::Weak<T> {
         unsafe {
             let ptr = self as *const ArcWeakRef<T> as *const T;
+            if ptr as *const () == global_uninit_for_ptr::<T>(ptr) as *const () {
+                return sync::Weak::from_raw(
+                    (std::ptr::without_provenance::<()>(usize::MAX) as *const ())
+                        .with_metadata_of(ptr),
+                );
+            }
             let result = sync::Weak::from_raw(ptr);
             mem::forget(result.clone());
             result
@@ -112,7 +80,7 @@ mod test {
 
     #[test]
     fn test2() {
-        let foo = sync::Weak::<i32>::new().as_flat_ref().weak();
+        let _ = sync::Weak::<i32>::new().as_flat_ref().weak();
     }
 
     #[test]
@@ -175,4 +143,5 @@ mod test {
         get_fake::<Align8192<[u8; 8]>>();
         get_fake::<Align8192<[u8; 9]>>();
     }
+
 }
