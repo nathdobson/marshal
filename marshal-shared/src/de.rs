@@ -8,6 +8,8 @@ use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::Deserialize;
+use marshal_pointer::empty_arc::EmptyArc;
+use marshal_pointer::empty_rc::EmptyRc;
 use marshal_pointer::unique_arc::UniqueArc;
 use marshal_pointer::unique_rc::UniqueRc;
 use marshal_pointer::{arc_downcast, arc_weak_downcast, rc_downcast, rc_weak_downcast, RawAny};
@@ -16,13 +18,13 @@ use crate::SharedError;
 
 struct ArcState {
     weak: sync::Weak<dyn RawAny + Sync + Send>,
-    uninit: Option<UniqueArc<dyn Sync + Send + RawAny>>,
+    uninit: Option<EmptyArc<dyn Sync + Send + RawAny>>,
     init: Option<Arc<dyn Sync + Send + RawAny>>,
 }
 
 struct RcState {
     weak: rc::Weak<dyn RawAny>,
-    uninit: Option<UniqueRc<dyn RawAny>>,
+    uninit: Option<EmptyRc<dyn RawAny>>,
     init: Option<Rc<dyn RawAny>>,
 }
 
@@ -38,8 +40,8 @@ pub struct SharedRcDeserializeContext {
 
 impl ArcState {
     pub fn new_uninit<T: 'static + Sync + Send>() -> Self {
-        let uninit = UniqueArc::<MaybeUninit<T>>::new_uninit();
-        let weak = UniqueArc::downgrade_uninit(&uninit);
+        let uninit = EmptyArc::<T>::new();
+        let weak = EmptyArc::downgrade(&uninit);
         ArcState {
             weak,
             uninit: Some(uninit),
@@ -55,10 +57,10 @@ impl ArcState {
     }
     pub fn init<T: 'static + Sync + Send>(&mut self, value: T) -> anyhow::Result<Arc<T>> {
         let uninit = self.uninit.take().ok_or(SharedError::DoubleDefinition)?;
-        let uninit = UniqueArc::downcast::<MaybeUninit<T>>(uninit)
+        let uninit = EmptyArc::downcast::<T>(uninit)
             .ok()
             .ok_or(SharedError::TypeMismatch)?;
-        let init = uninit.init(value);
+        let init = EmptyArc::into_arc(uninit, value);
         self.init = Some(init.clone());
         Ok(init)
     }
@@ -78,8 +80,8 @@ impl ArcState {
 
 impl RcState {
     pub fn new_uninit<T: 'static>() -> Self {
-        let uninit = UniqueRc::<MaybeUninit<T>>::new_uninit();
-        let weak = UniqueRc::downgrade_uninit(&uninit);
+        let uninit = EmptyRc::<T>::new();
+        let weak = EmptyRc::downgrade(&uninit);
         RcState {
             weak,
             uninit: Some(uninit),
@@ -95,10 +97,10 @@ impl RcState {
     }
     pub fn init<T: 'static>(&mut self, value: T) -> anyhow::Result<Rc<T>> {
         let uninit = self.uninit.take().ok_or(SharedError::DoubleDefinition)?;
-        let uninit = UniqueRc::downcast::<MaybeUninit<T>>(uninit)
+        let uninit = EmptyRc::downcast::<T>(uninit)
             .ok()
             .ok_or(SharedError::TypeMismatch)?;
-        let init = uninit.init(value);
+        let init = EmptyRc::into_rc(uninit, value);
         self.init = Some(init.clone());
         Ok(init)
     }

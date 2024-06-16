@@ -10,21 +10,23 @@
 #![feature(layout_for_ptr)]
 #![feature(hint_assert_unchecked)]
 
-use std::{rc, sync};
 use std::any::{Any, TypeId};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::{rc, sync};
 
 mod arc_inner;
 pub mod arc_ref;
 pub mod arc_weak_ref;
 pub mod boxed;
+pub mod empty_arc;
 pub mod flat;
 mod rc_inner;
 pub mod rc_ref;
 pub mod rc_weak_ref;
 pub mod unique_arc;
 pub mod unique_rc;
+pub mod empty_rc;
 
 pub trait AsFlatRef {
     type FlatRef: ?Sized;
@@ -90,6 +92,23 @@ pub fn rc_weak_downcast<T: 'static>(
             Ok(rc::Weak::from_raw(rc::Weak::into_raw(weak) as *const T))
         } else {
             Err(weak)
+        }
+    }
+}
+
+impl dyn RawAny {
+    fn downcast_raw_const<T: 'static>(self: *const Self) -> Option<*const T> {
+        if self.raw_type_id() == TypeId::of::<T>() {
+            Some(self as *const T)
+        } else {
+            None
+        }
+    }
+    fn downcast_raw_mut<T: 'static>(self: *mut Self) -> Option<*mut T> {
+        if self.raw_type_id() == TypeId::of::<T>() {
+            Some(self as *mut T)
+        } else {
+            None
         }
     }
 }

@@ -1,17 +1,20 @@
+use std::any::TypeId;
 use std::{
     any::Any,
     marker::Unsize,
     mem,
+    mem::MaybeUninit,
     ops::{CoerceUnsized, Deref, DerefMut},
     sync::{Arc, Weak},
 };
 
 use crate::arc_inner::ArcInner;
+use crate::RawAny;
 
-pub struct UniqueArc<T: ?Sized>(*mut ArcInner<T>);
+pub struct EmptyArc<T: ?Sized>(*mut ArcInner<T>);
 
-impl<T: ?Sized> UniqueArc<T> {
-    pub fn new(value: T) -> Self
+impl<T: ?Sized> EmptyArc<T> {
+    pub fn new() -> Self
     where
         T: Sized,
     {
@@ -19,8 +22,7 @@ impl<T: ?Sized> UniqueArc<T> {
             let ptr = ArcInner::<T>::allocate_uninit();
             ptr.write_weak(1);
             ptr.write_strong(0);
-            ptr.write_inner(value);
-            UniqueArc(ptr)
+            EmptyArc(ptr)
         }
     }
     pub fn downgrade(this: &Self) -> Weak<T> {
@@ -29,9 +31,13 @@ impl<T: ?Sized> UniqueArc<T> {
             this.0.into_weak()
         }
     }
-    pub fn into_arc(this: Self) -> Arc<T> {
+    pub fn into_arc(this: Self, value: T) -> Arc<T>
+    where
+        T: Sized,
+    {
         unsafe {
-            this.0.increment_strong();
+            this.0.write_inner(value);
+            this.0.write_strong(1);
             let result = this.0.into_arc();
             mem::forget(this);
             result
@@ -39,50 +45,40 @@ impl<T: ?Sized> UniqueArc<T> {
     }
 }
 
-impl UniqueArc<dyn 'static + Any> {
-    pub fn downcast<T>(this: Self) -> Result<UniqueArc<T>, Self>
+impl EmptyArc<dyn RawAny> {
+    pub fn downcast<T>(this: Self) -> Result<EmptyArc<T>, Self>
     where
-        T: Any + Send + Sync,
+        T: 'static,
     {
-        if (*this).is::<T>() {
-            let result = Ok(UniqueArc(this.0.cast()));
-            mem::forget(this);
-            result
-        } else {
-            Err(this)
+        unsafe {
+            if this.0.inner_mut().raw_type_id() == TypeId::of::<T>() {
+                let result = Ok(EmptyArc(this.0.cast()));
+                mem::forget(this);
+                result
+            } else {
+                Err(this)
+            }
         }
     }
 }
 
-impl<T: ?Sized> Deref for UniqueArc<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.0.inner_deref() }
-    }
-}
-
-impl<T: ?Sized> DerefMut for UniqueArc<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.0.inner_deref_mut() }
-    }
-}
-
-impl<T: ?Sized> Drop for UniqueArc<T> {
+impl<T: ?Sized> Drop for EmptyArc<T> {
     fn drop(&mut self) {
         unsafe {
-            self.0.drop_inner();
             self.0.into_weak();
         }
     }
 }
 
-impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<UniqueArc<U>> for UniqueArc<T> {}
+impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<EmptyArc<U>> for EmptyArc<T> {}
 
 #[cfg(test)]
 mod test {
+    use crate::empty_arc::EmptyArc;
+    use std::any::Any;
     use std::mem;
-
-    use crate::unique_arc::UniqueArc;
+    use std::mem::MaybeUninit;
+    use std::sync::Arc;
 
     struct AssertDropped {
         dropped: bool,
@@ -113,24 +109,25 @@ mod test {
     }
 
     #[test]
-    fn test_without_arc() {
-        let mut assert = AssertDropped::new();
-        let _x = UniqueArc::new(assert.check());
+    fn test_uninit() {
+        let _x = EmptyArc::<MaybeUninit<MustDrop>>::new();
     }
 
     #[test]
-    fn test_with_arc() {
+    fn test_uninit_arc() {
         let mut assert = AssertDropped::new();
-        let x = UniqueArc::new(assert.check());
-        let _x = UniqueArc::into_arc(x);
+        let x = EmptyArc::<MustDrop>::new();
+        let x = EmptyArc::into_arc(x, assert.check());
+        println!("{:?}", Arc::weak_count(&x));
+        println!("{:?}", Arc::strong_count(&x));
     }
 
     #[test]
-    fn test_with_weak() {
+    fn test_uninit_weak() {
         let mut assert = AssertDropped::new();
-        let x = UniqueArc::new(assert.check());
-        let w = UniqueArc::downgrade(&x);
-        let _x = UniqueArc::into_arc(x);
-        mem::drop(w);
+        let x = EmptyArc::<MustDrop>::new();
+        let w = EmptyArc::downgrade(&x);
+        assert!(w.upgrade().is_none());
+        EmptyArc::into_arc(x, assert.check());
     }
 }
