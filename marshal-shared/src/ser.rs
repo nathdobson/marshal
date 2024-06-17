@@ -1,8 +1,8 @@
-use std::{rc, sync};
 use std::any::Any;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::{rc, sync};
 
 use marshal::context::Context;
 use marshal::encode::Encoder;
@@ -11,9 +11,9 @@ use marshal::ser::Serialize;
 use marshal::Serialize;
 use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
-use marshal_pointer::DerefRaw;
 use marshal_pointer::rc_ref::RcRef;
 use marshal_pointer::rc_weak_ref::RcWeakRef;
+use marshal_pointer::DerefRaw;
 
 struct ByAddress<T>(T);
 
@@ -25,7 +25,7 @@ impl<T: DerefRaw> Hash for ByAddress<T> {
 
 impl<T: DerefRaw> PartialEq<Self> for ByAddress<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.0.deref_raw().eq(&other.0.deref_raw())
+        (self.0.deref_raw() as *const ()).eq(&(other.0.deref_raw() as *const ()))
     }
 }
 
@@ -125,7 +125,7 @@ pub fn serialize_rc_weak<E: Encoder, T: 'static + Serialize<E>>(
     <usize as Serialize<E>>::serialize(&index, e, ctx)
 }
 
-pub fn serialize_arc_weak<E: Encoder, T: 'static + Sync+Send+Serialize<E>>(
+pub fn serialize_arc_weak<E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
     ptr: &ArcWeakRef<T>,
     e: E::AnyEncoder<'_>,
     ctx: &mut Context,

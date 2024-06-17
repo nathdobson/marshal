@@ -19,7 +19,6 @@ use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::encode::Encoder;
-use marshal::ser::rc::SerializeRcWeak;
 use marshal::ser::Serialize;
 use marshal_bin::{bin_object, VU128_MAX_PADDING};
 use marshal_bin::decode::BinDecoderSchema;
