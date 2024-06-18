@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 
-use marshal_core::encode::{AnyEncoder, Encoder, EntryEncoder, MapEncoder};
+use marshal_core::encode::{AnyEncoder, Encoder};
 
 use crate::context::Context;
 use crate::ser::Serialize;

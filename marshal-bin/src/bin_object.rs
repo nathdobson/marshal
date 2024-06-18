@@ -5,7 +5,7 @@ use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::ser::Serialize;
-use marshal_core::encode::{AnyEncoder, Encoder};
+use marshal_core::encode::AnyEncoder;
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
 };

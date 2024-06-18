@@ -1,4 +1,4 @@
-use marshal_core::encode::{AnyEncoder, Encoder, TupleEncoder};
+use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_core::Primitive;
 
 use crate::context::Context;

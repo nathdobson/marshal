@@ -1,7 +1,8 @@
-use std::marker::PhantomData;
 use std::slice;
 
 use crate::Primitive;
+
+pub mod poison;
 
 pub trait Encoder {
     type AnyEncoder;

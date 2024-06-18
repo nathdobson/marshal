@@ -1,29 +1,28 @@
 use marshal::context::Context;
 use marshal::ser::Serialize;
-use marshal_core::encode::{AnyEncoder, Encoder};
+use marshal_core::encode::poison::PoisonEncoder;
+use marshal_core::encode::AnyEncoder;
 
 use crate::encode::{JsonAnyEncoder, SimpleJsonEncoder};
 
-pub type JsonEncoder = SimpleJsonEncoder;
+pub type JsonEncoder = PoisonEncoder<SimpleJsonEncoder>;
 
 pub struct JsonEncoderBuilder {
-    // poison: PoisonState,
-    inner: SimpleJsonEncoder,
+    inner: PoisonEncoder<SimpleJsonEncoder>,
 }
 
 impl JsonEncoderBuilder {
     pub fn new() -> Self {
         JsonEncoderBuilder {
-            // poison: PoisonState::new(),
-            inner: SimpleJsonEncoder::new(),
+            inner: PoisonEncoder::new(SimpleJsonEncoder::new()),
         }
     }
     pub fn build(&mut self) -> AnyEncoder<'_, JsonEncoder> {
-        AnyEncoder::new(&mut self.inner, JsonAnyEncoder::new())
+        let any = self.inner.start(JsonAnyEncoder::new());
+        AnyEncoder::new(&mut self.inner, any)
     }
     pub fn end(mut self) -> anyhow::Result<String> {
-        // self.poison.check()?;
-        self.inner.end()
+        Ok(self.inner.end()?.end()?)
     }
     pub fn serialize<T: Serialize<JsonEncoder>>(
         mut self,
@@ -31,7 +30,6 @@ impl JsonEncoderBuilder {
         ctx: &mut Context,
     ) -> anyhow::Result<String> {
         value.serialize(self.build(), ctx)?;
-        // self.poison.check()?;
-        self.inner.end()
+        self.end()
     }
 }

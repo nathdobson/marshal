@@ -1,4 +1,4 @@
-use std::{marker::Unsize, mem, ops::{CoerceUnsized}, sync, sync::Arc};
+use std::{marker::Unsize, mem, ops::CoerceUnsized, sync, sync::Arc};
 use std::any::TypeId;
 
 use crate::arc_inner::ArcInner;

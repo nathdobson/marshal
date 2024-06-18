@@ -1,6 +1,6 @@
-use std::alloc::{handle_alloc_error, Allocator, Global, Layout};
+use std::alloc::{Allocator, Global, handle_alloc_error, Layout};
 use std::intrinsics::likely;
-use std::mem::{align_of_val_raw, size_of_val_raw, MaybeUninit};
+use std::mem::{align_of_val_raw, MaybeUninit, size_of_val_raw};
 
 use safe_once::sync::OnceLock;
 

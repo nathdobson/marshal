@@ -1,7 +1,7 @@
 use std::rc;
 
 use marshal::context::Context;
-use marshal::encode::{AnyEncoder, Encoder, SomeEncoder, TupleVariantEncoder};
+use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 use marshal_pointer::AsFlatRef;
 
