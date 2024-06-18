@@ -5,7 +5,7 @@ use crate::context::Context;
 use crate::ser::Serialize;
 
 impl<W: Encoder> Serialize<W> for () {
-    fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, _ctx: &mut Context) -> anyhow::Result<()> {
         w.encode_prim(Primitive::Unit)
     }
 }
@@ -15,7 +15,7 @@ macro_rules! derive_tuple {
         impl<W: Encoder, $( $T: Serialize<W> ),*> Serialize<W>
         for ($($T,)*)
         {
-            fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize(&self, w: $crate::encode::AnyEncoder<'_, W>, ctx: &mut Context) -> anyhow::Result<()> {
                 let mut w = w.encode_tuple(${count($T)})?;
                 $(
                     ${ignore($T)}

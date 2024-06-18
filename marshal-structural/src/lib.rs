@@ -75,7 +75,7 @@ impl<const FIELD: &'static str, H, T: StructList> StructList for StructCons<FIEL
 trait SerializeStructList<W: Encoder>: StructList {
     fn serialize_struct_list(
         &self,
-        _: W::StructEncoder<'_>,
+        _: StructEncoder<'_, W>,
         ctx: &mut Context,
     ) -> anyhow::Result<()>;
 }
@@ -83,7 +83,7 @@ trait SerializeStructList<W: Encoder>: StructList {
 impl<const STRUCT: &'static str, W: Encoder> SerializeStructList<W> for StructNil<STRUCT> {
     fn serialize_struct_list(
         &self,
-        e: W::StructEncoder<'_>,
+        e: StructEncoder<'_, W>,
         _ctx: &mut Context,
     ) -> anyhow::Result<()> {
         e.end()
@@ -95,7 +95,7 @@ impl<const FIELD: &'static str, W: Encoder, H: Serialize<W>, T: SerializeStructL
 {
     fn serialize_struct_list(
         &self,
-        mut e: W::StructEncoder<'_>,
+        mut e: StructEncoder<'_, W>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
         self.head.serialize(e.encode_field()?, ctx)?;
@@ -107,7 +107,7 @@ impl<const STRUCT: &'static str, W: Encoder> Serialize<W> for StructNil<STRUCT>
 where
     Self: SerializeStructList<W>,
 {
-    fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: &mut Context) -> anyhow::Result<()> {
         let w = w.encode_struct(Self::STRUCT, Self::FIELDS)?;
         self.serialize_struct_list(w, ctx)?;
         Ok(())
@@ -118,7 +118,7 @@ impl<const FIELD: &'static str, W: Encoder, H, T> Serialize<W> for StructCons<FI
 where
     Self: SerializeStructList<W>,
 {
-    fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: &mut Context) -> anyhow::Result<()> {
         let w = w.encode_struct(Self::STRUCT, Self::FIELDS)?;
         self.serialize_struct_list(w, ctx)?;
         Ok(())

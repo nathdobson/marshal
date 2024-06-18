@@ -5,7 +5,7 @@ use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::ser::Serialize;
-use marshal_core::encode::Encoder;
+use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
 };
@@ -14,8 +14,8 @@ use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 use crate::decode::full::JsonDecoder;
-use crate::DeserializeJson;
 use crate::encode::full::JsonEncoder;
+use crate::DeserializeJson;
 use crate::SerializeJson;
 
 pub trait SerializeDyn = SerializeJson;
@@ -29,7 +29,7 @@ pub trait DeserializeVariantJson<O: Object>: 'static + Sync + Send {
     fn serialize_variant_json<'p>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: <JsonEncoder as Encoder>::AnyEncoder<'p>,
+        e: AnyEncoder<'p, JsonEncoder>,
         ctx: &mut Context,
     ) -> anyhow::Result<()>;
 }
@@ -54,7 +54,7 @@ where
     fn serialize_variant_json<'p>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: <JsonEncoder as Encoder>::AnyEncoder<'p>,
+        e: AnyEncoder<'p, JsonEncoder>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
         let upcast = this as &<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef;
@@ -107,7 +107,7 @@ macro_rules! json_object {
                 fn serialize_variant(
                     this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc:usize,
-                    e: <$crate::encode::full::JsonEncoder as $crate::reexports::marshal::encode::Encoder>::AnyEncoder<'_>,
+                    e: $crate::reexports::marshal::encode::AnyEncoder<'_,$crate::encode::full::JsonEncoder>,
                     ctx: &mut Context
                 ) -> anyhow::Result<()> {
                     DESERIALIZERS[disc].serialize_variant_json(this, e, ctx)

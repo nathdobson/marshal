@@ -7,7 +7,11 @@ use crate::ser::Serialize;
 macro_rules! derive_number {
     ($t:ty, $v:ident) => {
         impl<W: Encoder> Serialize<W> for $t {
-            fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize(
+                &self,
+                w: $crate::encode::AnyEncoder<'_, W>,
+                _ctx: &mut Context,
+            ) -> anyhow::Result<()> {
                 w.encode_prim(Primitive::$v(*self))
             }
         }
@@ -34,13 +38,13 @@ derive_number!(char, Char);
 derive_number!(bool, Bool);
 
 impl<W: Encoder> Serialize<W> for usize {
-    fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, _ctx: &mut Context) -> anyhow::Result<()> {
         w.encode_prim(Primitive::U64(*self as u64))
     }
 }
 
 impl<W: Encoder> Serialize<W> for isize {
-    fn serialize(&self, w: W::AnyEncoder<'_>, _ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, _ctx: &mut Context) -> anyhow::Result<()> {
         w.encode_prim(Primitive::I64(*self as i64))
     }
 }

@@ -9,7 +9,7 @@ use crate::{AsDiscriminant, Object};
 
 pub fn serialize_object<O: Object, E: Encoder>(
     value: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-    e: E::AnyEncoder<'_>,
+    e: AnyEncoder<'_, E>,
     ctx: &mut Context,
 ) -> anyhow::Result<()>
 where
@@ -29,7 +29,7 @@ where
 
 pub fn serialize_rc_weak_object<O: Object, E: Encoder>(
     value: &rc::Weak<O::Dyn>,
-    e: E::AnyEncoder<'_>,
+    e: AnyEncoder<'_, E>,
     ctx: &mut Context,
 ) -> anyhow::Result<()>
 where
@@ -56,7 +56,7 @@ pub trait SerializeVariantForDiscriminant<E: Encoder>: Object {
     fn serialize_variant(
         this: &<Self::Pointer<Self::Dyn> as AsFlatRef>::FlatRef,
         disc: usize,
-        e: E::AnyEncoder<'_>,
+        e: AnyEncoder<'_, E>,
         ctx: &mut Context,
     ) -> anyhow::Result<()>;
 }

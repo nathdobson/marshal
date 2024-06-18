@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
 use by_address::ByAddress;
+use marshal_core::encode::Encoder;
 
-use marshal_core::encode::simple::SimpleEncoder;
 use marshal_core::Primitive;
 
 use crate::{TypeTag, VU128_MAX_PADDING};
@@ -105,7 +105,7 @@ impl<'s> SimpleBinEncoder<'s> {
     }
 }
 
-impl<'s> SimpleEncoder for SimpleBinEncoder<'s> {
+impl<'s> Encoder for SimpleBinEncoder<'s> {
     type AnyEncoder = ();
     type SomeCloser = ();
     type TupleEncoder = ();

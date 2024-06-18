@@ -265,7 +265,7 @@ macro_rules! derive_box_object {
         impl<E: Encoder> Serialize<E> for Box<dyn $tr>
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize(&self, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize(&self, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: &mut Context) -> anyhow::Result<()> {
                 serialize_object::<$carrier,E>(<Box<dyn $tr> as $crate::reexports::marshal_pointer::AsFlatRef>::as_flat_ref(self), e, ctx)
             }
         }
@@ -287,7 +287,7 @@ macro_rules! derive_rc_object {
         impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeRc<E> for dyn $tr
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize_rc(this: &$crate::reexports::marshal_pointer::rc_ref::RcRef<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize_rc(this: &$crate::reexports::marshal_pointer::rc_ref::RcRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: &mut Context) -> anyhow::Result<()> {
                 serialize_object::<$carrier,E>(this, e, ctx)
             }
         }
@@ -309,7 +309,7 @@ macro_rules! derive_arc_object {
         impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeArc<E> for dyn $tr
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize_arc(this: &$crate::reexports::marshal_pointer::arc_ref::ArcRef<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize_arc(this: &$crate::reexports::marshal_pointer::arc_ref::ArcRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: &mut Context) -> anyhow::Result<()> {
                 //serialize_object::<$carrier,E>(&**this, e, ctx)
                 todo!("X");
             }
@@ -332,7 +332,7 @@ macro_rules! derive_rc_weak_object {
         impl<E: Encoder> $crate::reexports::marshal::ser::rc::SerializeRcWeak<E> for dyn $tr
             where dyn $tr: Serialize<E>,
         {
-            fn serialize_rc_weak(this: &$crate::reexports::marshal_pointer::rc_weak_ref::RcWeakRef<Self>, e: E::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+            fn serialize_rc_weak(this: &$crate::reexports::marshal_pointer::rc_weak_ref::RcWeakRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: &mut Context) -> anyhow::Result<()> {
                 todo!();
                 // $crate::ser::serialize_rc_weak_object::<$carrier,E>(this, e, ctx)
             }

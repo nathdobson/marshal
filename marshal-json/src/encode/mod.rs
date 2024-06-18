@@ -5,8 +5,8 @@ use std::io::Write;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use marshal_core::encode::{AnyEncoder, Encoder};
 
-use marshal_core::encode::simple::{SimpleAnyEncoder, SimpleEncoder};
 use marshal_core::Primitive;
 
 pub mod full;
@@ -39,8 +39,8 @@ impl SimpleJsonEncoder {
             current_indentation: Some(0),
         }
     }
-    pub fn start(&mut self) -> SimpleAnyEncoder<SimpleJsonEncoder> {
-        SimpleAnyEncoder::new(
+    pub fn start(&mut self) -> AnyEncoder<SimpleJsonEncoder> {
+        AnyEncoder::new(
             self,
             JsonAnyEncoder {
                 ctx: EncodeContext { indentation: 0 },
@@ -122,7 +122,7 @@ impl SimpleJsonEncoder {
     }
 }
 
-impl SimpleEncoder for SimpleJsonEncoder {
+impl Encoder for SimpleJsonEncoder {
     type AnyEncoder = JsonAnyEncoder;
     type SomeCloser = JsonSomeCloser;
     type TupleEncoder = JsonTupleEncoder;

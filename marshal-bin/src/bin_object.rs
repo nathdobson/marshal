@@ -5,7 +5,7 @@ use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::Decoder;
 use marshal::ser::Serialize;
-use marshal_core::encode::Encoder;
+use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
 };
@@ -27,7 +27,7 @@ pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
     fn bin_serialize_variant<'p, 's>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: <BinEncoder<'s> as Encoder>::AnyEncoder<'p>,
+        e: AnyEncoder<'p, BinEncoder<'s>>,
         ctx: &mut Context,
     ) -> anyhow::Result<()>;
 }
@@ -53,7 +53,7 @@ where
     fn bin_serialize_variant<'p, 's>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: <BinEncoder<'s> as Encoder>::AnyEncoder<'p>,
+        e: AnyEncoder<'p, BinEncoder<'s>>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
         let upcast = this as &<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef;
@@ -107,7 +107,7 @@ macro_rules! bin_object {
                 fn serialize_variant(
                     this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc: usize,
-                    e: <$crate::encode::full::BinEncoder<'s> as $crate::reexports::marshal::encode::Encoder>::AnyEncoder<'_>,
+                    e: $crate::reexports::marshal::encode::AnyEncoder<'_,$crate::encode::full::BinEncoder<'s>>,
                     ctx: &mut Context
                 ) -> anyhow::Result<()> {
                     DESERIALIZERS[disc].bin_serialize_variant(this, e, ctx)

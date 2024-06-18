@@ -458,30 +458,25 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
     }
     let output: TokenStream2;
     let encoder_trait = quote! { ::marshal::encode::Encoder };
-    let any_encoder_trait = quote! { ::marshal::encode::AnyEncoder };
-    let struct_encoder_trait = quote! { ::marshal::encode::StructEncoder };
-    let struct_variant_encoder_trait = quote! { ::marshal::encode::StructVariantEncoder };
-    let tuple_variant_encoder_trait = quote! { ::marshal::encode::TupleVariantEncoder };
-    let tuple_struct_encoder_trait = quote! { ::marshal::encode::TupleStructEncoder };
     let serialize_trait = quote! { ::marshal::ser::Serialize };
     let context_type = quote! { ::marshal::context::Context };
     let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());
-    let any_encoder_type = quote!(<W as #encoder_trait>::AnyEncoder<'_>);
+    let any_encoder_type = quote!(::marshal::encode::AnyEncoder);
 
-    let struct_encoder_type = quote!(<W as #encoder_trait>::StructEncoder<'_>);
-    let as_any_encoder = quote!(<#any_encoder_type as #any_encoder_trait<W>>);
-    let as_struct_encoder = quote!(<#struct_encoder_type as #struct_encoder_trait<W>>);
-
-    let struct_variant_encoder_type = quote!(<W as #encoder_trait>::StructVariantEncoder<'_>);
-    let as_struct_variant_encoder =
-        quote!(<#struct_variant_encoder_type as #struct_variant_encoder_trait<W>>);
-    let tuple_variant_encoder_type = quote!(<W as #encoder_trait>::TupleVariantEncoder<'_>);
-    let as_tuple_variant_encoder =
-        quote!(<#tuple_variant_encoder_type as #tuple_variant_encoder_trait<W>>);
-
-    let tuple_struct_encoder_type = quote!(<W as #encoder_trait>::TupleStructEncoder<'_>);
-    let as_tuple_struct_encoder =
-        quote!(<#tuple_struct_encoder_type as #tuple_struct_encoder_trait<W>>);
+    // let struct_encoder_type = quote!(<W as #encoder_trait>::StructEncoder<'_>);
+    // let as_any_encoder = quote!(<#any_encoder_type as #any_encoder_trait<W>>);
+    // let as_struct_encoder = quote!(<#struct_encoder_type as #struct_encoder_trait<W>>);
+    //
+    // let struct_variant_encoder_type = quote!(<W as #encoder_trait>::StructVariantEncoder<'_>);
+    // let as_struct_variant_encoder =
+    //     quote!(<#struct_variant_encoder_type as #struct_variant_encoder_trait<W>>);
+    // let tuple_variant_encoder_type = quote!(<W as #encoder_trait>::TupleVariantEncoder<'_>);
+    // let as_tuple_variant_encoder =
+    //     quote!(<#tuple_variant_encoder_type as #tuple_variant_encoder_trait<W>>);
+    //
+    // let tuple_struct_encoder_type = quote!(<W as #encoder_trait>::TupleStructEncoder<'_>);
+    // let as_tuple_struct_encoder =
+    //     quote!(<#tuple_struct_encoder_type as #tuple_struct_encoder_trait<W>>);
     let anyhow = quote!(::marshal::reexports::anyhow);
     let result_type = quote!(#anyhow::Result);
 
@@ -496,8 +491,8 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 Fields::Unit => {
                     output = quote! {
                         impl<#(#generic_params,)* W: #encoder_trait> #serialize_trait<W> for #type_ident <#(#generic_args),*> {
-                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
-                                #as_any_encoder::encode_unit_struct(encoder,#type_name)
+                            fn serialize(&self, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                                encoder.encode_unit_struct(#type_name)
                             }
                         }
                     }
@@ -515,16 +510,16 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
 
                     output = quote! {
                         impl<#(#generic_params,)* W: #encoder_trait> #serialize_trait<W> for #type_ident <#(#generic_args),*>{
-                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
-                                let mut encoder = #as_any_encoder::encode_struct(encoder, #type_name, &[
+                            fn serialize(&self, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                                let mut encoder = encoder.encode_struct( #type_name, &[
                                         #(
                                             #field_name_literals
                                         ),*
                                     ])?;
                                 #(
-                                    #serialize_trait::<W>::serialize(&self.#field_names, #as_struct_encoder::encode_field(&mut encoder)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(&self.#field_names, encoder.encode_field()?, ctx)?;
                                 )*
-                                #as_struct_encoder::end(encoder)?;
+                                encoder.end()?;
                                 ::std::result::Result::Ok(())
                             }
                         }
@@ -535,12 +530,12 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     let field_index: Vec<_> = (0..field_count).map(syn::Index::from).collect();
                     output = quote! {
                         impl<#(#generic_params,)* W: #encoder_trait> #serialize_trait<W> for #type_ident <#(#generic_args),*> {
-                            fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
-                                let mut encoder=#as_any_encoder::encode_tuple_struct(encoder, #type_name, #field_count)?;
+                            fn serialize(&self, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                                let mut encoder=encoder.encode_tuple_struct( #type_name, #field_count)?;
                                 #(
-                                    #serialize_trait::<W>::serialize(&self.#field_index, #as_tuple_struct_encoder::encode_field(&mut encoder)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(&self.#field_index, encoder.encode_field()?, ctx)?;
                                 )*
-                                #as_tuple_struct_encoder::end(encoder)?;
+                                encoder.end()?;
                                 #result_type::Ok(())
                             }
                         }
@@ -574,11 +569,11 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                             field_idents.iter().map(|x| ident_to_lit(x)).collect();
                         matches.push(quote! {
                             Self::#variant_ident{ #(#field_idents),* } => {
-                                let mut encoder = #as_any_encoder::encode_struct_variant(encoder, #type_name, &[#( #variant_names ),*], #variant_index, &[#(#field_names),*])?;
+                                let mut encoder = encoder.encode_struct_variant( #type_name, &[#( #variant_names ),*], #variant_index, &[#(#field_names),*])?;
                                 #(
-                                    #serialize_trait::<W>::serialize(#field_idents, #as_struct_variant_encoder::encode_field(&mut encoder)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(#field_idents, encoder.encode_field()?, ctx)?;
                                 )*
-                                #as_struct_variant_encoder::end(encoder)?;
+                                encoder.end()?;
                                 ::std::result::Result::Ok(())
                             },
                         });
@@ -590,11 +585,11 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                             .collect();
                         matches.push(quote! {
                             Self::#variant_ident(#( #field_idents ),*) => {
-                                let mut encoder = #as_any_encoder::encode_tuple_variant(encoder, #type_name, &[#( #variant_names ),*], #variant_index, #field_count)?;
+                                let mut encoder = encoder.encode_tuple_variant( #type_name, &[#( #variant_names ),*], #variant_index, #field_count)?;
                                 #(
-                                    #serialize_trait::<W>::serialize(#field_idents, #as_tuple_variant_encoder::encode_field(&mut encoder)?, ctx)?;
+                                    #serialize_trait::<W>::serialize(#field_idents, encoder.encode_field()?, ctx)?;
                                 )*
-                                #as_tuple_variant_encoder::end(encoder)?;
+                                encoder.end()?;
                                 ::std::result::Result::Ok(())
                             },
                         });
@@ -602,7 +597,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                     Fields::Unit => {
                         matches.push(quote! {
                             Self::#variant_ident => {
-                                #as_any_encoder::encode_unit_variant(encoder, #type_name, &[#( #variant_names ),*], #variant_index)?;
+                                encoder.encode_unit_variant( #type_name, &[#( #variant_names ),*], #variant_index)?;
                                 ::std::result::Result::Ok(())
                             },
                         });
@@ -611,7 +606,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
             }
             output = quote! {
                 impl<#(#generic_params,)* W: #encoder_trait> #serialize_trait<W> for #type_ident <#( #generic_args ),*> {
-                    fn serialize(&self, encoder: #any_encoder_type, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize(&self, encoder: #any_encoder_type<'_,W>, ctx: &mut #context_type) -> #result_type<()> {
                         match self{
                             #(
                                 #matches

@@ -2,7 +2,6 @@ use marshal_core::encode::{
     AnyEncoder, EntryEncoder, MapEncoder, SeqEncoder, SomeEncoder, StructEncoder, StructVariantEncoder,
     TupleEncoder, TupleStructEncoder, TupleVariantEncoder,
 };
-use marshal_core::encode::simple::SimpleAnyEncoder;
 use marshal_core::Primitive;
 
 use crate::encode::SimpleJsonEncoder;
@@ -10,7 +9,7 @@ use crate::encode::SimpleJsonEncoder;
 #[track_caller]
 fn run_simple(
     expected: &str,
-    f: impl FnOnce(SimpleAnyEncoder<SimpleJsonEncoder>) -> anyhow::Result<()>,
+    f: impl FnOnce(AnyEncoder<SimpleJsonEncoder>) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let mut w = SimpleJsonEncoder::new();
     f(w.start())?;

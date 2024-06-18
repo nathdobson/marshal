@@ -4,7 +4,7 @@ use crate::context::Context;
 use crate::ser::Serialize;
 
 impl<W: Encoder, T: Serialize<W>> Serialize<W> for Option<T> {
-    fn serialize(&self, w: W::AnyEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: &mut Context) -> anyhow::Result<()> {
         match self {
             None => w.encode_none(),
             Some(x) => {
