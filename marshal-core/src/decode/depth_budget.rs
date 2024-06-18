@@ -1,5 +1,4 @@
-use crate::decode::{DecodeHint, DecodeVariantHint, Decoder, DecoderView, SimpleDecoderView};
-use std::env::var;
+use crate::decode::{DecodeHint, DecodeVariantHint, Decoder,  SimpleDecoderView};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 

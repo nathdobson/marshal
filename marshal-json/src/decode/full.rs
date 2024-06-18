@@ -1,7 +1,7 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
-use marshal_core::decode::poison::{PoisonDecoder, PoisonWrapper};
+use marshal_core::decode::poison::{PoisonDecoder};
 use marshal_core::decode::AnyDecoder;
 
 use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};

@@ -1,5 +1,4 @@
-use crate::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
-use std::any::type_name;
+use crate::decode::{ DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 use std::fmt::{Display, Formatter};
 
 pub struct PoisonDecoder<D> {
