@@ -1,3 +1,6 @@
+pub mod depth_budget;
+pub mod poison;
+
 use std::borrow::Cow;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
@@ -220,6 +223,7 @@ pub trait Decoder<'de> {
     fn decode_seq_exact_size(&self, _seq: &Self::SeqDecoder) -> Option<usize> {
         None
     }
+    fn decode_seq_end(&mut self, seq: Self::SeqDecoder) -> anyhow::Result<()>;
 
     fn decode_map_next(
         &mut self,
@@ -228,6 +232,7 @@ pub trait Decoder<'de> {
     fn decode_map_exact_size(&self, _map: &Self::MapDecoder) -> Option<usize> {
         None
     }
+    fn decode_map_end(&mut self, seq: Self::MapDecoder) -> anyhow::Result<()>;
 
     fn decode_entry_key(
         &mut self,
@@ -265,12 +270,12 @@ pub struct AnyDecoder<'p, 'de, D: ?Sized + Decoder<'de>> {
 
 pub struct SeqDecoder<'p, 'de, D: ?Sized + Decoder<'de>> {
     this: &'p mut D,
-    seq: D::SeqDecoder,
+    seq: Option<D::SeqDecoder>,
 }
 
 pub struct MapDecoder<'p, 'de, D: ?Sized + Decoder<'de>> {
     this: &'p mut D,
-    map: D::MapDecoder,
+    map: Option<D::MapDecoder>,
 }
 
 pub struct EntryDecoder<'p, 'de, D: ?Sized + Decoder<'de>> {
@@ -303,17 +308,18 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> AnyDecoder<'p, 'de, D> {
 
 impl<'p, 'de, D: ?Sized + Decoder<'de>> SeqDecoder<'p, 'de, D> {
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<AnyDecoder<'p2, 'de, D>>> {
-        if let Some(any) = self.this.decode_seq_next(&mut self.seq)? {
+        if let Some(any) = self.this.decode_seq_next(self.seq.as_mut().unwrap())? {
             Ok(Some(AnyDecoder {
                 this: self.this,
                 any,
             }))
         } else {
+            self.this.decode_seq_end(self.seq.take().unwrap())?;
             Ok(None)
         }
     }
     pub fn exact_size(&self) -> Option<usize> {
-        self.this.decode_seq_exact_size(&self.seq)
+        self.this.decode_seq_exact_size(self.seq.as_ref().unwrap())
     }
     pub fn ignore(mut self) -> anyhow::Result<()> {
         while let Some(next) = self.decode_next()? {
@@ -335,18 +341,19 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> SeqDecoder<'p, 'de, D> {
 
 impl<'p, 'de, D: ?Sized + Decoder<'de>> MapDecoder<'p, 'de, D> {
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<EntryDecoder<'p2, 'de, D>>> {
-        if let Some(data) = self.this.decode_map_next(&mut self.map)? {
+        if let Some(data) = self.this.decode_map_next(self.map.as_mut().unwrap())? {
             Ok(Some(EntryDecoder {
                 this: self.this,
                 key: Some(data),
                 value: None,
             }))
         } else {
+            self.this.decode_map_end(self.map.take().unwrap())?;
             Ok(None)
         }
     }
     pub fn exact_size(&self) -> Option<usize> {
-        self.this.decode_map_exact_size(&self.map)
+        self.this.decode_map_exact_size(self.map.as_ref().unwrap())
     }
     pub fn ignore(mut self) -> anyhow::Result<()> {
         while let Some(next) = self.decode_next()? {
@@ -550,8 +557,14 @@ impl<'de, D: ?Sized + Decoder<'de>> SimpleDecoderView<'de, D> {
                 some_decoder: Some(some),
                 some_closer: None,
             }),
-            SimpleDecoderView::Seq(seq) => DecoderView::Seq(SeqDecoder { this, seq }),
-            SimpleDecoderView::Map(map) => DecoderView::Map(MapDecoder { this, map }),
+            SimpleDecoderView::Seq(seq) => DecoderView::Seq(SeqDecoder {
+                this,
+                seq: Some(seq),
+            }),
+            SimpleDecoderView::Map(map) => DecoderView::Map(MapDecoder {
+                this,
+                map: Some(map),
+            }),
             SimpleDecoderView::Enum(data) => DecoderView::Enum(EnumDecoder {
                 this,
                 discriminant: Some(data),

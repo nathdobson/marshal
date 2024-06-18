@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter};
 
 use crate::encode::Encoder;
-use crate::encode::poison::PoisonError::UnexpectedParseState;
 use crate::Primitive;
 
 pub struct PoisonEncoder<E> {
@@ -11,7 +10,7 @@ pub struct PoisonEncoder<E> {
 
 #[derive(Debug)]
 pub enum PoisonError {
-    UnexpectedParseState,
+    UnexpectedEncodeState,
 }
 impl Display for PoisonError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -31,7 +30,7 @@ impl<E: Encoder> PoisonEncoder<E> {
         if self.depth == 0 {
             Ok(self.inner)
         } else {
-            Err(PoisonError::UnexpectedParseState.into())
+            Err(PoisonError::UnexpectedEncodeState.into())
         }
     }
     fn push<T>(&mut self, inner: T) -> PoisonWrapper<T> {
@@ -46,14 +45,14 @@ impl<E: Encoder> PoisonEncoder<E> {
             self.depth -= 1;
             Ok(wrapper.inner)
         } else {
-            Err(UnexpectedParseState.into())
+            Err(PoisonError::UnexpectedEncodeState.into())
         }
     }
     fn peek<'a, T>(&self, wrapper: &'a mut PoisonWrapper<T>) -> anyhow::Result<&'a mut T> {
         if wrapper.depth == self.depth {
             Ok(&mut wrapper.inner)
         } else {
-            Err(UnexpectedParseState.into())
+            Err(PoisonError::UnexpectedEncodeState.into())
         }
     }
 }

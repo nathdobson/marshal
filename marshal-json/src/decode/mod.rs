@@ -292,6 +292,10 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
         Ok(Some(JsonAnyDecoder::default()))
     }
 
+    fn decode_seq_end(&mut self, seq: Self::SeqDecoder) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn decode_map_next(
         &mut self,
         map: &mut Self::MapDecoder,
@@ -304,6 +308,10 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
         }
         map.started = true;
         Ok(Some(()))
+    }
+
+    fn decode_map_end(&mut self, seq: Self::MapDecoder) -> anyhow::Result<()> {
+        Ok(())
     }
 
     fn decode_entry_key(

@@ -38,7 +38,6 @@ fn test() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[ignore]
 #[test]
 fn test_parsing() {
     for dir in read_dir("../JSONTestSuite/test_parsing").unwrap() {

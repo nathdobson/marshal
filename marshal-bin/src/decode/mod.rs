@@ -362,6 +362,10 @@ impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
         }
     }
 
+    fn decode_seq_end(&mut self, seq: Self::SeqDecoder) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn decode_map_next(
         &mut self,
         map: &mut Self::MapDecoder,
@@ -386,6 +390,10 @@ impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
                 }
             }
         }
+    }
+
+    fn decode_map_end(&mut self, seq: Self::MapDecoder) -> anyhow::Result<()> {
+        Ok(())
     }
 
     fn decode_entry_key(

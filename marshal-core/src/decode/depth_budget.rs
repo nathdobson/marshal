@@ -1,16 +1,14 @@
+use crate::decode::{DecodeHint, DecodeVariantHint, Decoder, DecoderView, SimpleDecoderView};
+use std::env::var;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::marker::PhantomData;
 
-use crate::decode::{
-    AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint, EntryDecoder, EnumDecoder, MapDecoder,
-    SeqDecoder, SomeDecoder,
-};
-
-pub struct DepthBudgetDecoder<T>(PhantomData<T>);
+pub struct DepthBudgetDecoder<D> {
+    inner: D,
+}
 
 pub struct WithDepthBudget<T> {
-    depth_budget: usize,
+    budget: usize,
     inner: T,
 }
 
@@ -25,158 +23,153 @@ impl Display for OverflowError {
 
 impl Error for OverflowError {}
 
-impl<'de, T: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<T> {
-    type AnyDecoder<'p> = WithDepthBudget<T::AnyDecoder<'p>> where Self: 'p;
-    type SeqDecoder<'p> = WithDepthBudget<T::SeqDecoder<'p>> where Self: 'p;
-    type MapDecoder<'p> = WithDepthBudget<T::MapDecoder<'p>> where Self: 'p;
-    type EntryDecoder<'p> = WithDepthBudget<T::EntryDecoder<'p>> where Self: 'p;
-    type EnumDecoder<'p> = WithDepthBudget<T::EnumDecoder<'p>> where Self: 'p;
-    type SomeDecoder<'p> = WithDepthBudget<T::SomeDecoder<'p>> where Self: 'p;
-}
-
-fn annotate<'p, 'de, T: Decoder<'de>>(
-    depth_budget: usize,
-    view: DecoderView<'p, 'de, T>,
-) -> anyhow::Result<DecoderView<'p, 'de, DepthBudgetDecoder<T>>> {
-    let depth_budget: Result<usize, OverflowError> =
-        depth_budget.checked_sub(1).ok_or(OverflowError);
-    Ok(match view {
-        DecoderView::Primitive(x) => DecoderView::Primitive(x),
-        DecoderView::String(x) => DecoderView::String(x),
-        DecoderView::Bytes(x) => DecoderView::Bytes(x),
-        DecoderView::None => DecoderView::None,
-        DecoderView::Some(inner) => DecoderView::Some(WithDepthBudget {
-            depth_budget: depth_budget?,
-            inner,
-        }),
-        DecoderView::Seq(inner) => DecoderView::Seq(WithDepthBudget {
-            depth_budget: depth_budget?,
-            inner,
-        }),
-        DecoderView::Map(inner) => DecoderView::Map(WithDepthBudget {
-            depth_budget: depth_budget?,
-            inner,
-        }),
-        DecoderView::Enum(inner) => DecoderView::Enum(WithDepthBudget {
-            depth_budget: depth_budget?,
-            inner,
-        }),
-    })
-}
-
 impl<T> WithDepthBudget<T> {
-    pub fn new(depth_budget: usize, inner: T) -> Self {
-        WithDepthBudget {
-            depth_budget,
-            inner,
+    pub fn new(budget: usize, inner: T) -> Self {
+        WithDepthBudget { budget, inner }
+    }
+}
+
+impl<'de, D: Decoder<'de>> DepthBudgetDecoder<D> {
+    pub fn new(inner: D) -> Self {
+        DepthBudgetDecoder { inner }
+    }
+    fn wrap_view<'p>(
+        budget: usize,
+        view: SimpleDecoderView<'de, D>,
+    ) -> SimpleDecoderView<'de, Self> {
+        match view {
+            SimpleDecoderView::Primitive(x) => SimpleDecoderView::Primitive(x),
+            SimpleDecoderView::String(x) => SimpleDecoderView::String(x),
+            SimpleDecoderView::Bytes(x) => SimpleDecoderView::Bytes(x),
+            SimpleDecoderView::None => SimpleDecoderView::None,
+            SimpleDecoderView::Some(x) => SimpleDecoderView::Some(WithDepthBudget::new(budget, x)),
+            SimpleDecoderView::Seq(x) => SimpleDecoderView::Seq(WithDepthBudget::new(budget, x)),
+            SimpleDecoderView::Map(x) => SimpleDecoderView::Map(WithDepthBudget::new(budget, x)),
+            SimpleDecoderView::Enum(x) => SimpleDecoderView::Enum(WithDepthBudget::new(budget, x)),
         }
     }
-}
-
-impl<'p, 'de, T: Decoder<'de>> AnyDecoder<'p, 'de, DepthBudgetDecoder<T>>
-for WithDepthBudget<T::AnyDecoder<'p>>
-{
-    fn decode(self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, DepthBudgetDecoder<T>>> {
-        annotate(self.depth_budget, self.inner.decode(hint)?)
+    pub fn end(self) -> anyhow::Result<D> {
+        Ok(self.inner)
     }
 }
 
-impl<'p, 'de, T: Decoder<'de>> SeqDecoder<'p, 'de, DepthBudgetDecoder<T>>
-for WithDepthBudget<T::SeqDecoder<'p>>
-{
-    fn decode_next<'p2>(
-        &'p2 mut self,
-    ) -> anyhow::Result<Option<WithDepthBudget<T::AnyDecoder<'p2>>>> {
-        if let Some(inner) = self.inner.decode_next()? {
-            Ok(Some(WithDepthBudget {
-                depth_budget: self.depth_budget,
-                inner,
-            }))
+impl<'de, D: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<D> {
+    type AnyDecoder = WithDepthBudget<D::AnyDecoder>;
+    type SeqDecoder = WithDepthBudget<D::SeqDecoder>;
+    type MapDecoder = WithDepthBudget<D::MapDecoder>;
+    type KeyDecoder = WithDepthBudget<D::KeyDecoder>;
+    type ValueDecoder = WithDepthBudget<D::ValueDecoder>;
+    type DiscriminantDecoder = WithDepthBudget<D::DiscriminantDecoder>;
+    type VariantDecoder = WithDepthBudget<D::VariantDecoder>;
+    type EnumCloser = WithDepthBudget<D::EnumCloser>;
+    type SomeDecoder = WithDepthBudget<D::SomeDecoder>;
+    type SomeCloser = WithDepthBudget<D::SomeCloser>;
+
+    fn decode(
+        &mut self,
+        any: Self::AnyDecoder,
+        hint: DecodeHint,
+    ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
+        Ok(Self::wrap_view(
+            any.budget.checked_sub(1).ok_or(OverflowError)?,
+            self.inner.decode(any.inner, hint)?,
+        ))
+    }
+
+    fn is_human_readable(&self) -> bool {
+        self.inner.is_human_readable()
+    }
+
+    fn decode_seq_next(
+        &mut self,
+        seq: &mut Self::SeqDecoder,
+    ) -> anyhow::Result<Option<Self::AnyDecoder>> {
+        if let Some(next) = self.inner.decode_seq_next(&mut seq.inner)? {
+            Ok(Some(WithDepthBudget::new(seq.budget, next)))
         } else {
             Ok(None)
         }
     }
-}
 
-impl<'p, 'de, T: Decoder<'de>> MapDecoder<'p, 'de, DepthBudgetDecoder<T>>
-for WithDepthBudget<T::MapDecoder<'p>>
-{
-    fn decode_next<'p2>(
-        &'p2 mut self,
-    ) -> anyhow::Result<Option<WithDepthBudget<T::EntryDecoder<'p2>>>> {
-        if let Some(inner) = self.inner.decode_next()? {
-            Ok(Some(WithDepthBudget {
-                depth_budget: self.depth_budget,
-                inner,
-            }))
+    fn decode_seq_end(&mut self, seq: Self::SeqDecoder) -> anyhow::Result<()> {
+        self.inner.decode_seq_end(seq.inner)
+    }
+
+    fn decode_map_next(
+        &mut self,
+        map: &mut Self::MapDecoder,
+    ) -> anyhow::Result<Option<Self::KeyDecoder>> {
+        if let Some(next) = self.inner.decode_map_next(&mut map.inner)? {
+            Ok(Some(WithDepthBudget::new(map.budget, next)))
         } else {
             Ok(None)
         }
     }
-}
 
-impl<'p, 'de, T: Decoder<'de>> EntryDecoder<'p, 'de, DepthBudgetDecoder<T>>
-for WithDepthBudget<T::EntryDecoder<'p>>
-{
-    fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyDecoder<'p2>>> {
-        Ok(WithDepthBudget {
-            depth_budget: self.depth_budget,
-            inner: self.inner.decode_key()?,
-        })
+    fn decode_map_end(&mut self, map: Self::MapDecoder) -> anyhow::Result<()> {
+        self.inner.decode_map_end(map.inner)
     }
 
-    fn decode_value<'p2>(&'p2 mut self) -> anyhow::Result<WithDepthBudget<T::AnyDecoder<'p2>>> {
-        Ok(WithDepthBudget {
-            depth_budget: self.depth_budget,
-            inner: self.inner.decode_value()?,
-        })
+    fn decode_entry_key(
+        &mut self,
+        key: Self::KeyDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::ValueDecoder)> {
+        let (any, value) = self.inner.decode_entry_key(key.inner)?;
+        Ok((
+            WithDepthBudget::new(key.budget, any),
+            WithDepthBudget::new(key.budget, value),
+        ))
     }
 
-    fn decode_end(self) -> anyhow::Result<()> {
-        Ok(self.inner.decode_end()?)
-    }
-}
-
-impl<'p, 'de, T: Decoder<'de>> EnumDecoder<'p, 'de, DepthBudgetDecoder<T>>
-for WithDepthBudget<T::EnumDecoder<'p>>
-{
-    fn decode_discriminant<'p2>(
-        &'p2 mut self,
-    ) -> anyhow::Result<WithDepthBudget<T::AnyDecoder<'p2>>> {
-        Ok(WithDepthBudget {
-            depth_budget: self.depth_budget,
-            inner: self.inner.decode_discriminant()?,
-        })
+    fn decode_entry_value(
+        &mut self,
+        value: Self::ValueDecoder,
+    ) -> anyhow::Result<Self::AnyDecoder> {
+        Ok(WithDepthBudget::new(
+            value.budget,
+            self.inner.decode_entry_value(value.inner)?,
+        ))
     }
 
-    fn decode_variant<'p2>(
-        &'p2 mut self,
+    fn decode_enum_discriminant(
+        &mut self,
+        disc: Self::DiscriminantDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::VariantDecoder)> {
+        let (any, variant) = self.inner.decode_enum_discriminant(disc.inner)?;
+        Ok((
+            WithDepthBudget::new(disc.budget, any),
+            WithDepthBudget::new(disc.budget, variant),
+        ))
+    }
+
+    fn decode_enum_variant(
+        &mut self,
+        variant: Self::VariantDecoder,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<DecoderView<'p2, 'de, DepthBudgetDecoder<T>>> {
-        Ok(annotate(
-            self.depth_budget,
-            self.inner.decode_variant(hint)?,
-        )?)
+    ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
+        let (any, closer) = self.inner.decode_enum_variant(variant.inner, hint)?;
+        Ok((
+            Self::wrap_view(variant.budget, any),
+            WithDepthBudget::new(variant.budget, closer),
+        ))
     }
 
-    fn decode_end(self) -> anyhow::Result<()> {
-        Ok(self.inner.decode_end()?)
-    }
-}
-
-impl<'p, 'de, T: Decoder<'de>> SomeDecoder<'p, 'de, DepthBudgetDecoder<T>>
-for WithDepthBudget<<T as Decoder<'de>>::SomeDecoder<'p>>
-{
-    fn decode_some<'p2>(
-        &'p2 mut self,
-    ) -> anyhow::Result<<DepthBudgetDecoder<T> as Decoder<'de>>::AnyDecoder<'p2>> {
-        Ok(WithDepthBudget {
-            depth_budget: self.depth_budget,
-            inner: self.inner.decode_some()?,
-        })
+    fn decode_enum_end(&mut self, closer: Self::EnumCloser) -> anyhow::Result<()> {
+        self.inner.decode_enum_end(closer.inner)
     }
 
-    fn decode_end(self) -> anyhow::Result<()> {
-        Ok(self.inner.decode_end()?)
+    fn decode_some_inner(
+        &mut self,
+        some: Self::SomeDecoder,
+    ) -> anyhow::Result<(Self::AnyDecoder, Self::SomeCloser)> {
+        let (any, closer) = self.inner.decode_some_inner(some.inner)?;
+        Ok((
+            WithDepthBudget::new(some.budget, any),
+            WithDepthBudget::new(some.budget, closer),
+        ))
+    }
+
+    fn decode_some_end(&mut self, closer: Self::SomeCloser) -> anyhow::Result<()> {
+        self.inner.decode_some_end(closer.inner)
     }
 }

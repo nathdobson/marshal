@@ -90,7 +90,7 @@ impl<'de> SimpleJsonDecoder<'de> {
         }
     }
 
-    pub fn end_parsing(mut self) -> anyhow::Result<()> {
+    pub fn end(mut self) -> anyhow::Result<()> {
         self.read_whitespace()?;
         if !self.cursor.is_empty() {
             Err(JsonDecoderError::TrailingText.into())
