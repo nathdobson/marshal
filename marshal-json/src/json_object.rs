@@ -3,8 +3,8 @@ use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::Decoder;
 use marshal::ser::Serialize;
+use marshal_core::decode::AnyDecoder;
 use marshal_core::encode::AnyEncoder;
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
@@ -14,8 +14,8 @@ use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 use crate::decode::full::JsonDecoder;
-use crate::encode::full::JsonEncoder;
 use crate::DeserializeJson;
+use crate::encode::full::JsonEncoder;
 use crate::SerializeJson;
 
 pub trait SerializeDyn = SerializeJson;
@@ -23,7 +23,7 @@ pub trait SerializeDyn = SerializeJson;
 pub trait DeserializeVariantJson<O: Object>: 'static + Sync + Send {
     fn deserialize_variant_json<'p, 'de>(
         &self,
-        d: <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p>,
+        d: AnyDecoder<'p, 'de, JsonDecoder<'de>>,
         ctx: &mut Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn serialize_variant_json<'p>(
@@ -46,7 +46,7 @@ where
 {
     fn deserialize_variant_json<'p, 'de, 's>(
         &self,
-        d: <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p>,
+        d: AnyDecoder<'p, 'de, JsonDecoder<'de>>,
         ctx: &mut Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(O::Pointer::<V>::deserialize(d, ctx)?)
@@ -95,9 +95,9 @@ macro_rules! json_object {
             static DESERIALIZERS: LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::json_object::DeserializeVariantJson<$carrier>>>> =
                     LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
             impl<'de> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::JsonDecoder<'de>> for $carrier {
-                fn deserialize_variant(
+                fn deserialize_variant<'p>(
                     disc: usize,
-                    d: <$crate::decode::full::JsonDecoder<'de> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
+                    d: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,$crate::decode::full::JsonDecoder<'de>>,
                     ctx: &mut $crate::reexports::marshal::context::Context,
                 ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::reexports::marshal_object::Object>::Pointer<<$carrier as $crate::reexports::marshal_object::Object>::Dyn>> {
                     DESERIALIZERS[disc].deserialize_variant_json(d, ctx)

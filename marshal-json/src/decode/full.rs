@@ -1,16 +1,12 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::Decoder;
-use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
-use marshal_core::decode::poison::{PoisonAnyDecoder, PoisonDecoder, PoisonState};
-use marshal_core::decode::simple::{SimpleAnyDecoder, SimpleDecoderAdapter};
+use marshal_core::decode::{AnyDecoder};
 
 use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};
 
-pub type JsonDecoder<'de> = PoisonDecoder<DepthBudgetDecoder<SimpleDecoderAdapter<SimpleJsonDecoder<'de>>>>;
+pub type JsonDecoder<'de> = SimpleJsonDecoder<'de>;
 
 pub struct JsonDecoderBuilder<'de> {
-    poison: PoisonState,
     decoder: SimpleJsonDecoder<'de>,
     depth_budget: usize,
 }
@@ -18,7 +14,6 @@ pub struct JsonDecoderBuilder<'de> {
 impl<'de> JsonDecoderBuilder<'de> {
     pub fn new(input: &'de [u8]) -> Self {
         JsonDecoderBuilder {
-            poison: PoisonState::new(),
             decoder: SimpleJsonDecoder::new(input),
             depth_budget: 100,
         }
@@ -27,14 +22,15 @@ impl<'de> JsonDecoderBuilder<'de> {
         self.depth_budget = depth_budget;
         self
     }
-    pub fn build<'p>(&'p mut self) -> <JsonDecoder<'de> as Decoder<'de>>::AnyDecoder<'p> {
-        PoisonAnyDecoder::new(
-            &mut self.poison,
-            WithDepthBudget::new(
-                self.depth_budget,
-                SimpleAnyDecoder::new(&mut self.decoder, JsonAnyDecoder::default()),
-            ),
-        )
+    pub fn build<'p>(&'p mut self) -> AnyDecoder<'p, 'de, JsonDecoder<'de>> {
+        AnyDecoder::new(&mut self.decoder, JsonAnyDecoder::default())
+        // PoisonAnyDecoder::new(
+        //     &mut self.poison,
+        //     WithDepthBudget::new(
+        //         self.depth_budget,
+        //         SimpleAnyDecoder::new(&mut self.decoder, JsonAnyDecoder::default()),
+        //     ),
+        // )
     }
     pub fn deserialize<T: Deserialize<'de, JsonDecoder<'de>>>(
         mut self,
@@ -45,7 +41,6 @@ impl<'de> JsonDecoderBuilder<'de> {
         Ok(result)
     }
     pub fn end(self) -> anyhow::Result<()> {
-        self.poison.check()?;
         self.decoder.end_parsing()?;
         Ok(())
     }

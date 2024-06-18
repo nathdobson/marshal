@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal_core::decode::{
-    AnyDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, MapDecoder, SeqDecoder,
+    AnyDecoder, DecodeHint, Decoder, DecoderView,
 };
 use marshal_core::Primitive;
 
@@ -17,7 +17,7 @@ pub enum JsonValue {
 }
 
 impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
-    fn deserialize<'p>(p: P::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, ctx: &mut Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Any)? {
             DecoderView::Primitive(Primitive::Bool(x)) => Ok(JsonValue::Bool(x)),
             DecoderView::Primitive(Primitive::F64(x)) => Ok(JsonValue::Number(x)),

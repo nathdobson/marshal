@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::Decoder;
+use marshal::decode::{AnyDecoder, Decoder};
 use marshal::Deserialize;
 use marshal_pointer::{arc_downcast, arc_weak_downcast, RawAny, rc_downcast, rc_weak_downcast};
 use marshal_pointer::empty_arc::EmptyArc;
@@ -122,7 +122,7 @@ struct Shared<X> {
 }
 
 pub fn deserialize_arc<'de, D: Decoder<'de>, T: 'static + Sync + Send + Deserialize<'de, D>>(
-    d: D::AnyDecoder<'_>,
+    d: AnyDecoder<'_, 'de, D>,
     ctx: &mut Context,
 ) -> anyhow::Result<Arc<T>> {
     let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx)?;
@@ -142,7 +142,7 @@ pub fn deserialize_arc<'de, D: Decoder<'de>, T: 'static + Sync + Send + Deserial
     }
 }
 pub fn deserialize_rc<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D>>(
-    d: D::AnyDecoder<'_>,
+    d: AnyDecoder<'_, 'de, D>,
     ctx: &mut Context,
 ) -> anyhow::Result<Rc<T>> {
     let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx)?;
@@ -167,7 +167,7 @@ pub fn deserialize_arc_weak<
     D: Decoder<'de>,
     T: 'static + Sync + Send + Deserialize<'de, D>,
 >(
-    d: D::AnyDecoder<'_>,
+    d: AnyDecoder<'_, 'de, D>,
     ctx: &mut Context,
 ) -> anyhow::Result<sync::Weak<T>> {
     let id = <usize as Deserialize<D>>::deserialize(d, ctx)?;
@@ -180,7 +180,7 @@ pub fn deserialize_arc_weak<
 }
 
 pub fn deserialize_rc_weak<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D>>(
-    d: D::AnyDecoder<'_>,
+    d: AnyDecoder<'_, 'de, D>,
     ctx: &mut Context,
 ) -> anyhow::Result<rc::Weak<T>> {
     let id = <usize as Deserialize<D>>::deserialize(d, ctx)?;
@@ -199,7 +199,7 @@ macro_rules! derive_deserialize_rc_shared {
             $crate::reexports::marshal::de::rc::DeserializeRc<'de, D> for $ty
         {
             fn deserialize_rc<'p>(
-                p: D::AnyDecoder<'p>,
+                p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> anyhow::Result<Rc<Self>> {
                 $crate::de::deserialize_rc::<D, Self>(p, ctx)
@@ -215,7 +215,7 @@ macro_rules! derive_deserialize_rc_weak_shared {
             $crate::reexports::marshal::de::rc::DeserializeRcWeak<'de, D> for $ty
         {
             fn deserialize_rc_weak<'p>(
-                p: D::AnyDecoder<'p>,
+                p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> anyhow::Result<::std::rc::Weak<Self>> {
                 $crate::de::deserialize_rc_weak::<D, Self>(p, ctx)
@@ -231,7 +231,7 @@ macro_rules! derive_deserialize_arc_weak_shared {
             $crate::reexports::marshal::de::rc::DeserializeArcWeak<'de, D> for $ty
         {
             fn deserialize_arc_weak<'p>(
-                p: D::AnyDecoder<'p>,
+                p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> anyhow::Result<::std::sync::Weak<Self>> {
                 $crate::de::deserialize_arc_weak::<D, Self>(p, ctx)
@@ -247,7 +247,7 @@ macro_rules! derive_deserialize_arc_shared {
             $crate::reexports::marshal::de::rc::DeserializeArc<'de, D> for $ty
         {
             fn deserialize_arc<'p>(
-                p: D::AnyDecoder<'p>,
+                p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
                 $crate::de::deserialize_arc::<D, Self>(p, ctx)

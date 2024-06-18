@@ -5,8 +5,7 @@ use base64::prelude::BASE64_STANDARD_NO_PAD;
 use itertools::Itertools;
 
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, DecodeVariantHint};
-use marshal_core::decode::simple::{SimpleDecoder, SimpleDecoderView};
+use marshal_core::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
 
 use crate::decode::any::PeekType;
 use crate::decode::error::JsonDecoderError;
@@ -50,7 +49,7 @@ pub struct JsonMapDecoder {
     started: bool,
 }
 
-impl<'de> SimpleDecoder<'de> for SimpleJsonDecoder<'de> {
+impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
     type AnyDecoder = JsonAnyDecoder;
     type SeqDecoder = JsonSeqDecoder;
     type MapDecoder = JsonMapDecoder;

@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
-use crate::encode::poison::PoisonError::UnexpectedParseState;
 use crate::encode::Encoder;
+use crate::encode::poison::PoisonError::UnexpectedParseState;
 use crate::Primitive;
 
 pub struct PoisonEncoder<E> {

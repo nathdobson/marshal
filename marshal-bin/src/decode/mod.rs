@@ -6,8 +6,7 @@ use num_traits::FromPrimitive;
 use safe_once_map::cell::OnceCellMap;
 
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, DecodeVariantHint};
-use marshal_core::decode::simple::{SimpleDecoder, SimpleDecoderView};
+use marshal_core::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
 
 use crate::{TypeTag, VU128_MAX_PADDING};
 use crate::to_from_vu128::{Array, ToFromVu128};
@@ -165,6 +164,12 @@ impl EnumDefForeign {
     }
 }
 
+impl<'s> Default for BinAnyDecoder<'s> {
+    fn default() -> Self {
+        BinAnyDecoder::Read
+    }
+}
+
 pub enum BinAnyDecoder<'s> {
     U32(u32),
     Str(&'s str),
@@ -192,7 +197,7 @@ pub struct BinDiscriminantDecoder<'s> {
     variant: &'s EnumDefKey,
 }
 
-impl<'de, 's> SimpleDecoder<'de> for SimpleBinDecoder<'de, 's> {
+impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
     type AnyDecoder = BinAnyDecoder<'s>;
     type SeqDecoder = BinSeqDecoder;
     type MapDecoder = BinMapDecoder<'s>;

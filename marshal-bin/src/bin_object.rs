@@ -3,8 +3,8 @@ use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::Decoder;
 use marshal::ser::Serialize;
+use marshal_core::decode::AnyDecoder;
 use marshal_core::encode::AnyEncoder;
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
@@ -21,7 +21,7 @@ pub trait SerializeDyn = SerializeBin;
 pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
     fn bin_deserialize_variant<'p, 'de, 's>(
         &self,
-        d: <BinDecoder<'de, 's> as Decoder<'de>>::AnyDecoder<'p>,
+        d: AnyDecoder<'p, 'de, BinDecoder<'de, 's>>,
         ctx: &mut Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn bin_serialize_variant<'p, 's>(
@@ -44,7 +44,7 @@ where
 {
     fn bin_deserialize_variant<'p, 'de, 's>(
         &self,
-        d: <BinDecoder<'de, 's> as Decoder<'de>>::AnyDecoder<'p>,
+        d: AnyDecoder<'p, 'de, BinDecoder<'de, 's>>,
         ctx: &mut Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(<O::Pointer<V>>::deserialize(d, ctx)?)
@@ -95,9 +95,9 @@ macro_rules! bin_object {
                     LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
 
             impl<'de,'s> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::BinDecoder<'de,'s>> for $carrier {
-                fn deserialize_variant(
+                fn deserialize_variant<'p>(
                     disc: usize,
-                    d: <$crate::decode::full::BinDecoder<'de,'s> as $crate::reexports::marshal::decode::Decoder<'de>>::AnyDecoder<'_>,
+                    d: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, $crate::decode::full::BinDecoder<'de,'s>>,
                     ctx: &mut $crate::reexports::marshal::context::Context,
                 ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::reexports::marshal_object::Object>::Pointer<<$carrier as $crate::reexports::marshal_object::Object>::Dyn>> {
                     DESERIALIZERS[disc].bin_deserialize_variant(d, ctx)

@@ -48,13 +48,13 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 generic_args.push(quote!(#p));
             }
             GenericParam::Type(TypeParam {
-                                   attrs,
-                                   ident,
-                                   colon_token,
-                                   bounds,
-                                   eq_token,
-                                   default,
-                               }) => {
+                attrs,
+                ident,
+                colon_token,
+                bounds,
+                eq_token,
+                default,
+            }) => {
                 let colon_token = colon_token.map_or_else(|| quote!(:), |x| quote!(#x));
                 let extra_bound = quote! {::marshal::de::Deserialize<'de,P>};
                 let bounds = if bounds.is_empty() {
@@ -76,25 +76,11 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
     let decoder_trait = quote!(::marshal::decode::Decoder);
     let primitive_type = quote!(::marshal::Primitive);
 
-    let any_decoder_trait = quote!(::marshal::decode::AnyDecoder);
-    let any_decoder_type = quote!(<P as #decoder_trait<'de>>::AnyDecoder<'_>);
-    let as_any_decoder = quote!(<#any_decoder_type as #any_decoder_trait<P>>);
-
-    let map_decoder_trait = quote!(::marshal::decode::MapDecoder);
-    let map_decoder_type = quote!(<P as #decoder_trait<'de>>::MapDecoder<'_>);
-    let as_map_decoder = quote!(<#map_decoder_type as #map_decoder_trait<P>>);
-
-    let seq_decoder_trait = quote!(::marshal::decode::SeqDecoder);
-    let seq_decoder_type = quote!(<P as #decoder_trait<'de>>::SeqDecoder<'_>);
-    let as_seq_decoder = quote!(<#seq_decoder_type as #seq_decoder_trait<P>>);
-
-    let entry_decoder_trait = quote!(::marshal::decode::EntryDecoder);
-    let entry_decoder_type = quote!(<P as #decoder_trait<'de>>::EntryDecoder<'_>);
-    let as_entry_decoder = quote!(<#entry_decoder_type as #entry_decoder_trait<P>>);
-
-    let enum_decoder_trait = quote!(::marshal::decode::EnumDecoder);
-    let enum_decoder_type = quote!(<P as #decoder_trait<'de>>::EnumDecoder<'_>);
-    let as_enum_decoder = quote!(<#enum_decoder_type as #enum_decoder_trait<P>>);
+    let any_decoder_type = quote!(::marshal::decode::AnyDecoder);
+    // let map_decoder_type = quote!(::marshal::decode::MapDecoder);
+    // let seq_decoder_type = quote!(::marshal::decode::SeqDecoder);
+    // let entry_decoder_type = quote!(::marshal::decode::EntryDecoder);
+    // let enum_decoder_type = quote!(::marshal::decode::EnumDecoder);
 
     let deserialize_trait = quote!(::marshal::de::Deserialize);
     let result_type = quote!(::marshal::reexports::anyhow::Result);
@@ -129,7 +115,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                     output = quote! {
                         impl<'de, #(#generic_params,)* P:#decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident <#(#generic_args),*> {
                             #[allow(unreachable_code)]
-                            fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
+                            fn deserialize(decoder: #any_decoder_type<'_,'de,P>, ctx: &mut #context_type) -> #result_type<Self>{
                                 let hint = #decode_hint_type::Struct{
                                     fields: &[
                                         #(
@@ -141,11 +127,11 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 #(
                                     let mut #field_names : #option_type<#field_types> = #option_type::None;
                                 )*
-                                let decoder = #as_any_decoder::decode(decoder, hint)?;
+                                let decoder = decoder.decode( hint)?;
                                 match decoder {
                                     #decoder_view_type::Map(mut decoder) => {
-                                        while let Some(mut entry) = #as_map_decoder::decode_next(&mut decoder)?{
-                                            let field_index: Option<usize> = match #as_any_decoder::decode(#as_entry_decoder::decode_key(&mut entry)?,#decode_hint_type::Identifier)?{
+                                        while let Some(mut entry) = decoder.decode_next()?{
+                                            let field_index: Option<usize> = match entry.decode_key()?.decode(#decode_hint_type::Identifier)?{
                                                 #decoder_view_type::String(name) => match &*name {
                                                     #(
                                                         #field_name_literals => Some(#field_name_indexes),
@@ -159,18 +145,18 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 match field_index {
                                                     #(
                                                         #field_name_indexes => {
-                                                            let value = #as_entry_decoder::decode_value(&mut entry)?;
+                                                            let value = entry.decode_value()?;
                                                             #field_names = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
                                                         }
                                                     )*
                                                     _ => {
-                                                        #as_any_decoder::ignore(#as_entry_decoder::decode_value(&mut entry)?)?;
+                                                        entry.decode_value()?.ignore()?;
                                                     },
                                                 }
                                             }else{
-                                                #as_any_decoder::ignore(#as_entry_decoder::decode_value(&mut entry)?)?;
+                                                entry.decode_value()?.ignore()?;
                                             };
-                                            #as_entry_decoder::decode_end(entry)?;
+                                            entry.decode_end()?;
                                         }
                                     },
                                     v => v.mismatch("map from field names or indices to field values")?,
@@ -192,14 +178,14 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                     let field_types = fields.unnamed.iter().map(|x| &x.ty).collect::<Vec<_>>();
                     output = quote! {
                         impl<'de, #(#generic_params,)* P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident <#(#generic_args),*> {
-                            fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
-                                match #as_any_decoder::decode(decoder, #decode_hint_type::TupleStruct{name:#type_name, len:#field_count})?{
+                            fn deserialize(decoder: #any_decoder_type<'_,'de,P>, ctx: &mut #context_type) -> #result_type<Self>{
+                                match decoder.decode( #decode_hint_type::TupleStruct{name:#type_name, len:#field_count})?{
                                     #decoder_view_type::Seq(mut decoder) => {
                                         let result=#type_ident(
                                             #(
                                                 {
                                                     let x = <#field_types as #deserialize_trait<'de, P> >::deserialize(
-                                                        #as_seq_decoder::decode_next(&mut decoder)?
+                                                        decoder.decode_next()?
                                                             .ok_or(#schema_error::TupleTooShort)?,
                                                         ctx
                                                     )?;
@@ -207,7 +193,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 },
                                             )*
                                         );
-                                        #as_seq_decoder::ignore(decoder)?;
+                                        decoder.ignore()?;
                                         ::std::result::Result::Ok(result)
                                     },
                                     v => v.mismatch("seq")?
@@ -219,8 +205,8 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                 Fields::Unit => {
                     output = quote! {
                         impl<'de, #(#generic_params,)* P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident <#(#generic_args),*> {
-                            fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
-                                match #as_any_decoder::decode(decoder, #decode_hint_type::UnitStruct{name:#type_name})?{
+                            fn deserialize(decoder: #any_decoder_type<'_,'de,P>, ctx: &mut #context_type) -> #result_type<Self>{
+                                match decoder.decode( #decode_hint_type::UnitStruct{name:#type_name})?{
                                     #decoder_view_type::Primitive(#primitive_type::Unit) => ::std::result::Result::Ok(#type_ident),
                                     v => v.mismatch("unit")?,
                                 }
@@ -267,11 +253,11 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                 #(
                                     let mut #field_idents : #option_type<#field_types> = #option_type::None;
                                 )*
-                                let decoder = #as_enum_decoder::decode_variant(&mut decoder, hint)?;
+                                let decoder = decoder.decode_variant(hint)?;
                                 match decoder {
                                     #decoder_view_type::Map(mut decoder) => {
-                                        while let Some(mut entry) = #as_map_decoder::decode_next(&mut decoder)?{
-                                            let field_index:Option<usize> = match #as_any_decoder::decode(#as_entry_decoder::decode_key(&mut entry)?,#decode_hint_type::Identifier)?{
+                                        while let Some(mut entry) = decoder.decode_next()?{
+                                            let field_index:Option<usize> = match entry.decode_key()?.decode(#decode_hint_type::Identifier)?{
                                                 #decoder_view_type::String(name) => match &*name{
                                                     #(
                                                         #field_names => Some(#field_indexes),
@@ -285,16 +271,16 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 match field_index {
                                                     #(
                                                         #field_indexes => {
-                                                            let value = #as_entry_decoder::decode_value(&mut entry)?;
+                                                            let value = entry.decode_value()?;
                                                             #field_idents = Some(<#field_types as #deserialize_trait<'de, P>>::deserialize(value, ctx)?);
                                                         }
                                                     )*
-                                                    _ => #as_any_decoder::ignore(#as_entry_decoder::decode_value(&mut entry)?)?,
+                                                    _ => entry.decode_value()?.ignore()?,
                                                 }
                                             }else{
-                                                #as_any_decoder::ignore(#as_entry_decoder::decode_value(&mut entry)?)?;
+                                                entry.decode_value()?.ignore()?;
                                             }
-                                            #as_entry_decoder::decode_end(entry)?;
+                                            entry.decode_end()?;
                                         }
                                     },
                                     v => v.mismatch("expected map")?
@@ -316,13 +302,13 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                         let field_types: Vec<_> = fields.unnamed.iter().map(|x| &x.ty).collect();
                         matches.push(quote! {
                             #variant_index => {
-                                match #as_enum_decoder::decode_variant(&mut decoder, #decode_variant_hint_type::TupleVariant{ len: #field_count })?{
+                                match decoder.decode_variant( #decode_variant_hint_type::TupleVariant{ len: #field_count })?{
                                     #decoder_view_type::Seq(mut decoder) => {
                                         let result=#type_ident::#variant_ident(
                                             #(
                                                 {
                                                     let x = <#field_types as #deserialize_trait<'de, P> >::deserialize(
-                                                        #as_seq_decoder::decode_next(&mut decoder)?
+                                                        decoder.decode_next()?
                                                             .ok_or(#schema_error::TupleTooShort)?,
                                                         ctx
                                                     )?;
@@ -330,7 +316,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                                 },
                                             )*
                                         );
-                                        #as_seq_decoder::ignore(decoder)?;
+                                        decoder.ignore()?;
                                         result
                                     },
                                     v => v.mismatch("seq")?
@@ -341,7 +327,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
 
                     Fields::Unit => matches.push(quote! {
                         #variant_index => {
-                            let variant = #as_enum_decoder::decode_variant(&mut decoder, #decode_variant_hint_type::UnitVariant)?;
+                            let variant = decoder.decode_variant(#decode_variant_hint_type::UnitVariant)?;
                             variant.ignore()?;
                             #type_ident::#variant_ident
                         },
@@ -350,7 +336,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
             }
             output = quote! {
                 impl<'de, #(#generic_params,)* P: #decoder_trait<'de>> #deserialize_trait<'de, P> for #type_ident <#(#generic_args),*> {
-                    fn deserialize(decoder: #any_decoder_type, ctx: &mut #context_type) -> #result_type<Self>{
+                    fn deserialize(decoder: #any_decoder_type<'_,'de,P>, ctx: &mut #context_type) -> #result_type<Self>{
                         let hint = #decode_hint_type::Enum {
                             variants: &[
                                 #(
@@ -359,12 +345,12 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                             ],
                             name: #type_name,
                         };
-                        let decoder = #as_any_decoder::decode(decoder, hint)?;
+                        let decoder = decoder.decode( hint)?;
                         match decoder {
                             #decoder_view_type::Enum(mut decoder) => {
                                 let variant_index = {
-                                    let disc = #as_enum_decoder::decode_discriminant(&mut decoder)?;
-                                    let disc = #as_any_decoder::decode(disc, #decode_hint_type::Identifier)?;
+                                    let disc = decoder.decode_discriminant()?;
+                                    let disc = disc.decode( #decode_hint_type::Identifier)?;
                                     match disc {
                                         #decoder_view_type::Primitive(variant_index) => usize::try_from(variant_index)?,
                                         #decoder_view_type::String(disc) => match &*disc {
@@ -380,7 +366,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
                                     #(#matches)*
                                     _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
                                 };
-                                #as_enum_decoder::decode_end(decoder)?;
+                                decoder.decode_end()?;
                                 ::std::result::Result::Ok(result)
                             },
                             v => v.mismatch("enum")?,
@@ -431,13 +417,13 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
                 generic_args.push(quote!(#p));
             }
             GenericParam::Type(TypeParam {
-                                   attrs,
-                                   ident,
-                                   colon_token,
-                                   bounds,
-                                   eq_token,
-                                   default,
-                               }) => {
+                attrs,
+                ident,
+                colon_token,
+                bounds,
+                eq_token,
+                default,
+            }) => {
                 let colon_token = colon_token.map_or_else(|| quote!(:), |x| quote!(#x));
                 let extra_bound = quote! {::marshal::ser::Serialize<W>};
                 let bounds = if bounds.is_empty() {

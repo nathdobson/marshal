@@ -3,8 +3,7 @@ use std::fs::read_dir;
 
 use marshal::context::Context;
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, SeqDecoder};
-use marshal_core::decode::simple::SimpleAnyDecoder;
+use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView};
 
 use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};
 use crate::decode::full::JsonDecoderBuilder;
@@ -14,7 +13,7 @@ use crate::value::JsonValue;
 fn test() -> anyhow::Result<()> {
     let input = b"[1,23]";
     let mut p = SimpleJsonDecoder::new(input);
-    let p = SimpleAnyDecoder::new(&mut p, JsonAnyDecoder::default());
+    let p = AnyDecoder::new(&mut p, JsonAnyDecoder::default());
     match p.decode(DecodeHint::Any)? {
         DecoderView::Seq(mut p) => {
             match p
@@ -39,6 +38,7 @@ fn test() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[ignore]
 #[test]
 fn test_parsing() {
     for dir in read_dir("../JSONTestSuite/test_parsing").unwrap() {

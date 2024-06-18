@@ -6,7 +6,7 @@ use type_map::concurrent::TypeMap;
 use marshal::context::Context;
 use marshal::de::SchemaError;
 use marshal::decode::{
-    AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint, EnumDecoder, SeqDecoder,
+    AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint,
 };
 
 use crate::{Object, OBJECT_REGISTRY};
@@ -14,13 +14,13 @@ use crate::{Object, OBJECT_REGISTRY};
 pub trait DeserializeVariantForDiscriminant<'de, D: Decoder<'de>>: Object {
     fn deserialize_variant(
         discriminant: usize,
-        d: D::AnyDecoder<'_>,
+        d: AnyDecoder<'_, 'de, D>,
         ctx: &mut Context,
     ) -> anyhow::Result<Self::Pointer<Self::Dyn>>;
 }
 
 pub fn deserialize_object<'p, 'de, O: Object, D: Decoder<'de>>(
-    d: D::AnyDecoder<'p>,
+    d: AnyDecoder<'p, 'de, D>,
     ctx: &mut Context,
 ) -> anyhow::Result<O::Pointer<O::Dyn>>
 where

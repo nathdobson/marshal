@@ -273,7 +273,7 @@ macro_rules! derive_box_object {
         where
             $carrier: DeserializeVariantForDiscriminant<'de, D>,
         {
-            fn deserialize(p: D::AnyDecoder<'_>, ctx: &mut Context) -> anyhow::Result<Self> {
+            fn deserialize<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: &mut Context) -> anyhow::Result<Self> {
                 deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -295,7 +295,7 @@ macro_rules! derive_rc_object {
         where
             $carrier: DeserializeVariantForDiscriminant<'de, D>,
         {
-            fn deserialize_rc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Rc<Self>> {
+            fn deserialize_rc<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: &mut Context) -> anyhow::Result<Rc<Self>> {
                 deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -318,7 +318,7 @@ macro_rules! derive_arc_object {
         where
             $carrier: DeserializeVariantForDiscriminant<'de, D>,
         {
-            fn deserialize_arc<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<::std::sync::Arc<Self>> {
+            fn deserialize_arc<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: &mut Context) -> anyhow::Result<::std::sync::Arc<Self>> {
                 deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -341,7 +341,7 @@ macro_rules! derive_rc_weak_object {
         where
             $carrier: DeserializeVariantForDiscriminant<'de, D>,
         {
-            fn deserialize_rc_weak<'p>(p: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<::std::rc::Weak<Self>> {
+            fn deserialize_rc_weak<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: &mut Context) -> anyhow::Result<::std::rc::Weak<Self>> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }

@@ -13,7 +13,7 @@ use marshal::context::Context;
 use marshal::de::{Deserialize, SchemaError};
 use marshal::ser::Serialize;
 use marshal_core::decode::{
-    AnyDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, MapDecoder,
+    AnyDecoder, DecodeHint, Decoder, DecoderView,
 };
 use marshal_core::encode::{AnyEncoder, Encoder, StructEncoder};
 
@@ -130,11 +130,14 @@ trait DeserializeStructList<'de, D: Decoder<'de>>: StructList + Sized {
     fn decode_field(
         builder: &mut Self::Builder,
         field: &str,
-        value: D::AnyDecoder<'_>,
+        value: AnyDecoder<'_, 'de, D>,
         ctx: &mut Context,
     ) -> anyhow::Result<()>;
     fn build(builder: Self::Builder) -> anyhow::Result<Self>;
-    fn deserialize_struct_list(d: D::AnyDecoder<'_>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize_struct_list(
+        d: AnyDecoder<'_, 'de, D>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<Self> {
         let mut builder = Self::Builder::default();
         match d.decode(DecodeHint::Struct {
             name: Self::STRUCT,
@@ -164,7 +167,7 @@ impl<'de, const STRUCT: &'static str, D: Decoder<'de>> DeserializeStructList<'de
     fn decode_field(
         _: &mut Self::Builder,
         _: &str,
-        value: D::AnyDecoder<'_>,
+        value: AnyDecoder<'_, 'de, D>,
         _: &mut Context,
     ) -> anyhow::Result<()> {
         value.ignore()
@@ -188,7 +191,7 @@ impl<
     fn decode_field(
         builder: &mut Self::Builder,
         field: &str,
-        value: D::AnyDecoder<'_>,
+        value: AnyDecoder<'_, 'de, D>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
         if field == FIELD {
@@ -213,7 +216,7 @@ impl<'de, const STRUCT: &'static str, D: Decoder<'de>> Deserialize<'de, D> for S
 where
     Self: DeserializeStructList<'de, D>,
 {
-    fn deserialize<'p>(d: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
         Self::deserialize_struct_list(d, ctx)
     }
 }
@@ -223,7 +226,7 @@ impl<'de, const FIELD: &'static str, D: Decoder<'de>, H, T> Deserialize<'de, D>
 where
     Self: DeserializeStructList<'de, D>,
 {
-    fn deserialize<'p>(d: D::AnyDecoder<'p>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
         Self::deserialize_struct_list(d, ctx)
     }
 }
