@@ -1,16 +1,16 @@
 use std::rc;
 use std::rc::Rc;
-use std::sync::Arc;
 
-use marshal::context::Context;
+use pretty_assertions::assert_eq;
+
 use marshal::{Deserialize, Serialize};
+use marshal::context::Context;
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_shared::{
     derive_deserialize_rc_shared, derive_deserialize_rc_weak_shared, derive_serialize_rc_shared,
     derive_serialize_rc_weak_shared,
 };
-use pretty_assertions::assert_eq;
 
 #[derive(Serialize, Deserialize)]
 struct Foo(u8);

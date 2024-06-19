@@ -1,5 +1,6 @@
-use crate::decode::{ DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 use std::fmt::{Display, Formatter};
+
+use crate::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
 
 pub struct PoisonDecoder<D> {
     inner: D,

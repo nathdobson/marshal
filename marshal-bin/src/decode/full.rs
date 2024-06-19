@@ -1,5 +1,5 @@
 use marshal::context::Context;
-use marshal_core::decode::{AnyDecoder};
+use marshal_core::decode::AnyDecoder;
 
 use crate::decode::{BinAnyDecoder, BinDecoderSchema, SimpleBinDecoder};
 use crate::DeserializeBin;
