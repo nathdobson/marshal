@@ -32,6 +32,7 @@ marshal-object = {path ="marshal-object"}
 weak-table= "0.3.2"
 marshal-pointer = {path="marshal-pointer"}
 marshal-shared = {path="marshal-shared"}
+pretty_assertions = "1.4.0"
 
 [profile.bench]
 debug = true

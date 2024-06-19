@@ -1,4 +1,5 @@
 #![feature(trait_upcasting)]
+#![feature(coerce_unsized)]
 
 use std::fmt::{Debug, Display, Formatter};
 

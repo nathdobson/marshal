@@ -1,8 +1,11 @@
-use std::{rc, sync};
 use std::any::Any;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::ops::{CoerceUnsized, Deref};
+use std::{mem, rc, sync};
+use weak_table::traits::{WeakElement, WeakKey};
+use weak_table::PtrWeakKeyHashMap;
 
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
@@ -11,9 +14,9 @@ use marshal::ser::Serialize;
 use marshal::Serialize;
 use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
-use marshal_pointer::DerefRaw;
 use marshal_pointer::rc_ref::RcRef;
 use marshal_pointer::rc_weak_ref::RcWeakRef;
+use marshal_pointer::{AsFlatRef, DerefRaw};
 
 struct ByAddress<T>(T);
 
@@ -31,16 +34,61 @@ impl<T: DerefRaw> PartialEq<Self> for ByAddress<T> {
 
 impl<T: DerefRaw> Eq for ByAddress<T> {}
 
-#[derive(Default)]
-pub struct SharedRcSerializeContext {
-    next_id: usize,
-    shared: HashMap<ByAddress<rc::Weak<dyn Any>>, usize>,
+struct PointerState {
+    id: usize,
+    written: bool,
 }
 
-#[derive(Default)]
-pub struct SharedArcSerializeContext {
+pub struct SharedSerializeContext<WeakAny> {
     next_id: usize,
-    shared: HashMap<ByAddress<sync::Weak<dyn Sync + Send + Any>>, usize>,
+    shared: HashMap<ByAddress<WeakAny>, PointerState>,
+}
+
+impl<WeakAny> Default for SharedSerializeContext<WeakAny> {
+    fn default() -> Self {
+        SharedSerializeContext {
+            next_id: 0,
+            shared: HashMap::new(),
+        }
+    }
+}
+
+impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
+    fn get_state(ctx: &mut Context, weak: WeakAny) -> &mut PointerState {
+        let this = ctx.get_or_default::<Self>();
+        this.shared.entry(ByAddress(weak)).or_insert_with(|| {
+            let state = PointerState {
+                id: this.next_id,
+                written: false,
+            };
+            this.next_id += 1;
+            state
+        })
+    }
+    fn serialize_strong<T: Serialize<E>, E: Encoder>(
+        value: &T,
+        weak: WeakAny,
+        e: AnyEncoder<E>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        let state = Self::get_state(ctx, weak);
+        let id = state.id;
+        let written = mem::replace(&mut state.written, true);
+        Shared::<T> {
+            id,
+            inner: (!written).then_some(value),
+        }
+        .serialize(e, ctx)
+    }
+    fn serialize_weak<E: Encoder>(
+        weak: WeakAny,
+        e: AnyEncoder<E>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        let state = Self::get_state(ctx, weak);
+        let id = state.id;
+        id.serialize(e, ctx)
+    }
 }
 
 #[derive(Serialize)]
@@ -54,28 +102,7 @@ pub fn serialize_rc<E: Encoder, T: 'static + Serialize<E>>(
     e: AnyEncoder<'_, E>,
     ctx: &mut Context,
 ) -> anyhow::Result<()> {
-    let shared_ctx = ctx.get_or_default::<SharedRcSerializeContext>();
-    match shared_ctx.shared.entry(ByAddress(ptr.weak())) {
-        Entry::Occupied(entry) => {
-            Shared::<T> {
-                id: *entry.get(),
-                inner: None,
-            }
-            .serialize(e, ctx)?;
-            Ok(())
-        }
-        Entry::Vacant(entry) => {
-            let id = shared_ctx.next_id;
-            entry.insert(id);
-            shared_ctx.next_id += 1;
-            Shared {
-                id,
-                inner: Some(&**ptr),
-            }
-            .serialize(e, ctx)?;
-            Ok(())
-        }
-    }
+    SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_strong(&**ptr, ptr.weak(), e, ctx)
 }
 
 pub fn serialize_arc<E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
@@ -83,28 +110,7 @@ pub fn serialize_arc<E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
     e: AnyEncoder<'_, E>,
     ctx: &mut Context,
 ) -> anyhow::Result<()> {
-    let shared_ctx = ctx.get_or_default::<SharedArcSerializeContext>();
-    match shared_ctx.shared.entry(ByAddress(ptr.weak())) {
-        Entry::Occupied(entry) => {
-            Shared::<T> {
-                id: *entry.get(),
-                inner: None,
-            }
-            .serialize(e, ctx)?;
-            Ok(())
-        }
-        Entry::Vacant(entry) => {
-            let id = shared_ctx.next_id;
-            entry.insert(id);
-            shared_ctx.next_id += 1;
-            Shared {
-                id,
-                inner: Some(&**ptr),
-            }
-            .serialize(e, ctx)?;
-            Ok(())
-        }
-    }
+    SharedSerializeContext::<sync::Weak<dyn Any>>::serialize_strong(&**ptr, ptr.weak(), e, ctx)
 }
 
 pub fn serialize_rc_weak<E: Encoder, T: 'static + Serialize<E>>(
@@ -112,17 +118,7 @@ pub fn serialize_rc_weak<E: Encoder, T: 'static + Serialize<E>>(
     e: AnyEncoder<'_, E>,
     ctx: &mut Context,
 ) -> anyhow::Result<()> {
-    let shared_ctx = ctx.get_or_default::<SharedRcSerializeContext>();
-    let index = match shared_ctx.shared.entry(ByAddress(ptr.weak())) {
-        Entry::Occupied(entry) => *entry.get(),
-        Entry::Vacant(entry) => {
-            let id = shared_ctx.next_id;
-            entry.insert(id);
-            shared_ctx.next_id += 1;
-            id
-        }
-    };
-    <usize as Serialize<E>>::serialize(&index, e, ctx)
+    SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_weak(ptr.weak(), e, ctx)
 }
 
 pub fn serialize_arc_weak<E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
@@ -130,17 +126,7 @@ pub fn serialize_arc_weak<E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
     e: AnyEncoder<'_, E>,
     ctx: &mut Context,
 ) -> anyhow::Result<()> {
-    let shared_ctx = ctx.get_or_default::<SharedArcSerializeContext>();
-    let index = match shared_ctx.shared.entry(ByAddress(ptr.weak())) {
-        Entry::Occupied(entry) => *entry.get(),
-        Entry::Vacant(entry) => {
-            let id = shared_ctx.next_id;
-            entry.insert(id);
-            shared_ctx.next_id += 1;
-            id
-        }
-    };
-    <usize as Serialize<E>>::serialize(&index, e, ctx)
+    SharedSerializeContext::<sync::Weak<dyn Any>>::serialize_weak(ptr.weak(), e, ctx)
 }
 
 #[macro_export]
