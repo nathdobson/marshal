@@ -1,0 +1,8 @@
+[package]
+name = "marshal-update"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+marshal = {workspace=true}
+anyhow  ={ workspace=true}
