@@ -6,6 +6,8 @@ use marshal::ser::Serialize;
 
 mod derive_serialize_update_for_clone;
 mod rc;
+mod option;
+mod tuple;
 
 pub trait SerializeStream {
     type Stream;

@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync;
 use std::sync::Arc;
 
@@ -27,6 +28,33 @@ where
     ) -> anyhow::Result<()> {
         let m = if stream.deref_raw() as *const () != self.deref_raw() as *const () {
             *stream = Arc::downgrade(self);
+            Some(self)
+        } else {
+            None
+        };
+        m.serialize(e, ctx)
+    }
+}
+
+impl<T: ?Sized> SerializeStream for sync::Weak<T> {
+    type Stream = sync::Weak<T>;
+    fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+        Ok(self.clone())
+    }
+}
+
+impl<T: ?Sized, E: Encoder> SerializeUpdate<E> for sync::Weak<T>
+    where
+        sync::Weak<T>: Serialize<E>,
+{
+    fn serialize_update(
+        &self,
+        stream: &mut Self::Stream,
+        e: AnyEncoder<E>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        let m = if stream.deref_raw() as *const () != self.deref_raw() as *const () {
+            *stream = self.clone();
             Some(self)
         } else {
             None

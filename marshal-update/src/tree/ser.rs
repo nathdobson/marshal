@@ -11,10 +11,11 @@ use parking_lot::Mutex;
 
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
-use marshal::ser::rc::SerializeArc;
+use marshal::ser::rc::{SerializeArc, SerializeArcWeak};
 use marshal::ser::Serialize;
 use marshal_json::encode::full::JsonEncoder;
 use marshal_pointer::arc_ref::ArcRef;
+use marshal_pointer::arc_weak_ref::ArcWeakRef;
 use marshal_pointer::DerefRaw;
 use marshal_shared::ser::SharedSerializeContext;
 
@@ -75,6 +76,17 @@ where
             e,
             ctx,
         )?;
+        Ok(())
+    }
+}
+
+impl<E: Encoder, T: 'static> SerializeArcWeak<E> for Tree<T> {
+    fn serialize_arc_weak(
+        this: &ArcWeakRef<Self>,
+        e: AnyEncoder<'_, E>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        SharedSerializeContext::<sync::Weak<Tree<dyn Any>>>::serialize_weak(this.weak(), e, ctx)?;
         Ok(())
     }
 }
