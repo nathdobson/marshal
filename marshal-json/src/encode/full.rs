@@ -1,7 +1,7 @@
 use marshal::context::Context;
 use marshal::ser::Serialize;
-use marshal_core::encode::AnyEncoder;
 use marshal_core::encode::poison::PoisonEncoder;
+use marshal_core::encode::AnyEncoder;
 
 use crate::encode::{JsonAnyEncoder, SimpleJsonEncoder};
 
@@ -24,7 +24,14 @@ impl JsonEncoderBuilder {
     pub fn end(mut self) -> anyhow::Result<String> {
         Ok(self.inner.end()?.end()?)
     }
-    pub fn serialize<T: Serialize<JsonEncoder>>(
+    pub fn with<F: FnOnce(AnyEncoder<JsonEncoder>) -> anyhow::Result<()>>(
+        mut self,
+        f: F,
+    ) -> anyhow::Result<String> {
+        f(self.build())?;
+        self.end()
+    }
+    pub fn serialize<T: ?Sized + Serialize<JsonEncoder>>(
         mut self,
         value: &T,
         ctx: &mut Context,

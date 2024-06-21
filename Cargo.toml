@@ -33,6 +33,8 @@ weak-table= "0.3.2"
 marshal-pointer = {path="marshal-pointer"}
 marshal-shared = {path="marshal-shared"}
 pretty_assertions = "1.4.0"
+parking_lot = "0.12.3"
+atomic_refcell = "0.1.13"
 
 [profile.bench]
 debug = true

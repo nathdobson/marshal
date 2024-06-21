@@ -1,9 +1,10 @@
-use crate::ser::SerializeStream;
-use crate::ser::SerializeUpdate;
 use marshal::context::Context;
 use marshal::encode::AnyEncoder;
 use marshal::encode::Encoder;
 use marshal::ser::Serialize;
+
+use crate::ser::SerializeStream;
+use crate::ser::SerializeUpdate;
 
 macro_rules! derive_serialize_update_for_clone {
     ($($ty:ty;)*) => {
@@ -11,6 +12,7 @@ macro_rules! derive_serialize_update_for_clone {
             impl SerializeStream for $ty {
                 type Stream = $ty;
                 fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+                    println!("starting stream");
                     Ok(self.clone())
                 }
             }
@@ -23,8 +25,10 @@ macro_rules! derive_serialize_update_for_clone {
                 ) -> anyhow::Result<()> {
                     let m = if stream != self {
                         stream.clone_from(self);
+                        println!("A");
                         Some(&self)
                     } else {
+                        println!("B");
                         None
                     };
                     m.serialize(e, ctx)?;

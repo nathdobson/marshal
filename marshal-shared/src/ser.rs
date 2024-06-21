@@ -50,6 +50,10 @@ impl<WeakAny> Default for SharedSerializeContext<WeakAny> {
 }
 
 impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
+    pub fn get_id(ctx: &mut Context, weak: WeakAny) -> Option<usize> {
+        let this = ctx.get_or_default::<Self>();
+        Some(this.shared.get(&ByAddress(weak))?.id)
+    }
     fn get_state(ctx: &mut Context, weak: WeakAny) -> &mut PointerState {
         let this = ctx.get_or_default::<Self>();
         this.shared.entry(ByAddress(weak)).or_insert_with(|| {
@@ -61,7 +65,7 @@ impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
             state
         })
     }
-    fn serialize_strong<T: Serialize<E>, E: Encoder>(
+    pub fn serialize_strong<T: Serialize<E>, E: Encoder>(
         value: &T,
         weak: WeakAny,
         e: AnyEncoder<E>,
@@ -76,7 +80,7 @@ impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
         }
         .serialize(e, ctx)
     }
-    fn serialize_weak<E: Encoder>(
+    pub fn serialize_weak<E: Encoder>(
         weak: WeakAny,
         e: AnyEncoder<E>,
         ctx: &mut Context,
@@ -101,7 +105,7 @@ pub fn serialize_rc<E: Encoder, T: 'static + Serialize<E>>(
     SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_strong(&**ptr, ptr.weak(), e, ctx)
 }
 
-pub fn serialize_arc<E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
+pub fn serialize_arc<E: Encoder, T: 'static + Serialize<E>>(
     ptr: &ArcRef<T>,
     e: AnyEncoder<'_, E>,
     ctx: &mut Context,
@@ -117,7 +121,7 @@ pub fn serialize_rc_weak<E: Encoder, T: 'static + Serialize<E>>(
     SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_weak(ptr.weak(), e, ctx)
 }
 
-pub fn serialize_arc_weak<E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
+pub fn serialize_arc_weak<E: Encoder, T: 'static + Serialize<E>>(
     ptr: &ArcWeakRef<T>,
     e: AnyEncoder<'_, E>,
     ctx: &mut Context,

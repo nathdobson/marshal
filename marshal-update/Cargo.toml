@@ -6,3 +6,11 @@ edition = "2021"
 [dependencies]
 marshal = {workspace=true}
 anyhow  ={ workspace=true}
+parking_lot = {workspace=true}
+safe-once = {workspace=true}
+marshal-shared = {workspace=true}
+by_address = {workspace=true}
+marshal-json = {workspace=true}
+marshal-bin = {workspace=true}
+marshal-pointer = {workspace=true}
+atomic_refcell = {workspace=true}

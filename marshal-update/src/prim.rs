@@ -1,12 +1,14 @@
-use crate::de::DeserializeUpdate;
-use crate::ser::{SerializeStream, SerializeUpdate};
-use crate::version::Version;
+use std::ops::{Deref, DerefMut};
+
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use std::ops::{Deref, DerefMut};
+
+use crate::de::DeserializeUpdate;
+use crate::ser::{SerializeStream, SerializeUpdate};
+use crate::version::Version;
 
 pub struct Prim<T: ?Sized> {
     version: Version,

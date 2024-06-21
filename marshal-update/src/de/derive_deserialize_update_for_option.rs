@@ -1,7 +1,9 @@
-use crate::de::DeserializeUpdate;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
+
+use crate::de::DeserializeUpdate;
+
 macro_rules! derive_deserialize_update_for_option {
     ($($ty:ty;)*) => {
         $(

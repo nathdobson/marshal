@@ -1,8 +1,10 @@
-use crate::de::DeserializeUpdate;
+use std::sync::Arc;
+
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
-use std::sync::Arc;
+
+use crate::de::DeserializeUpdate;
 
 impl<'de, D: Decoder<'de>, T: ?Sized> DeserializeUpdate<'de, D> for Arc<T>
 where

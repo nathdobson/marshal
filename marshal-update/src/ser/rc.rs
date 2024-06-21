@@ -1,10 +1,12 @@
-use crate::ser::{SerializeStream, SerializeUpdate};
+use std::sync;
+use std::sync::Arc;
+
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::reexports::marshal_pointer::DerefRaw;
 use marshal::ser::Serialize;
-use std::sync;
-use std::sync::Arc;
+
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 impl<T: ?Sized> SerializeStream for Arc<T> {
     type Stream = sync::Weak<T>;
