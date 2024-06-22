@@ -3,6 +3,7 @@ use std::slice;
 use crate::Primitive;
 
 pub mod poison;
+pub mod newtype;
 
 pub trait Encoder {
     type AnyEncoder;

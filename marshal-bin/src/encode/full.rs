@@ -1,24 +1,27 @@
 use marshal::context::Context;
-use marshal_core::encode::AnyEncoder;
+use marshal_core::derive_encoder_for_newtype;
 use marshal_core::encode::poison::PoisonEncoder;
+use marshal_core::encode::AnyEncoder;
 
 use crate::encode::{BinEncoderSchema, SimpleBinEncoder};
 use crate::SerializeBin;
 
-pub type BinEncoder<'s> = PoisonEncoder<SimpleBinEncoder<'s>>;
+pub struct BinEncoder<'s>(PoisonEncoder<SimpleBinEncoder<'s>>);
+
+derive_encoder_for_newtype!(BinEncoder<'s>(PoisonEncoder<SimpleBinEncoder<'s>>));
 
 pub struct BinEncoderBuilder<'s> {
-    inner: PoisonEncoder<SimpleBinEncoder<'s>>,
+    inner: BinEncoder<'s>
 }
 
 impl<'s> BinEncoderBuilder<'s> {
     pub fn new(schema: &'s mut BinEncoderSchema) -> Self {
         BinEncoderBuilder {
-            inner: PoisonEncoder::new(SimpleBinEncoder::new(schema)),
+            inner: BinEncoder(PoisonEncoder::new(SimpleBinEncoder::new(schema))),
         }
     }
     pub fn build<'w>(&'w mut self) -> AnyEncoder<'w, BinEncoder<'s>> {
-        let any = self.inner.start(());
+        let any = self.inner.0.start(());
         AnyEncoder::new(&mut self.inner, any)
     }
     pub fn serialize<T: SerializeBin>(
@@ -30,6 +33,6 @@ impl<'s> BinEncoderBuilder<'s> {
         self.end()
     }
     pub fn end(self) -> anyhow::Result<Vec<u8>> {
-        self.inner.end()?.end()
+        self.inner.0.end()?.end()
     }
 }
