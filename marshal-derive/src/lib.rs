@@ -9,7 +9,6 @@ use syn::{
     Data, DataEnum, DataStruct, DeriveInput, Fields, GenericParam, Generics, LitStr,
     parse_macro_input, TypeParam, Variant,
 };
-use syn::__private::TokenStream2;
 
 #[proc_macro_derive(Deserialize)]
 pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -23,7 +22,7 @@ fn ident_to_lit(ident: &Ident) -> LitStr {
     LitStr::new(&format!("{}", ident), ident.span())
 }
 
-fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error> {
+fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
         attrs: _,
         vis: _,
@@ -37,7 +36,7 @@ fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Err
             },
         data,
     } = input;
-    let output: TokenStream2;
+    let output: TokenStream;
     let mut generic_params = vec![];
     let mut generic_args = vec![];
     for generic in generics {
@@ -393,7 +392,7 @@ pub fn derive_serialize(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         .into()
 }
 
-fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error> {
+fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
         attrs: _,
         vis: _,
@@ -442,7 +441,7 @@ fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream2, syn::Error
             }
         }
     }
-    let output: TokenStream2;
+    let output: TokenStream;
     let encoder_trait = quote! { ::marshal::encode::Encoder };
     let serialize_trait = quote! { ::marshal::ser::Serialize };
     let context_type = quote! { ::marshal::context::Context };
