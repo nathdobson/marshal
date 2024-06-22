@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 use itertools::Itertools;
 
+use marshal_core::decode::{DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
 
 use crate::decode::any::PeekType;
 use crate::decode::error::JsonDecoderError;
@@ -138,6 +138,23 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
                         .ok_or(JsonDecoderError::TooManyChars)?,
                 )))
             }
+            (DecodeHint::Primitive(prim@(PrimitiveType::Unit
+                                   | PrimitiveType::Bool
+                                   | PrimitiveType::I8
+                                   | PrimitiveType::I16
+                                   | PrimitiveType::I32
+                                   | PrimitiveType::I64
+                                   | PrimitiveType::I128
+                                   | PrimitiveType::U8
+                                   | PrimitiveType::U16
+                                   | PrimitiveType::U32
+                                   | PrimitiveType::U64
+                                   | PrimitiveType::U128
+                                   | PrimitiveType::F32
+                                   | PrimitiveType::F64)),
+                PeekType::String) if context.must_be_string => {
+                Ok(SimpleDecoderView::Primitive(self.read_prim_from_str(prim)?))
+            },
             (
                 DecodeHint::Any
                 | DecodeHint::Ignore

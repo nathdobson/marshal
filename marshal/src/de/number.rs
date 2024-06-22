@@ -43,7 +43,7 @@ impl<'de, P: Decoder<'de>> Deserialize<'de, P> for usize {
     fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, _ctx: &mut Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Primitive(PrimitiveType::U64))? {
             DecoderView::Primitive(x) => Ok(x.try_into()?),
-            unexpected => unexpected.mismatch(std::stringify!($t))?,
+            unexpected => unexpected.mismatch(std::stringify!(usize))?,
         }
     }
 }
@@ -52,7 +52,7 @@ impl<'de, P: Decoder<'de>> Deserialize<'de, P> for isize {
     fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, _ctx: &mut Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Primitive(PrimitiveType::I64))? {
             DecoderView::Primitive(x) => Ok(x.try_into()?),
-            unexpected => unexpected.mismatch(std::stringify!($t))?,
+            unexpected => unexpected.mismatch(std::stringify!(isize))?,
         }
     }
 }

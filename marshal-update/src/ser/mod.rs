@@ -52,7 +52,7 @@ impl<E: Encoder, T: 'static + SerializeUpdate<E> + SerializeStream<Stream: 'stat
     }
 }
 
-pub trait DeserializeUpdateDyn<'de, D: Decoder<'de>> {
+pub trait DeserializeUpdateDyn<'de, D: Decoder<'de>>: 'static {
     fn deserialize_update_dyn(
         &mut self,
         d: AnyDecoder<'_, 'de, D>,
@@ -60,7 +60,9 @@ pub trait DeserializeUpdateDyn<'de, D: Decoder<'de>> {
     ) -> anyhow::Result<()>;
 }
 
-impl<'de, D: Decoder<'de>, T: DeserializeUpdate<'de, D>> DeserializeUpdateDyn<'de, D> for T {
+impl<'de, D: Decoder<'de>, T: 'static + DeserializeUpdate<'de, D>> DeserializeUpdateDyn<'de, D>
+    for T
+{
     fn deserialize_update_dyn(
         &mut self,
         d: AnyDecoder<'_, 'de, D>,

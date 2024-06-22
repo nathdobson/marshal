@@ -1,10 +1,10 @@
 use std::error::Error;
 use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::io::Write;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 
 use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_core::Primitive;
@@ -22,11 +22,12 @@ pub struct SimpleJsonEncoder {
 pub enum JsonEncoderError {
     BadNumber,
     NumericOverflow,
+    MustBeString,
 }
 
 impl Display for JsonEncoderError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "JsonEncoderError")
+        Debug::fmt(self, f)
     }
 }
 
@@ -73,6 +74,19 @@ impl SimpleJsonEncoder {
         write!(&mut self.output, "{}", value)?;
         Ok(())
     }
+
+    fn write_prim(&mut self, e: JsonAnyEncoder, value: impl Display) -> anyhow::Result<()> {
+        self.set_indentation(e.ctx.indentation)?;
+        if e.must_be_string {
+            write!(&mut self.output, "\"")?;
+        }
+        write!(&mut self.output, "{}", value)?;
+        if e.must_be_string {
+            write!(&mut self.output, "\"")?;
+        }
+        Ok(())
+    }
+
     fn writeln(&mut self, ctx: EncodeContext, value: impl Display) -> anyhow::Result<()> {
         self.set_indentation(ctx.indentation)?;
         write!(&mut self.output, "{}\n", value)?;
@@ -137,28 +151,29 @@ impl Encoder for SimpleJsonEncoder {
 
     fn encode_prim(&mut self, any: Self::AnyEncoder, prim: Primitive) -> anyhow::Result<()> {
         match prim {
+            Primitive::Unit if any.must_be_string => self.write_str_literal(any.ctx, ""),
             Primitive::Unit => self.write_null(any.ctx),
-            Primitive::Bool(x) => self.write(any.ctx, x),
-            Primitive::I8(x) => self.write(any.ctx, x),
-            Primitive::I16(x) => self.write(any.ctx, x),
-            Primitive::I32(x) => self.write(any.ctx, x),
-            Primitive::I64(x) => self.write(any.ctx, x),
-            Primitive::I128(x) => self.write(any.ctx, x),
-            Primitive::U8(x) => self.write(any.ctx, x),
-            Primitive::U16(x) => self.write(any.ctx, x),
-            Primitive::U32(x) => self.write(any.ctx, x),
-            Primitive::U64(x) => self.write(any.ctx, x),
-            Primitive::U128(x) => self.write(any.ctx, x),
+            Primitive::Bool(x) => self.write_prim(any, x),
+            Primitive::I8(x) => self.write_prim(any, x),
+            Primitive::I16(x) => self.write_prim(any, x),
+            Primitive::I32(x) => self.write_prim(any, x),
+            Primitive::I64(x) => self.write_prim(any, x),
+            Primitive::I128(x) => self.write_prim(any, x),
+            Primitive::U8(x) => self.write_prim(any, x),
+            Primitive::U16(x) => self.write_prim(any, x),
+            Primitive::U32(x) => self.write_prim(any, x),
+            Primitive::U64(x) => self.write_prim(any, x),
+            Primitive::U128(x) => self.write_prim(any, x),
             Primitive::F32(x) => {
                 if x.is_finite() {
-                    self.write(any.ctx, x)
+                    self.write_prim(any, x)
                 } else {
                     return Err(JsonEncoderError::BadNumber)?;
                 }
             }
             Primitive::F64(x) => {
                 if x.is_finite() {
-                    self.write(any.ctx, x)
+                    self.write_prim(any, x)
                 } else {
                     return Err(JsonEncoderError::BadNumber)?;
                 }
@@ -182,6 +197,9 @@ impl Encoder for SimpleJsonEncoder {
     }
 
     fn encode_none(&mut self, any: Self::AnyEncoder) -> anyhow::Result<()> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
         if any.cannot_be_null {
             self.open_map(any.ctx)?;
             let ctx = any.ctx.indent();
@@ -200,6 +218,9 @@ impl Encoder for SimpleJsonEncoder {
         any: Self::AnyEncoder,
     ) -> anyhow::Result<(Self::AnyEncoder, Self::SomeCloser)> {
         if any.cannot_be_null {
+            if any.must_be_string {
+                return Err(JsonEncoderError::MustBeString.into());
+            }
             self.open_map(any.ctx)?;
             let ctx = any.ctx.indent();
             self.write_str_literal(ctx, "Some")?;
@@ -231,6 +252,10 @@ impl Encoder for SimpleJsonEncoder {
     }
 
     fn encode_unit_struct(&mut self, any: Self::AnyEncoder, _: &'static str) -> anyhow::Result<()> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.write_null(any.ctx)
     }
 
@@ -240,6 +265,10 @@ impl Encoder for SimpleJsonEncoder {
         _: &'static str,
         _: usize,
     ) -> anyhow::Result<Self::TupleStructEncoder> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.open_list(any.ctx)?;
         Ok(JsonTupleStructEncoder {
             ctx: any.ctx,
@@ -253,6 +282,10 @@ impl Encoder for SimpleJsonEncoder {
         _: &'static str,
         _: &'static [&'static str],
     ) -> anyhow::Result<Self::StructEncoder> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.open_map(any.ctx)?;
         Ok(JsonStructEncoder {
             ctx: any.ctx,
@@ -267,6 +300,10 @@ impl Encoder for SimpleJsonEncoder {
         variants: &'static [&'static str],
         variant_index: usize,
     ) -> anyhow::Result<()> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
         self.write_str_literal(ctx, variants[variant_index])?;
@@ -284,6 +321,10 @@ impl Encoder for SimpleJsonEncoder {
         variant_index: usize,
         _len: usize,
     ) -> anyhow::Result<Self::TupleVariantEncoder> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
         self.write_str_literal(ctx, variants[variant_index])?;
@@ -303,6 +344,10 @@ impl Encoder for SimpleJsonEncoder {
         variant_index: usize,
         _fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructVariantEncoder> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.open_map(any.ctx)?;
         let ctx = any.ctx.indent();
         self.write_str_literal(ctx, variants[variant_index])?;
@@ -319,6 +364,10 @@ impl Encoder for SimpleJsonEncoder {
         any: Self::AnyEncoder,
         _len: Option<usize>,
     ) -> anyhow::Result<Self::SeqEncoder> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.open_list(any.ctx)?;
         Ok(JsonSeqEncoder {
             ctx: any.ctx,
@@ -331,6 +380,10 @@ impl Encoder for SimpleJsonEncoder {
         any: Self::AnyEncoder,
         _len: usize,
     ) -> anyhow::Result<Self::TupleEncoder> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.open_list(any.ctx)?;
         Ok(JsonTupleEncoder {
             ctx: any.ctx,
@@ -343,6 +396,10 @@ impl Encoder for SimpleJsonEncoder {
         any: Self::AnyEncoder,
         _len: Option<usize>,
     ) -> anyhow::Result<Self::MapEncoder> {
+        if any.must_be_string {
+            return Err(JsonEncoderError::MustBeString.into());
+        }
+
         self.open_map(any.ctx)?;
         Ok(JsonMapEncoder {
             ctx: any.ctx,
@@ -378,7 +435,10 @@ impl Encoder for SimpleJsonEncoder {
         Ok(())
     }
 
-    fn seq_encode_element(&mut self, seq: &mut Self::SeqEncoder) -> anyhow::Result<Self::AnyEncoder> {
+    fn seq_encode_element(
+        &mut self,
+        seq: &mut Self::SeqEncoder,
+    ) -> anyhow::Result<Self::AnyEncoder> {
         let ctx = seq.ctx.indent();
         if seq.started {
             self.write_comma(ctx)?;

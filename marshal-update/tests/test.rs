@@ -57,7 +57,7 @@ fn test_simple() -> anyhow::Result<()> {
     assert_eq!(*output.read(), 4);
     *input.write() = 8;
     tester.next(r#"{
-  0: 8
+  "0": 8
 }"#)?;
     Ok(())
 }
@@ -81,7 +81,7 @@ fn test_strong_graph() -> anyhow::Result<()> {
     assert_eq!(
         stream.next()?,
         r#"{
-  0: {
+  "0": {
     "id": 1,
     "inner": 4
   }
@@ -112,7 +112,7 @@ fn test_weak_graph() -> anyhow::Result<()> {
     assert_eq!(
         stream.next()?,
         r#"{
-  0: [
+  "0": [
     1,
     null
   ]
@@ -122,7 +122,7 @@ fn test_weak_graph() -> anyhow::Result<()> {
     assert_eq!(
         stream.next()?,
         r#"{
-  0: [
+  "0": [
     {
       "None": null
     },

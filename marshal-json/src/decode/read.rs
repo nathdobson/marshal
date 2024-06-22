@@ -1,5 +1,6 @@
 use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
+use marshal_core::{Primitive, PrimitiveType};
 
 impl<'de> SimpleJsonDecoder<'de> {
     pub fn try_peek_char(&self) -> anyhow::Result<Option<u8>> {
@@ -65,7 +66,7 @@ impl<'de> SimpleJsonDecoder<'de> {
                 expected: char::from(expected),
                 found: self.cursor.get(0).map(|x| char::from(*x)),
             }
-                .into());
+            .into());
         }
         Ok(())
     }
@@ -88,6 +89,29 @@ impl<'de> SimpleJsonDecoder<'de> {
             b"null" => Ok(()),
             x => Err(JsonDecoderError::UnexpectedIdentifier { found: x.to_vec() }.into()),
         }
+    }
+
+    pub fn read_prim_from_str(&mut self, prim: PrimitiveType) -> anyhow::Result<Primitive> {
+        self.read_exact(b'\"')?;
+        let result=match prim{
+            PrimitiveType::Unit => Primitive::Unit,
+            PrimitiveType::Bool => Primitive::Bool(self.read_bool()?),
+            PrimitiveType::I8 => Primitive::I8(self.read_number()?),
+            PrimitiveType::I16 => Primitive::I16(self.read_number()?),
+            PrimitiveType::I32 => Primitive::I32(self.read_number()?),
+            PrimitiveType::I64 => Primitive::I64(self.read_number()?),
+            PrimitiveType::I128 => Primitive::I128(self.read_number()?),
+            PrimitiveType::U8 => Primitive::U8(self.read_number()?),
+            PrimitiveType::U16 => Primitive::U16(self.read_number()?),
+            PrimitiveType::U32 => Primitive::U32(self.read_number()?),
+            PrimitiveType::U64 => Primitive::U64(self.read_number()?),
+            PrimitiveType::U128 => Primitive::U128(self.read_number()?),
+            PrimitiveType::F32 => Primitive::F32(self.read_number()?),
+            PrimitiveType::F64 => Primitive::F64(self.read_number()?),
+            PrimitiveType::Char => unreachable!(),
+        };
+        self.read_exact(b'\"')?;
+        Ok(result)
     }
 
     pub fn end(mut self) -> anyhow::Result<()> {

@@ -1,4 +1,5 @@
-use crate::tree::Tree;
+use crate::ser::DeserializeUpdateDyn;
+use crate::tree::{Tree, TreeError};
 use marshal::context::Context;
 use marshal::de::rc::DeserializeArc;
 use marshal::de::Deserialize;
@@ -50,10 +51,23 @@ impl<S: ?Sized> DeserializeForest<S> {
     pub fn deserialize_updates<'de, D: Decoder<'de>>(
         d: AnyDecoder<'_, 'de, D>,
         ctx: &mut Context,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<()>
+    where
+        S: DeserializeUpdateDyn<'de, D>,
+    {
         let mut d = d.decode(DecodeHint::Map)?.try_into_map()?;
         while let Some(mut d) = d.decode_next()? {
             let id = usize::deserialize(d.decode_key()?, ctx)?;
+            let value = ctx
+                .get_mut::<DeserializeForest<S>>()?
+                .entries
+                .get(&id)
+                .ok_or(TreeError::MissingId)?
+                .clone();
+            (&mut *value.state.borrow_mut())
+                .value
+                .deserialize_update_dyn(d.decode_value()?, ctx)?;
+            d.decode_end()?;
         }
         Ok(())
     }
