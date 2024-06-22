@@ -7,6 +7,7 @@ use crate::{Primitive, PrimitiveType};
 
 pub mod depth_budget;
 pub mod poison;
+pub mod newtype;
 
 // pub mod depth_budget;
 // pub mod poison;

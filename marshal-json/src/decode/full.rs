@@ -3,10 +3,13 @@ use marshal::de::Deserialize;
 use marshal_core::decode::AnyDecoder;
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::PoisonDecoder;
+use marshal_core::derive_decoder_for_newtype;
 
 use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};
 
-pub type JsonDecoder<'de> = PoisonDecoder<DepthBudgetDecoder<SimpleJsonDecoder<'de>>>;
+pub struct JsonDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleJsonDecoder<'de>>>);
+
+derive_decoder_for_newtype!(JsonDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleJsonDecoder<'de>>>));
 
 pub struct JsonDecoderBuilder<'de> {
     decoder: JsonDecoder<'de>,
@@ -16,7 +19,7 @@ pub struct JsonDecoderBuilder<'de> {
 impl<'de> JsonDecoderBuilder<'de> {
     pub fn new(input: &'de [u8]) -> Self {
         JsonDecoderBuilder {
-            decoder: PoisonDecoder::new(DepthBudgetDecoder::new(SimpleJsonDecoder::new(input))),
+            decoder: JsonDecoder(PoisonDecoder::new(DepthBudgetDecoder::new(SimpleJsonDecoder::new(input)))),
             depth_budget: 100,
         }
     }
@@ -27,7 +30,7 @@ impl<'de> JsonDecoderBuilder<'de> {
     pub fn build<'p>(&'p mut self) -> AnyDecoder<'p, 'de, JsonDecoder<'de>> {
         let any = JsonAnyDecoder::default();
         let any = WithDepthBudget::new(self.depth_budget, any);
-        let any = self.decoder.start(any);
+        let any = self.decoder.0.start(any);
         AnyDecoder::new(&mut self.decoder, any)
     }
     pub fn deserialize<T: Deserialize<'de, JsonDecoder<'de>>>(
@@ -39,7 +42,7 @@ impl<'de> JsonDecoderBuilder<'de> {
         Ok(result)
     }
     pub fn end(self) -> anyhow::Result<()> {
-        self.decoder.end()?.end()?.end()?;
+        self.decoder.0.end()?.end()?.end()?;
         Ok(())
     }
     pub fn with<F: for<'p> FnOnce(AnyDecoder<'p, 'de, JsonDecoder<'de>>) -> anyhow::Result<T>, T>(

@@ -1,20 +1,23 @@
 use marshal::context::Context;
 use marshal_core::decode::AnyDecoder;
+use marshal_core::derive_decoder_for_newtype;
 
 use crate::decode::{BinAnyDecoder, BinDecoderSchema, SimpleBinDecoder};
 use crate::DeserializeBin;
 
-pub type BinDecoder<'de, 's> = SimpleBinDecoder<'de, 's>;
+pub struct BinDecoder<'de, 's>(SimpleBinDecoder<'de, 's>);
+
+derive_decoder_for_newtype!(BinDecoder<'de, 's>(SimpleBinDecoder<'de, 's>));
 
 pub struct BinDecoderBuilder<'de, 's> {
-    inner: SimpleBinDecoder<'de, 's>,
+    inner: BinDecoder<'de, 's>,
     depth_budget: usize,
 }
 
 impl<'de, 's> BinDecoderBuilder<'de, 's> {
     pub fn new(input: &'de [u8], schema: &'s mut BinDecoderSchema) -> Self {
         BinDecoderBuilder {
-            inner: SimpleBinDecoder::new(input, schema),
+            inner: BinDecoder(SimpleBinDecoder::new(input, schema)),
             depth_budget: 100,
         }
     }
@@ -34,6 +37,6 @@ impl<'de, 's> BinDecoderBuilder<'de, 's> {
         Ok(result)
     }
     pub fn end(self) -> anyhow::Result<()> {
-        self.inner.end()
+        self.inner.0.end()
     }
 }

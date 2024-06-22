@@ -9,6 +9,7 @@
 #![feature(trait_alias)]
 #![feature(coerce_unsized)]
 #![feature(unsize)]
+#![feature(type_alias_impl_trait)]
 
 use num_derive::FromPrimitive;
 
