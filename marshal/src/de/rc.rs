@@ -8,8 +8,8 @@ use crate::context::Context;
 use crate::de::Deserialize;
 
 impl<'de, D: Decoder<'de>, T: ?Sized + DeserializeArc<'de, D>> Deserialize<'de, D> for Arc<T> {
-    fn deserialize<'p>(p: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
-        T::deserialize_arc(p, ctx)
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
+        T::deserialize_arc(d, ctx)
     }
 }
 

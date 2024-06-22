@@ -9,14 +9,14 @@ use marshal::ser::Serialize;
 
 use crate::ser::{SerializeStream, SerializeUpdate};
 
-impl<T: ?Sized> SerializeStream for Arc<T> {
+impl<T: ?Sized + Sync + Send> SerializeStream for Arc<T> {
     type Stream = sync::Weak<T>;
     fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
         Ok(Arc::downgrade(self))
     }
 }
 
-impl<T: ?Sized, E: Encoder> SerializeUpdate<E> for Arc<T>
+impl<T: ?Sized + Sync + Send, E: Encoder> SerializeUpdate<E> for Arc<T>
 where
     Arc<T>: Serialize<E>,
 {
@@ -36,16 +36,16 @@ where
     }
 }
 
-impl<T: ?Sized> SerializeStream for sync::Weak<T> {
+impl<T: ?Sized + Sync + Send> SerializeStream for sync::Weak<T> {
     type Stream = sync::Weak<T>;
     fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
         Ok(self.clone())
     }
 }
 
-impl<T: ?Sized, E: Encoder> SerializeUpdate<E> for sync::Weak<T>
-    where
-        sync::Weak<T>: Serialize<E>,
+impl<T: ?Sized + Sync + Send, E: Encoder> SerializeUpdate<E> for sync::Weak<T>
+where
+    sync::Weak<T>: Serialize<E>,
 {
     fn serialize_update(
         &self,

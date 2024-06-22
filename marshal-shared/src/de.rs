@@ -1,15 +1,15 @@
-use std::{rc, sync};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::{rc, sync};
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal::Deserialize;
-use marshal_pointer::{arc_downcast, arc_weak_downcast, RawAny, rc_downcast, rc_weak_downcast};
 use marshal_pointer::empty_arc::EmptyArc;
 use marshal_pointer::empty_rc::EmptyRc;
+use marshal_pointer::{arc_downcast, arc_weak_downcast, rc_downcast, rc_weak_downcast, RawAny};
 
 use crate::SharedError;
 
@@ -124,7 +124,7 @@ struct Shared<X> {
 pub fn deserialize_arc<'de, D: Decoder<'de>, T: 'static + Sync + Send + Deserialize<'de, D>>(
     d: AnyDecoder<'_, 'de, D>,
     ctx: &mut Context,
-) -> anyhow::Result<Arc<T>> {
+) -> anyhow::Result<(usize, Arc<T>)> {
     let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx)?;
     let shared_ctx = ctx.get_or_default::<SharedArcDeserializeContext>();
     if let Some(value) = shared.inner {
@@ -132,13 +132,16 @@ pub fn deserialize_arc<'de, D: Decoder<'de>, T: 'static + Sync + Send + Deserial
             .shared
             .entry(shared.id)
             .or_insert_with(|| ArcState::new_uninit::<T>());
-        state.init(value)
+        Ok((shared.id, state.init(value)?))
     } else {
-        Ok(shared_ctx
-            .shared
-            .get(&shared.id)
-            .ok_or(SharedError::UnknownReference)?
-            .arc::<T>()?)
+        Ok((
+            shared.id,
+            shared_ctx
+                .shared
+                .get(&shared.id)
+                .ok_or(SharedError::UnknownReference)?
+                .arc::<T>()?,
+        ))
     }
 }
 pub fn deserialize_rc<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D>>(
@@ -250,7 +253,7 @@ macro_rules! derive_deserialize_arc_shared {
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
-                $crate::de::deserialize_arc::<D, Self>(p, ctx)
+                Ok($crate::de::deserialize_arc::<D, Self>(p, ctx)?.1)
             }
         }
     };

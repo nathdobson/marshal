@@ -1,8 +1,8 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::AnyDecoder;
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::PoisonDecoder;
+use marshal_core::decode::AnyDecoder;
 
 use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};
 
@@ -41,5 +41,13 @@ impl<'de> JsonDecoderBuilder<'de> {
     pub fn end(self) -> anyhow::Result<()> {
         self.decoder.end()?.end()?.end()?;
         Ok(())
+    }
+    pub fn with<F: for<'p> FnOnce(AnyDecoder<'p, 'de, JsonDecoder<'de>>) -> anyhow::Result<T>, T>(
+        mut self,
+        f: F,
+    ) -> anyhow::Result<T> {
+        let result = f(self.build())?;
+        self.end()?;
+        Ok(result)
     }
 }

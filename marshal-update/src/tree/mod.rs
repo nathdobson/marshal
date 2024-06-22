@@ -11,6 +11,7 @@ use safe_once::sync::OnceLock;
 use crate::tree::ser::SerializeQueue;
 
 pub mod bin;
+mod de;
 pub mod json;
 pub mod ser;
 
@@ -28,7 +29,7 @@ impl Display for TreeError {
 impl std::error::Error for TreeError {}
 
 pub struct TreeState<T: ?Sized> {
-    stream: Option<Box<dyn Any>>,
+    stream: Option<Box<dyn Sync + Send + Any>>,
     value: T,
 }
 
@@ -66,7 +67,7 @@ impl<'a, T: ?Sized> DerefMut for TreeWriteGuard<'a, T> {
     }
 }
 
-impl<T: ?Sized> Tree<T> {
+impl<T: Sync + Send + ?Sized> Tree<T> {
     pub fn new(value: T) -> Self
     where
         T: Sized,
@@ -86,7 +87,7 @@ impl<T: ?Sized> Tree<T> {
     }
     pub fn write<'a>(self: &'a Arc<Self>) -> TreeWriteGuard<'a, T>
     where
-        T: Unsize<dyn Any>,
+        T: Unsize<dyn Sync + Send + Any>,
     {
         if let Some(forest) = self.forest.get() {
             forest.queue.lock().insert(ByThinAddress(self.clone()));

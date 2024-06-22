@@ -32,13 +32,15 @@ impl<'a, T: ?Sized> From<&'a ArcRef<T>> for Address {
     }
 }
 
+type TreeSharedSerializeContext = SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>;
+
 pub struct SerializeForest<S: ?Sized> {
     pub(crate) queue: Arc<SerializeQueue>,
     pub(crate) serializers: HashMap<Address, Arc<Tree<S>>>,
 }
 
 pub struct SerializeQueue {
-    pub(crate) queue: Mutex<HashSet<ByThinAddress<Arc<Tree<dyn Any>>>>>,
+    pub(crate) queue: Mutex<HashSet<ByThinAddress<Arc<Tree<dyn Sync + Send + Any>>>>>,
 }
 
 impl<E: Encoder, T: Serialize<E>> Serialize<E> for Tree<T> {
@@ -54,7 +56,7 @@ pub trait DynamicEncoder {
 impl<E, T> SerializeArc<E> for Tree<T>
 where
     E: Encoder + DynamicEncoder,
-    T: 'static + Unsize<E::SerializeUpdateDyn> + Serialize<E> + SerializeUpdateDyn<E>,
+    T: 'static + Sync + Send + Unsize<E::SerializeUpdateDyn> + Serialize<E> + SerializeUpdateDyn<E>,
 {
     fn serialize_arc(
         this: &ArcRef<Self>,
@@ -70,23 +72,18 @@ where
             let value = &mut state.value;
             state.stream = Some(value.start_stream_dyn(ctx)?);
         }
-        SharedSerializeContext::<sync::Weak<Tree<dyn Any>>>::serialize_strong(
-            &**this,
-            this.weak(),
-            e,
-            ctx,
-        )?;
+        TreeSharedSerializeContext::serialize_strong(&**this, this.weak(), e, ctx)?;
         Ok(())
     }
 }
 
-impl<E: Encoder, T: 'static> SerializeArcWeak<E> for Tree<T> {
+impl<E: Encoder, T: 'static + Sync + Send> SerializeArcWeak<E> for Tree<T> {
     fn serialize_arc_weak(
         this: &ArcWeakRef<Self>,
         e: AnyEncoder<'_, E>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
-        SharedSerializeContext::<sync::Weak<Tree<dyn Any>>>::serialize_weak(this.weak(), e, ctx)?;
+        TreeSharedSerializeContext::serialize_weak(this.weak(), e, ctx)?;
         Ok(())
     }
 }
@@ -124,11 +121,8 @@ impl<S: ?Sized> SerializeForest<S> {
             let value = &mut state.value;
             let stream = state.stream.as_mut().unwrap();
             let mut e = e.encode_entry()?;
-            let id = SharedSerializeContext::<sync::Weak<Tree<dyn Any>>>::get_id(
-                ctx,
-                Arc::downgrade(&tree),
-            )
-            .ok_or(TreeError::MissingId)?;
+            let id = TreeSharedSerializeContext::get_id(ctx, Arc::downgrade(&tree))
+                .ok_or(TreeError::MissingId)?;
             id.serialize(e.encode_key()?, ctx)?;
             value.serialize_update_dyn(&mut **stream, e.encode_value()?, ctx)?;
             e.end()?;
