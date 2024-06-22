@@ -1,6 +1,7 @@
+use marshal_core::{Primitive, PrimitiveType};
+
 use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
-use marshal_core::{Primitive, PrimitiveType};
 
 impl<'de> SimpleJsonDecoder<'de> {
     pub fn try_peek_char(&self) -> anyhow::Result<Option<u8>> {

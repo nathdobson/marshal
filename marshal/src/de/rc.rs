@@ -41,7 +41,7 @@ impl<'de, D: Decoder<'de>, T: ?Sized + DeserializeArcWeak<'de, D>> Deserialize<'
 
 pub trait DeserializeArcWeak<'de, D: Decoder<'de>> {
     fn deserialize_arc_weak<'p>(
-        p: AnyDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         ctx: &mut Context,
     ) -> anyhow::Result<sync::Weak<Self>>;
 }

@@ -1,11 +1,10 @@
+use std::{mem, sync};
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::marker::Unsize;
 use std::sync::Arc;
-use std::{mem, sync};
 
-use atomic_refcell::AtomicRefCell;
 use by_address::ByThinAddress;
 use parking_lot::Mutex;
 
@@ -13,14 +12,12 @@ use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::rc::{SerializeArc, SerializeArcWeak};
 use marshal::ser::Serialize;
-use marshal_json::encode::full::JsonEncoder;
 use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
 use marshal_pointer::DerefRaw;
 use marshal_shared::ser::SharedSerializeContext;
 
 use crate::ser::SerializeUpdateDyn;
-use crate::tree::json::SerializeUpdateJson;
 use crate::tree::{Tree, TreeError};
 
 #[derive(Eq, Ord, PartialEq, PartialOrd, Hash)]
@@ -68,7 +65,6 @@ where
         this.forest.get_or_init(|| forest.queue.clone());
         {
             let ref mut state = *this.state.borrow_mut();
-            let stream = &mut state.stream;
             let value = &mut state.value;
             state.stream = Some(value.start_stream_dyn(ctx)?);
         }

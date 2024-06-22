@@ -3,8 +3,8 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::io::Write;
 
-use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD_NO_PAD;
 
 use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_core::Primitive;

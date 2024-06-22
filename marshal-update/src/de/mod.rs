@@ -4,6 +4,8 @@ use marshal::decode::{AnyDecoder, Decoder};
 
 mod derive_deserialize_update_for_option;
 mod rc;
+mod option;
+mod tuple;
 
 pub trait DeserializeUpdate<'de, D: Decoder<'de>>: Deserialize<'de, D> {
     fn deserialize_update<'p>(

@@ -1,10 +1,11 @@
 use std::any::Any;
 
-use crate::de::DeserializeUpdate;
 use marshal::context::Context;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
+
+use crate::de::DeserializeUpdate;
 
 mod derive_serialize_update_for_clone;
 mod option;

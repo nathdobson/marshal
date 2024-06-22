@@ -496,6 +496,13 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> DecoderView<'p, 'de, D> {
             unexpected => unexpected.mismatch("string")?,
         }
     }
+    pub fn try_into_option(self) -> anyhow::Result<Option<SomeDecoder<'p, 'de, D>>> {
+        match self {
+            DecoderView::None => Ok(None),
+            DecoderView::Some(x) => Ok(Some(x)),
+            unexpected => unexpected.mismatch("option")?,
+        }
+    }
     pub fn kind(&self) -> &'static str {
         match self {
             DecoderView::Primitive(p) => p.kind(),

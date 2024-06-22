@@ -1,6 +1,7 @@
-use crate::ser::{SerializeStream, SerializeUpdate};
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
+
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct OptionStream<T: SerializeStream> {
     old: Option<T::Stream>,

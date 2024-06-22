@@ -1,14 +1,15 @@
-use crate::ser::DeserializeUpdateDyn;
-use crate::tree::{Tree, TreeError};
-use marshal::context::Context;
-use marshal::de::rc::DeserializeArc;
-use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
-use marshal_shared::de::{deserialize_arc, SharedArcDeserializeContext};
-use std::any::Any;
 use std::collections::HashMap;
 use std::marker::{PhantomData, Unsize};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
+
+use marshal::context::Context;
+use marshal::de::Deserialize;
+use marshal::de::rc::{DeserializeArc, DeserializeArcWeak};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
+use marshal_shared::de::{deserialize_arc, deserialize_arc_weak};
+
+use crate::ser::DeserializeUpdateDyn;
+use crate::tree::{Tree, TreeError};
 
 pub struct DeserializeForest<S: ?Sized> {
     phantom: PhantomData<S>,
@@ -33,6 +34,18 @@ where
         let (id, result) = deserialize_arc::<D, Tree<T>>(d, ctx)?;
         let forest = ctx.get_mut::<DeserializeForest<D::DeserializeUpdateDyn>>()?;
         forest.entries.insert(id, result.clone());
+        Ok(result)
+    }
+}
+
+impl<'de, D: Decoder<'de> + DynamicDecoder, T: 'static + Sync + Send + Deserialize<'de, D>>
+    DeserializeArcWeak<'de, D> for Tree<T>
+{
+    fn deserialize_arc_weak<'p>(
+        d: AnyDecoder<'p, 'de, D>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<Weak<Self>> {
+        let (_, result) = deserialize_arc_weak::<D, Tree<T>>(d, ctx)?;
         Ok(result)
     }
 }

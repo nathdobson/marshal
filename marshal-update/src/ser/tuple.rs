@@ -1,6 +1,7 @@
-use crate::ser::{SerializeStream, SerializeUpdate};
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
+
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 impl<T1: SerializeStream, T2: SerializeStream> SerializeStream for (T1, T2) {
     type Stream = (T1::Stream, T2::Stream);

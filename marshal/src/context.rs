@@ -1,8 +1,8 @@
-use std::any::type_name;
 use std::{
     any::Any,
     fmt::{Display, Formatter},
 };
+use std::any::type_name;
 
 use type_map::TypeMap;
 

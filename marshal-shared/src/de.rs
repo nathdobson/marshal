@@ -1,15 +1,15 @@
+use std::{rc, sync};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{rc, sync};
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal::Deserialize;
+use marshal_pointer::{arc_downcast, arc_weak_downcast, RawAny, rc_downcast, rc_weak_downcast};
 use marshal_pointer::empty_arc::EmptyArc;
 use marshal_pointer::empty_rc::EmptyRc;
-use marshal_pointer::{arc_downcast, arc_weak_downcast, rc_downcast, rc_weak_downcast, RawAny};
 
 use crate::SharedError;
 
@@ -172,14 +172,17 @@ pub fn deserialize_arc_weak<
 >(
     d: AnyDecoder<'_, 'de, D>,
     ctx: &mut Context,
-) -> anyhow::Result<sync::Weak<T>> {
+) -> anyhow::Result<(usize, sync::Weak<T>)> {
     let id = <usize as Deserialize<D>>::deserialize(d, ctx)?;
     let shared_ctx = ctx.get_or_default::<SharedArcDeserializeContext>();
-    shared_ctx
-        .shared
-        .entry(id)
-        .or_insert_with(|| ArcState::new_uninit::<T>())
-        .weak()
+    Ok((
+        id,
+        shared_ctx
+            .shared
+            .entry(id)
+            .or_insert_with(|| ArcState::new_uninit::<T>())
+            .weak()?,
+    ))
 }
 
 pub fn deserialize_rc_weak<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D>>(
@@ -237,7 +240,7 @@ macro_rules! derive_deserialize_arc_weak_shared {
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> anyhow::Result<::std::sync::Weak<Self>> {
-                $crate::de::deserialize_arc_weak::<D, Self>(p, ctx)
+                Ok($crate::de::deserialize_arc_weak::<D, Self>(p, ctx)?.1)
             }
         }
     };
