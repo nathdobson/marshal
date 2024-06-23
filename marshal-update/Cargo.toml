@@ -14,3 +14,4 @@ marshal-json = {workspace=true}
 marshal-bin = {workspace=true}
 marshal-pointer = {workspace=true}
 atomic_refcell = {workspace=true}
+weak-table = {workspace=true}

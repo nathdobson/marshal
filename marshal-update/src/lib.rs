@@ -6,3 +6,4 @@ pub mod ser;
 pub mod prim;
 pub mod version;
 pub mod tree;
+pub mod map;
