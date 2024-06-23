@@ -3,8 +3,8 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::io::Write;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 
 use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_core::Primitive;
@@ -134,6 +134,15 @@ impl SimpleJsonEncoder {
     fn write_comma(&mut self, ctx: EncodeContext) -> anyhow::Result<()> {
         self.writeln(ctx, ",")
     }
+    fn write_triv(&mut self, any: JsonAnyEncoder) -> anyhow::Result<()> {
+        if any.cannot_be_null {
+            self.open_list(any.ctx)?;
+            self.close_list(any.ctx)?;
+        } else {
+            self.write_null(any.ctx)?;
+        }
+        Ok(())
+    }
 }
 
 impl Encoder for SimpleJsonEncoder {
@@ -151,8 +160,7 @@ impl Encoder for SimpleJsonEncoder {
 
     fn encode_prim(&mut self, any: Self::AnyEncoder, prim: Primitive) -> anyhow::Result<()> {
         match prim {
-            Primitive::Unit if any.must_be_string => self.write_str_literal(any.ctx, ""),
-            Primitive::Unit => self.write_null(any.ctx),
+            Primitive::Unit => self.write_triv(any),
             Primitive::Bool(x) => self.write_prim(any, x),
             Primitive::I8(x) => self.write_prim(any, x),
             Primitive::I16(x) => self.write_prim(any, x),
@@ -255,8 +263,8 @@ impl Encoder for SimpleJsonEncoder {
         if any.must_be_string {
             return Err(JsonEncoderError::MustBeString.into());
         }
-
-        self.write_null(any.ctx)
+        self.write_triv(any)?;
+        Ok(())
     }
 
     fn encode_tuple_struct(

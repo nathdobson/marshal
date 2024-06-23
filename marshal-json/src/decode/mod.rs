@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 use itertools::Itertools;
 
+use marshal_core::decode::{DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
 
 use crate::decode::any::PeekType;
 use crate::decode::error::JsonDecoderError;
@@ -187,6 +187,15 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
                 PeekType::String,
             ) => {
                 Ok(SimpleDecoderView::String(Cow::Owned(self.read_string()?)))
+            }
+            (
+                DecodeHint::Primitive(PrimitiveType::Unit)
+                | DecodeHint::UnitStruct { .. },
+                PeekType::Seq
+            ) if context.cannot_be_null =>{
+                self.read_exact(b'[')?;
+                self.read_exact(b']')?;
+                Ok(SimpleDecoderView::Primitive(Primitive::Unit))
             }
             (_, PeekType::Seq) => {
                 self.read_exact(b'[')?;
