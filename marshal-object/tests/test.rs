@@ -1,7 +1,6 @@
 #![feature(trait_alias)]
 #![feature(trait_upcasting)]
 #![feature(const_trait_impl)]
-#![feature(effects)]
 #![feature(unsize)]
 #![feature(coerce_unsized)]
 #![feature(arbitrary_self_types)]

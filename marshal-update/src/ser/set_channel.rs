@@ -1,10 +1,11 @@
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
-use std::collections::hash_set::Drain;
 use std::collections::{BTreeSet, HashSet};
 use std::hash::Hash;
-use std::ops::{Deref, DerefMut};
+use std::ops::DerefMut;
 use std::sync::{Arc, Weak};
+
+use atomic_refcell::AtomicRefCell;
 use weak_table::PtrWeakHashSet;
+
 pub struct SetSubscriber<S>(Arc<AtomicRefCell<S>>);
 
 pub struct SetPublisher<S> {

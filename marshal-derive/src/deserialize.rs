@@ -1,10 +1,11 @@
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{Data, DeriveInput, Variant};
+
 use crate::generics::DeriveGenerics;
 use crate::ident_to_lit;
 use crate::parsed_enum::ParsedEnum;
 use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{Data, DataEnum, DataStruct, DeriveInput, Fields, LitStr, Variant};
 
 pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
@@ -105,8 +106,8 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
             ParsedFields::Unnamed(ParsedFieldsUnnamed {
                 field_count,
                 field_types,
-                field_index_idents,
-                field_named_idents,
+                field_index_idents: _,
+                field_named_idents: _,
             }) => Ok(quote! {
                 #imp {
                     fn deserialize(decoder: #any_decoder_type<'_,'de,P>, ctx: &mut #context_type) -> #result_type<Self>{
@@ -145,7 +146,6 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
         },
         Data::Enum(data) => {
             let ParsedEnum {
-                variant_idents,
                 variant_literals,
                 variant_indices,
             } = ParsedEnum::new(data);
@@ -225,8 +225,8 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                         ParsedFieldsUnnamed {
                                               field_count,
                                               field_types,
-                            field_index_idents,
-                            field_named_idents,
+                            field_index_idents:_,
+                            field_named_idents:_,
                         })
                     => {
                         matches.push(quote! {

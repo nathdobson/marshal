@@ -1,10 +1,11 @@
 use marshal::context::Context;
 use marshal::ser::Serialize;
 use marshal_core::derive_encoder_for_newtype;
-use marshal_core::encode::poison::PoisonEncoder;
 use marshal_core::encode::AnyEncoder;
+use marshal_core::encode::poison::PoisonEncoder;
 
 use crate::encode::{JsonAnyEncoder, SimpleJsonEncoder};
+
 pub struct JsonEncoder(PoisonEncoder<SimpleJsonEncoder>);
 
 derive_encoder_for_newtype!(JsonEncoder(PoisonEncoder<SimpleJsonEncoder>));

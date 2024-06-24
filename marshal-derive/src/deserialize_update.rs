@@ -1,10 +1,11 @@
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{Data, DeriveInput, Variant};
+
 use crate::generics::DeriveGenerics;
 use crate::ident_to_lit;
 use crate::parsed_enum::ParsedEnum;
 use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{Data, DataEnum, DataStruct, DeriveInput, Fields, LitStr, Variant};
 
 pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
@@ -39,7 +40,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
         Data::Struct(data) => match ParsedFields::new(&data.fields) {
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
-                field_types,
+                field_types: _,
                 field_literals,
                 field_indices,
             }) => Ok(quote! {
@@ -94,9 +95,9 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
             }),
             ParsedFields::Unnamed(ParsedFieldsUnnamed {
                 field_count,
-                field_types,
+                field_types: _,
                 field_index_idents,
-                field_named_idents,
+                field_named_idents: _,
             }) => Ok(quote! {
                 #imp {
                     fn deserialize_update(&mut self, decoder: #any_decoder_type<'_,'de,P>, ctx: &mut #context_type) -> #result_type<()>{
@@ -127,7 +128,6 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
         },
         Data::Enum(data) => {
             let ParsedEnum {
-                variant_idents,
                 variant_literals,
                 variant_indices,
             } = ParsedEnum::new(data);
@@ -207,8 +207,8 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
                         ParsedFieldsUnnamed {
                             field_count,
                             field_types,
-                            field_index_idents,
-                            field_named_idents,
+                            field_index_idents:_,
+                            field_named_idents:_,
                         })
                     => {
                         matches.push(quote! {

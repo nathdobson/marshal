@@ -1,5 +1,16 @@
 #![deny(unused_must_use)]
 
+extern crate proc_macro;
+
+use proc_macro2::Ident;
+use syn::{DeriveInput, LitStr, parse_macro_input};
+
+use crate::deserialize::derive_deserialize_impl;
+use crate::deserialize_update::derive_deserialize_update_impl;
+use crate::serialize::derive_serialize_impl;
+use crate::serialize_stream::derive_serialize_stream_impl;
+use crate::serialize_update::derive_serialize_update_impl;
+
 mod deserialize;
 mod deserialize_update;
 mod generics;
@@ -8,16 +19,6 @@ mod parsed_fields;
 mod serialize;
 mod serialize_stream;
 mod serialize_update;
-
-extern crate proc_macro;
-
-use crate::deserialize::derive_deserialize_impl;
-use crate::deserialize_update::derive_deserialize_update_impl;
-use crate::serialize::derive_serialize_impl;
-use crate::serialize_stream::derive_serialize_stream_impl;
-use crate::serialize_update::derive_serialize_update_impl;
-use proc_macro2::Ident;
-use syn::{parse_macro_input, DeriveInput, LitStr};
 
 #[proc_macro_derive(Deserialize)]
 pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

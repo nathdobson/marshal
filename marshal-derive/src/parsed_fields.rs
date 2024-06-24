@@ -1,7 +1,7 @@
-use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote};
+use proc_macro2::Ident;
+use quote::format_ident;
+use syn::{Fields, LitStr, Type};
 use syn::spanned::Spanned;
-use syn::{DataStruct, Fields, LitStr, Type};
 
 pub struct ParsedFieldsNamed<'a> {
     pub field_idents: Vec<&'a Ident>, //

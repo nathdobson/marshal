@@ -1,12 +1,10 @@
 #![deny(unused_must_use)]
 
-use marshal::context::Context;
-use marshal::de::Deserialize;
-use marshal::ser::Serialize;
-use marshal::{Deserialize, DeserializeUpdate, Serialize, SerializeStream, SerializeUpdate};
 use std::sync;
 use std::sync::Arc;
 
+use marshal::context::Context;
+use marshal_derive::{Deserialize, Serialize};
 use marshal_json::decode::full::{JsonDecoder, JsonDecoderBuilder};
 use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder};
 use marshal_update::de::DeserializeUpdate;
@@ -14,6 +12,7 @@ use marshal_update::hash_map::UpdateHashMap;
 use marshal_update::ser::{SerializeStream, SerializeUpdate};
 use marshal_update::tree::json::{JsonDeserializeStream, JsonSerializeStream, SerializeUpdateJson};
 use marshal_update::tree::Tree;
+use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
 
 struct SimpleTester<T: SerializeStream> {
     encode_ctx: Context,
@@ -210,7 +209,7 @@ fn test_unit_struct() -> anyhow::Result<()> {
     #[derive(Serialize, Deserialize, DeserializeUpdate, SerializeStream, SerializeUpdate)]
     struct Foo;
     let input: Arc<Tree<Foo>> = Arc::new(Tree::new(Foo));
-    let (mut tester, output) = Tester::new(
+    let (mut tester, _) = Tester::new(
         input.clone(),
         r#"{
   "id": 0,
@@ -246,6 +245,7 @@ fn test_tuple_struct() -> anyhow::Result<()> {
   ]
 }"#,
     )?;
+    assert_eq!(output.read().0, 15);
     Ok(())
 }
 
@@ -255,7 +255,7 @@ fn test_struct() -> anyhow::Result<()> {
     struct Foo {
         x: u8,
         y: u16,
-    };
+    }
     let input: Arc<Tree<Foo>> = Arc::new(Tree::new(Foo { x: 4, y: 8 }));
     let (mut tester, output) = Tester::new(
         input.clone(),
@@ -277,6 +277,7 @@ fn test_struct() -> anyhow::Result<()> {
   }
 }"#,
     )?;
+    assert_eq!(output.read().x, 15);
     Ok(())
 }
 
@@ -284,24 +285,41 @@ fn test_struct() -> anyhow::Result<()> {
 fn test_map() -> anyhow::Result<()> {
     let mut map = UpdateHashMap::new();
     map.insert(4, 8);
-    let mut tester = SimpleTester::new(map, r#"{
+    let mut tester = SimpleTester::new(
+        map,
+        r#"{
   "4": 8
-}"#)?;
+}"#,
+    )?;
     tester.next("{}")?;
     tester.input_mut().insert(15, 16);
-    tester.next(r#"{
+    tester.next(
+        r#"{
   "15": 16
-}"#)?;
+}"#,
+    )?;
+    assert_eq!(*tester.output().get(&15).unwrap(), 16);
     tester.input_mut().remove(&4);
-    tester.next(r#"{
+    tester.next(
+        r#"{
   "4": null
-}"#)?;
-    tester.input_mut().insert(15,23);
+}"#,
+    )?;
+    assert!(
+        tester.output().get(&4).is_none(),
+        "{:?} {:?}",
+        tester.input,
+        tester.output
+    );
+    tester.input_mut().insert(15, 23);
 
-    tester.next(r#"{
+    tester.next(
+        r#"{
   "15": {
     "Some": 23
   }
-}"#)?;
+}"#,
+    )?;
+    assert_eq!(*tester.output().get(&15).unwrap(), 23);
     Ok(())
 }

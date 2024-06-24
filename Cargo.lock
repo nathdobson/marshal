@@ -641,6 +641,7 @@ dependencies = [
  "by_address",
  "marshal",
  "marshal-bin",
+ "marshal-derive",
  "marshal-json",
  "marshal-pointer",
  "marshal-shared",

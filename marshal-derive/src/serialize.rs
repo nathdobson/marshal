@@ -1,13 +1,10 @@
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{Data, DeriveInput, LitStr, Variant};
+
 use crate::generics::DeriveGenerics;
-use crate::ident_to_lit;
 use crate::parsed_enum::ParsedEnum;
 use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::{
-    Data, DataEnum, DataStruct, DeriveInput, Fields, GenericParam, Generics, LitStr, TypeParam,
-    Variant,
-};
 
 pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
@@ -43,9 +40,9 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
             }),
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
-                field_types,
+                field_types: _,
                 field_literals,
-                field_indices,
+                field_indices: _,
             }) => Ok(quote! {
                 #imp {
                     fn serialize(&self, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
@@ -64,9 +61,9 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
             }),
             ParsedFields::Unnamed(ParsedFieldsUnnamed {
                 field_count,
-                field_types,
+                field_types: _,
                 field_index_idents,
-                field_named_idents,
+                field_named_idents: _,
             }) => Ok(quote! {
                 #imp {
                     fn serialize(&self, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
@@ -82,9 +79,8 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
         },
         Data::Enum(data) => {
             let ParsedEnum {
-                variant_idents,
                 variant_literals,
-                variant_indices,
+                variant_indices: _,
             } = ParsedEnum::new(data);
             let mut matches = vec![];
             for (variant_index, variant) in data.variants.iter().enumerate() {
@@ -97,9 +93,9 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
                 match ParsedFields::new(&variant.fields) {
                     ParsedFields::Named(ParsedFieldsNamed {
                         field_idents,
-                        field_types,
+                        field_types: _,
                         field_literals,
-                        field_indices,
+                        field_indices: _,
                     }) => {
                         matches.push(quote! {
                             Self::#variant_ident{ #(#field_idents),* } => {
@@ -114,8 +110,8 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
                     }
                     ParsedFields::Unnamed(ParsedFieldsUnnamed {
                         field_count,
-                        field_types,
-                        field_index_idents,
+                        field_types: _,
+                        field_index_idents: _,
                         field_named_idents,
                     }) => {
                         matches.push(quote! {

@@ -1,17 +1,17 @@
-use crate::de::DeserializeUpdate;
-use crate::ser::set_channel::{SetPublisher, SetSubscriber};
-use crate::ser::{SerializeStream, SerializeUpdate};
-use atomic_refcell::AtomicRefCell;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
+use std::fmt::{Debug, Formatter};
+use std::hash::Hash;
+
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
-use std::sync::{Arc, Weak};
-use weak_table::PtrWeakHashSet;
+
+use crate::de::DeserializeUpdate;
+use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct UpdateHashMap<K, V> {
     map: HashMap<K, V>,
@@ -125,6 +125,8 @@ impl<'de, D: Decoder<'de>, K: Eq + Hash + Deserialize<'de, D>, V: DeserializeUpd
                     }
                 }
                 v.decode_end()?;
+            } else {
+                self.map.remove(&key);
             }
         }
         Ok(())
@@ -155,5 +157,11 @@ impl<K: Eq + Hash + Sync + Send + Clone, V> UpdateHashMap<K, V> {
         let result = self.map.get_mut(k)?;
         self.publisher.send(&k);
         Some(result)
+    }
+}
+
+impl<K: Debug, V: Debug> Debug for UpdateHashMap<K, V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.map.fmt(f)
     }
 }

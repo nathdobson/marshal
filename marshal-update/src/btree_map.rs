@@ -1,18 +1,18 @@
-use crate::de::DeserializeUpdate;
-use crate::ser::set_channel::{SetPublisher, SetSubscriber};
-use crate::ser::{SerializeStream, SerializeUpdate};
-use atomic_refcell::AtomicRefCell;
+use std::collections::btree_map::Entry;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::{Debug, Formatter};
+use std::mem;
+
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use std::collections::btree_map::Entry;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::hash::Hash;
-use std::mem;
-use std::sync::{Arc, Weak};
-use weak_table::PtrWeakHashSet;
+
+use crate::de::DeserializeUpdate;
+use crate::hash_map::UpdateHashMap;
+use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct UpdateBTreeMap<K, V> {
     map: BTreeMap<K, V>,
@@ -124,6 +124,8 @@ impl<'de, D: Decoder<'de>, K: Ord + Deserialize<'de, D>, V: DeserializeUpdate<'d
                     }
                 }
                 v.decode_end()?;
+            } else {
+                self.map.remove(&key);
             }
         }
         Ok(())
@@ -154,5 +156,11 @@ impl<K: Ord + Sync + Send + Clone, V> UpdateBTreeMap<K, V> {
         let result = self.map.get_mut(k)?;
         self.publisher.send(&k);
         Some(result)
+    }
+}
+
+impl<K: Debug, V: Debug> Debug for UpdateBTreeMap<K, V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.map.fmt(f)
     }
 }

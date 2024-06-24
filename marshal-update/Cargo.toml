@@ -15,3 +15,4 @@ marshal-bin = {workspace=true}
 marshal-pointer = {workspace=true}
 atomic_refcell = {workspace=true}
 weak-table = {workspace=true}
+marshal-derive = {workspace=true}

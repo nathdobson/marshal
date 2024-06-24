@@ -11,7 +11,8 @@
 #![feature(macro_metavar_expr)]
 
 pub use marshal_core::*;
-pub use marshal_derive::*;
+pub use marshal_derive::Deserialize;
+pub use marshal_derive::Serialize;
 
 pub mod context;
 pub mod de;

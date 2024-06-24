@@ -1,13 +1,10 @@
-use crate::generics::DeriveGenerics;
-use crate::ident_to_lit;
-use crate::parsed_enum::ParsedEnum;
-use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{
-    Data, DataEnum, DataStruct, DeriveInput, Fields, GenericParam, Generics, LitStr, TypeParam,
-    Variant,
-};
+use syn::{Data, DeriveInput, LitStr, Variant};
+
+use crate::generics::DeriveGenerics;
+use crate::parsed_enum::ParsedEnum;
+use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
 
 pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
@@ -24,7 +21,6 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
     let serialize_stream_trait = quote! { ::marshal_update::ser::SerializeStream };
     let context_type = quote! { ::marshal::context::Context };
     let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());
-    let any_encoder_type = quote!(::marshal::encode::AnyEncoder);
 
     let anyhow = quote!(::marshal::reexports::anyhow);
     let result_type = quote!(#anyhow::Result);
@@ -47,8 +43,8 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
                 field_types,
-                field_literals,
-                field_indices,
+                field_literals: _,
+                field_indices: _,
             }) => Ok(quote! {
                 struct #stream_ident{
                     #(
@@ -67,10 +63,10 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                 }
             }),
             ParsedFields::Unnamed(ParsedFieldsUnnamed {
-                field_count,
+                field_count: _,
                 field_types,
                 field_index_idents,
-                field_named_idents,
+                field_named_idents: _,
             }) => Ok(quote! {
                 struct #stream_ident(
                     #(
@@ -91,9 +87,8 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
         },
         Data::Enum(data) => {
             let ParsedEnum {
-                variant_idents,
                 variant_literals,
-                variant_indices,
+                variant_indices: _,
             } = ParsedEnum::new(data);
             let mut matches = vec![];
             for (variant_index, variant) in data.variants.iter().enumerate() {
@@ -106,9 +101,9 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                 match ParsedFields::new(&variant.fields) {
                     ParsedFields::Named(ParsedFieldsNamed {
                         field_idents,
-                        field_types,
-                        field_literals,
-                        field_indices,
+                        field_types: _,
+                        field_literals: _,
+                        field_indices: _,
                     }) => {
                         matches.push(quote! {
                             Self::#variant_ident{ #(#field_idents),* } => {
@@ -117,9 +112,9 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                         });
                     }
                     ParsedFields::Unnamed(ParsedFieldsUnnamed {
-                        field_count,
-                        field_types,
-                        field_index_idents,
+                        field_count: _,
+                        field_types: _,
+                        field_index_idents: _,
                         field_named_idents,
                     }) => {
                         matches.push(quote! {
