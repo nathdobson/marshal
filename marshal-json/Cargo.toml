@@ -13,6 +13,7 @@ marshal-core = { workspace = true }
 marshal-derive = { workspace = true }
 marshal-object = {workspace=true}
 marshal-pointer = {workspace=true}
+safe-once = {workspace=true}
 
 [dev-dependencies]
 marshal = { workspace = true }

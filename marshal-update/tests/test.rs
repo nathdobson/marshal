@@ -7,12 +7,12 @@ use marshal::context::Context;
 use marshal_derive::{Deserialize, Serialize};
 use marshal_json::decode::full::{JsonDecoder, JsonDecoderBuilder};
 use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder};
+use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
 use marshal_update::de::DeserializeUpdate;
 use marshal_update::hash_map::UpdateHashMap;
 use marshal_update::ser::{SerializeStream, SerializeUpdate};
 use marshal_update::tree::json::{JsonDeserializeStream, JsonSerializeStream, SerializeUpdateJson};
 use marshal_update::tree::Tree;
-use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
 
 struct SimpleTester<T: SerializeStream> {
     encode_ctx: Context,

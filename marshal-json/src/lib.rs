@@ -24,6 +24,7 @@ pub mod json_object;
 #[doc(hidden)]
 pub mod reexports{
     pub use anyhow;
+    pub use safe_once;
 
     pub use marshal;
     pub use marshal_object;

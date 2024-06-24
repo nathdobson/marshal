@@ -207,7 +207,7 @@ macro_rules! derive_deserialize_rc_shared {
             fn deserialize_rc<'p>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> anyhow::Result<Rc<Self>> {
+            ) -> $crate::reexports::anyhow::Result<::std::rc::Rc<Self>> {
                 $crate::de::deserialize_rc::<D, Self>(p, ctx)
             }
         }
@@ -223,7 +223,7 @@ macro_rules! derive_deserialize_rc_weak_shared {
             fn deserialize_rc_weak<'p>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> anyhow::Result<::std::rc::Weak<Self>> {
+            ) -> $crate::reexports::anyhow::Result<::std::rc::Weak<Self>> {
                 $crate::de::deserialize_rc_weak::<D, Self>(p, ctx)
             }
         }
@@ -239,8 +239,8 @@ macro_rules! derive_deserialize_arc_weak_shared {
             fn deserialize_arc_weak<'p>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> anyhow::Result<::std::sync::Weak<Self>> {
-                Ok($crate::de::deserialize_arc_weak::<D, Self>(p, ctx)?.1)
+            ) -> $crate::reexports::anyhow::Result<::std::sync::Weak<Self>> {
+                ::std::result::Result::Ok($crate::de::deserialize_arc_weak::<D, Self>(p, ctx)?.1)
             }
         }
     };
@@ -256,7 +256,7 @@ macro_rules! derive_deserialize_arc_shared {
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
-                Ok($crate::de::deserialize_arc::<D, Self>(p, ctx)?.1)
+                ::std::result::Result::Ok($crate::de::deserialize_arc::<D, Self>(p, ctx)?.1)
             }
         }
     };

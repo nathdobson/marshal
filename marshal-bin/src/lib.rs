@@ -27,8 +27,10 @@ mod to_from_vu128;
 mod util;
 pub mod bin_object;
 
+#[doc(hidden)]
 pub mod reexports{
     pub use anyhow;
+    pub use safe_once;
 
     pub use marshal;
     pub use marshal_object;

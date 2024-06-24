@@ -9,93 +9,86 @@ use std::any::Any;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-use safe_once::sync::LazyLock;
-
-use marshal::{
-    Deserialize, Serialize,
-};
 use marshal::context::Context;
-use marshal::de::Deserialize;
-use marshal::decode::Decoder;
-use marshal::encode::Encoder;
-use marshal::ser::Serialize;
-use marshal_bin::{bin_object, VU128_MAX_PADDING};
 use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::DeserializeBin;
 use marshal_bin::encode::BinEncoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
 use marshal_bin::SerializeBin;
-use marshal_json::{DeserializeJson, json_object};
+use marshal_bin::VU128_MAX_PADDING;
 use marshal_json::decode::full::JsonDecoderBuilder;
+use marshal_json::DeserializeJson;
 use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_json::SerializeJson;
-use marshal_object::{
-    derive_arc_object, derive_box_object, derive_rc_object, derive_rc_weak_object, derive_variant,
-    ObjectDescriptor,
-};
-use marshal_object::{AsDiscriminant, derive_object};
-use marshal_object::{OBJECT_REGISTRY, VariantRegistration};
-use marshal_object::de::{deserialize_object, DeserializeVariantForDiscriminant};
-use marshal_object::ser::serialize_object;
-use marshal_pointer::RawAny;
-use marshal_shared::{derive_deserialize_arc_shared, derive_deserialize_arc_weak_shared, derive_deserialize_rc_shared, derive_deserialize_rc_weak_shared, derive_serialize_arc_shared, derive_serialize_arc_weak_shared, derive_serialize_rc_shared, derive_serialize_rc_weak_shared};
 
-pub struct BoxMyTrait;
-derive_box_object!(BoxMyTrait, MyTrait, bin_object, json_object);
-pub struct RcMyTrait;
-derive_rc_object!(RcMyTrait, MyTrait, bin_object, json_object);
-pub struct RcWeakMyTrait;
-derive_rc_weak_object!(RcWeakMyTrait, MyTrait, bin_object, json_object);
+use crate::x::{A, MyTrait};
 
-pub struct ArcMyTrait;
-derive_arc_object!(ArcMyTrait, MyTrait, bin_object, json_object);
+#[no_implicit_prelude]
+mod x {
+    use ::marshal_bin::bin_object;
+    use ::marshal_json::json_object;
 
-pub trait MyTrait:
-    'static
-    + Debug
-    + RawAny
-    + AsDiscriminant<BoxMyTrait>
-    + AsDiscriminant<RcMyTrait>
-    + AsDiscriminant<ArcMyTrait>
-    + AsDiscriminant<RcWeakMyTrait>
-{
+    pub struct BoxMyTrait;
+    ::marshal_object::derive_box_object!(BoxMyTrait, MyTrait, bin_object, json_object);
+    pub struct RcMyTrait;
+    ::marshal_object::derive_rc_object!(RcMyTrait, MyTrait, bin_object, json_object);
+    pub struct RcWeakMyTrait;
+    ::marshal_object::derive_rc_weak_object!(RcWeakMyTrait, MyTrait, bin_object, json_object);
+
+    pub struct ArcMyTrait;
+    ::marshal_object::derive_arc_object!(ArcMyTrait, MyTrait, bin_object, json_object);
+
+    pub trait MyTrait:
+        'static
+        + ::std::fmt::Debug
+        + ::marshal_pointer::RawAny
+        + ::marshal_object::AsDiscriminant<BoxMyTrait>
+        + ::marshal_object::AsDiscriminant<RcMyTrait>
+        + ::marshal_object::AsDiscriminant<ArcMyTrait>
+        + ::marshal_object::AsDiscriminant<RcWeakMyTrait>
+    {
+    }
+
+    impl MyTrait for A {}
+    impl MyTrait for B {}
+
+    #[derive(
+        ::marshal::Serialize, ::marshal::Deserialize, Debug, Eq, PartialEq, Ord, PartialOrd,
+    )]
+    pub struct A(pub u8);
+
+    #[derive(
+        ::marshal::Serialize, ::marshal::Deserialize, Debug, Eq, PartialEq, Ord, PartialOrd,
+    )]
+    pub struct B(pub u16);
+
+    ::marshal_object::derive_variant!(RcMyTrait, A);
+    ::marshal_object::derive_variant!(RcMyTrait, B);
+    ::marshal_object::derive_variant!(RcWeakMyTrait, A);
+    ::marshal_object::derive_variant!(RcWeakMyTrait, B);
+    ::marshal_object::derive_variant!(BoxMyTrait, A);
+    ::marshal_object::derive_variant!(BoxMyTrait, B);
+    ::marshal_object::derive_variant!(ArcMyTrait, A);
+    ::marshal_object::derive_variant!(ArcMyTrait, B);
+
+    ::marshal_shared::derive_deserialize_rc_shared!(A);
+    ::marshal_shared::derive_deserialize_rc_shared!(B);
+    ::marshal_shared::derive_deserialize_rc_weak_shared!(A);
+    ::marshal_shared::derive_deserialize_rc_weak_shared!(B);
+    ::marshal_shared::derive_deserialize_arc_shared!(A);
+    ::marshal_shared::derive_deserialize_arc_shared!(B);
+    ::marshal_shared::derive_deserialize_arc_weak_shared!(A);
+    ::marshal_shared::derive_deserialize_arc_weak_shared!(B);
+    ::marshal_shared::derive_serialize_rc_shared!(A);
+    ::marshal_shared::derive_serialize_rc_shared!(B);
+    ::marshal_shared::derive_serialize_arc_shared!(A);
+    ::marshal_shared::derive_serialize_arc_shared!(B);
+    ::marshal_shared::derive_serialize_rc_weak_shared!(A);
+    ::marshal_shared::derive_serialize_rc_weak_shared!(B);
+    ::marshal_shared::derive_serialize_arc_weak_shared!(A);
+    ::marshal_shared::derive_serialize_arc_weak_shared!(B);
 }
-
-impl MyTrait for A {}
-impl MyTrait for B {}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Ord, PartialOrd)]
-struct A(u8);
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Ord, PartialOrd)]
-struct B(u16);
-
-derive_variant!(RcMyTrait, A);
-derive_variant!(RcMyTrait, B);
-derive_variant!(RcWeakMyTrait, A);
-derive_variant!(RcWeakMyTrait, B);
-derive_variant!(BoxMyTrait, A);
-derive_variant!(BoxMyTrait, B);
-derive_variant!(ArcMyTrait, A);
-derive_variant!(ArcMyTrait, B);
-
-derive_deserialize_rc_shared!(A);
-derive_deserialize_rc_shared!(B);
-derive_deserialize_rc_weak_shared!(A);
-derive_deserialize_rc_weak_shared!(B);
-derive_deserialize_arc_shared!(A);
-derive_deserialize_arc_shared!(B);
-derive_deserialize_arc_weak_shared!(A);
-derive_deserialize_arc_weak_shared!(B);
-derive_serialize_rc_shared!(A);
-derive_serialize_rc_shared!(B);
-derive_serialize_arc_shared!(A);
-derive_serialize_arc_shared!(B);
-derive_serialize_rc_weak_shared!(A);
-derive_serialize_rc_weak_shared!(B);
-derive_serialize_arc_weak_shared!(A);
-derive_serialize_arc_weak_shared!(B);
 
 #[track_caller]
 pub fn json_round_trip<T: Debug + SerializeJson + for<'de> DeserializeJson<'de>>(
@@ -135,7 +128,7 @@ fn test_json_rc() -> anyhow::Result<()> {
     let output = json_round_trip(
         &input,
         r#"{
-  "test::A": [
+  "test::x::A": [
     {
       "id": 0,
       "inner": [
@@ -156,7 +149,7 @@ fn test_json_box() -> anyhow::Result<()> {
     let output = json_round_trip(
         &input,
         r#"{
-  "test::A": [
+  "test::x::A": [
     [
       42
     ]
@@ -176,8 +169,8 @@ fn test_bin() -> anyhow::Result<()> {
         &[
             &[
                 21, 2, //
-                7, b't', b'e', b's', b't', b':', b':', b'A', //
-                7, b't', b'e', b's', b't', b':', b':', b'B', //
+                10, b't', b'e', b's', b't', b':', b':', b'x', b':', b':', b'A', //
+                10, b't', b'e', b's', b't', b':', b':', b'x', b':', b':', b'B', //
                 18, 0, 0, //
                 17, 1, //
                 21, 2, 2, b'i', b'd', 5, b'i', b'n', b'n', b'e', b'r', //
@@ -185,8 +178,8 @@ fn test_bin() -> anyhow::Result<()> {
             ],
             &[
                 21, 2, //
-                7, b't', b'e', b's', b't', b':', b':', b'B', //
-                7, b't', b'e', b's', b't', b':', b':', b'A', //
+                10, b't', b'e', b's', b't', b':', b':', b'x', b':', b':', b'B', //
+                10, b't', b'e', b's', b't', b':', b':', b'x', b':', b':', b'A', //
                 18, 0, 1, //
                 17, 1, //
                 21, 2, 2, b'i', b'd', 5, b'i', b'n', b'n', b'e', b'r', //

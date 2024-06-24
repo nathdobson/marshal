@@ -139,7 +139,7 @@ macro_rules! derive_serialize_rc_shared {
                 this: &$crate::reexports::marshal_pointer::rc_ref::RcRef<Self>,
                 e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> anyhow::Result<()> {
+            ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_rc::<E, Self>(this, e, ctx)
             }
         }
@@ -156,7 +156,7 @@ macro_rules! derive_serialize_arc_shared {
                 this: &$crate::reexports::marshal_pointer::arc_ref::ArcRef<Self>,
                 e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> anyhow::Result<()> {
+            ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_arc::<E, Self>(this, e, ctx)
             }
         }
@@ -173,7 +173,7 @@ macro_rules! derive_serialize_rc_weak_shared {
                 this: &$crate::reexports::marshal_pointer::rc_weak_ref::RcWeakRef<Self>,
                 e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> anyhow::Result<()> {
+            ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_rc_weak::<E, Self>(this, e, ctx)
             }
         }
@@ -190,7 +190,7 @@ macro_rules! derive_serialize_arc_weak_shared {
                 this: &$crate::reexports::marshal_pointer::arc_weak_ref::ArcWeakRef<Self>,
                 e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>,
                 ctx: &mut $crate::reexports::marshal::context::Context,
-            ) -> anyhow::Result<()> {
+            ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_arc_weak::<E, Self>(this, e, ctx)
             }
         }

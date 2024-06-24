@@ -1,5 +1,5 @@
-use std::collections::btree_map::Entry;
 use std::collections::{BTreeMap, BTreeSet};
+use std::collections::btree_map::Entry;
 use std::fmt::{Debug, Formatter};
 use std::mem;
 
@@ -10,9 +10,8 @@ use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
-use crate::hash_map::UpdateHashMap;
-use crate::ser::set_channel::{SetPublisher, SetSubscriber};
 use crate::ser::{SerializeStream, SerializeUpdate};
+use crate::ser::set_channel::{SetPublisher, SetSubscriber};
 
 pub struct UpdateBTreeMap<K, V> {
     map: BTreeMap<K, V>,

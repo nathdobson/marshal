@@ -92,8 +92,8 @@ impl<O: Object> DeserializeVariant for Box<dyn DeserializeVariantJson<O>> {}
 macro_rules! json_object {
     ($carrier:path) => {
         const _: () = {
-            static DESERIALIZERS: LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::json_object::DeserializeVariantJson<$carrier>>>> =
-                    LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
+            static DESERIALIZERS: $crate::reexports::safe_once::sync::LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::json_object::DeserializeVariantJson<$carrier>>>> =
+                    $crate::reexports::safe_once::sync::LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
             impl<'de> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::JsonDecoder<'de>> for $carrier {
                 fn deserialize_variant<'p>(
                     disc: usize,
@@ -108,8 +108,8 @@ macro_rules! json_object {
                     this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc:usize,
                     e: $crate::reexports::marshal::encode::AnyEncoder<'_,$crate::encode::full::JsonEncoder>,
-                    ctx: &mut Context
-                ) -> anyhow::Result<()> {
+                    ctx: &mut $crate::reexports::marshal::context::Context
+                ) -> $crate::reexports::anyhow::Result<()> {
                     DESERIALIZERS[disc].serialize_variant_json(this, e, ctx)
                 }
             }

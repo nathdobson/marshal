@@ -91,8 +91,8 @@ impl<O: Object> DeserializeVariant for Box<dyn DeserializeVariantBin<O>> {}
 macro_rules! bin_object {
     ($carrier:path) => {
         const _ : () = {
-            static DESERIALIZERS: LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::bin_object::DeserializeVariantBin<$carrier>>>> =
-                    LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
+            static DESERIALIZERS: $crate::reexports::safe_once::sync::LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::bin_object::DeserializeVariantBin<$carrier>>>> =
+                    $crate::reexports::safe_once::sync::LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
 
             impl<'de,'s> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::BinDecoder<'de,'s>> for $carrier {
                 fn deserialize_variant<'p>(
@@ -108,8 +108,8 @@ macro_rules! bin_object {
                     this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc: usize,
                     e: $crate::reexports::marshal::encode::AnyEncoder<'_,$crate::encode::full::BinEncoder<'s>>,
-                    ctx: &mut Context
-                ) -> anyhow::Result<()> {
+                    ctx: &mut $crate::reexports::marshal::context::Context
+                ) -> $crate::reexports::anyhow::Result<()> {
                     DESERIALIZERS[disc].bin_serialize_variant(this, e, ctx)
                 }
             }

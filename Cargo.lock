@@ -584,6 +584,7 @@ dependencies = [
  "marshal-derive",
  "marshal-object",
  "marshal-pointer",
+ "safe-once",
  "serde_json",
  "utf8-width",
 ]
@@ -643,6 +644,7 @@ dependencies = [
  "marshal-bin",
  "marshal-derive",
  "marshal-json",
+ "marshal-object",
  "marshal-pointer",
  "marshal-shared",
  "parking_lot 0.12.3",
