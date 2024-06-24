@@ -11,6 +11,7 @@ mod derive_serialize_update_for_clone;
 mod option;
 mod rc;
 mod tuple;
+pub mod set_channel;
 
 pub trait SerializeStream {
     type Stream: Sync + Send;

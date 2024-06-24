@@ -1,4 +1,5 @@
 use crate::de::DeserializeUpdate;
+use crate::ser::set_channel::{SetPublisher, SetSubscriber};
 use crate::ser::{SerializeStream, SerializeUpdate};
 use atomic_refcell::AtomicRefCell;
 use marshal::context::Context;
@@ -12,21 +13,13 @@ use std::hash::Hash;
 use std::sync::{Arc, Weak};
 use weak_table::PtrWeakHashSet;
 
-struct Queue<K> {
-    queue: AtomicRefCell<HashSet<K>>,
-}
-
-struct QueueList<K> {
-    queue_list: AtomicRefCell<PtrWeakHashSet<Weak<Queue<K>>>>,
-}
-
 pub struct UpdateHashMap<K, V> {
     map: HashMap<K, V>,
-    queue_list: QueueList<K>,
+    publisher: SetPublisher<HashSet<K>>,
 }
 
 pub struct UpdateHashMapStream<K, VS> {
-    queue: Arc<Queue<K>>,
+    subscriber: SetSubscriber<HashSet<K>>,
     streams: HashMap<K, VS>,
 }
 
@@ -36,15 +29,8 @@ impl<K: Eq + Hash + Sync + Send + Clone, V: SerializeStream> SerializeStream
     type Stream = UpdateHashMapStream<K, V::Stream>;
 
     fn start_stream(&self, ctx: &mut Context) -> anyhow::Result<Self::Stream> {
-        let queue = Arc::new(Queue {
-            queue: AtomicRefCell::new(HashSet::new()),
-        });
-        self.queue_list
-            .queue_list
-            .borrow_mut()
-            .insert(queue.clone());
         Ok(UpdateHashMapStream {
-            queue,
+            subscriber: self.publisher.subscribe(),
             streams: self
                 .map
                 .iter()
@@ -71,7 +57,7 @@ impl<E: Encoder, K: Eq + Hash + Sync + Send + Clone + Serialize<E>, V: Serialize
         e: AnyEncoder<E>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
-        let ref mut queue = *stream.queue.queue.borrow_mut();
+        let ref mut queue = *stream.subscriber.recv();
         let mut e = e.encode_map(Some(queue.len()))?;
         for key in queue.drain() {
             let mut e = e.encode_entry()?;
@@ -112,7 +98,7 @@ impl<K, V> From<HashMap<K, V>> for UpdateHashMap<K, V> {
     fn from(map: HashMap<K, V>) -> Self {
         UpdateHashMap {
             map,
-            queue_list: QueueList::new(),
+            publisher: SetPublisher::new(),
         }
     }
 }
@@ -145,37 +131,21 @@ impl<'de, D: Decoder<'de>, K: Eq + Hash + Deserialize<'de, D>, V: DeserializeUpd
     }
 }
 
-impl<K> QueueList<K> {
-    pub fn new() -> Self {
-        QueueList {
-            queue_list: AtomicRefCell::new(PtrWeakHashSet::new()),
-        }
-    }
-    fn mark(&mut self, key: &K)
-    where
-        K: Eq + Hash + Clone,
-    {
-        for queue in self.queue_list.get_mut().iter() {
-            queue.queue.borrow_mut().insert(key.clone());
-        }
-    }
-}
-
 impl<K: Eq + Hash + Sync + Send + Clone, V> UpdateHashMap<K, V> {
     pub fn new() -> Self {
         UpdateHashMap {
             map: HashMap::new(),
-            queue_list: QueueList::new(),
+            publisher: SetPublisher::new(),
         }
     }
     pub fn insert(&mut self, k: K, v: V) -> Option<V> {
         let result = self.map.insert(k.clone(), v);
-        self.queue_list.mark(&k);
+        self.publisher.send(&k);
         result
     }
     pub fn remove(&mut self, k: &K) -> Option<V> {
         let result = self.map.remove(k)?;
-        self.queue_list.mark(&k);
+        self.publisher.send(&k);
         Some(result)
     }
     pub fn get(&self, k: &K) -> Option<&V> {
@@ -183,7 +153,7 @@ impl<K: Eq + Hash + Sync + Send + Clone, V> UpdateHashMap<K, V> {
     }
     pub fn get_mut(&mut self, k: &K) -> Option<&mut V> {
         let result = self.map.get_mut(k)?;
-        self.queue_list.mark(&k);
+        self.publisher.send(&k);
         Some(result)
     }
 }
