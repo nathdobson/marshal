@@ -10,7 +10,7 @@ use std::sync::Arc;
 use marshal_json::decode::full::{JsonDecoder, JsonDecoderBuilder};
 use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder};
 use marshal_update::de::DeserializeUpdate;
-use marshal_update::map::UpdateHashMap;
+use marshal_update::hash_map::UpdateHashMap;
 use marshal_update::ser::{SerializeStream, SerializeUpdate};
 use marshal_update::tree::json::{JsonDeserializeStream, JsonSerializeStream, SerializeUpdateJson};
 use marshal_update::tree::Tree;

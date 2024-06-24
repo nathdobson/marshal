@@ -6,4 +6,5 @@ pub mod ser;
 pub mod prim;
 pub mod version;
 pub mod tree;
-pub mod map;
+pub mod hash_map;
+mod btree_map;
