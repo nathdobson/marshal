@@ -640,6 +640,7 @@ dependencies = [
  "anyhow",
  "atomic_refcell",
  "by_address",
+ "catalog",
  "marshal",
  "marshal-bin",
  "marshal-derive",

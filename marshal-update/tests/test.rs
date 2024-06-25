@@ -3,104 +3,16 @@
 use std::sync;
 use std::sync::Arc;
 
-use marshal::context::Context;
 use marshal_derive::{Deserialize, Serialize};
-use marshal_json::decode::full::{JsonDecoder, JsonDecoderBuilder};
-use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder};
 use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
-use marshal_update::de::DeserializeUpdate;
 use marshal_update::hash_map::UpdateHashMap;
-use marshal_update::ser::{SerializeStream, SerializeUpdate};
-use marshal_update::tree::json::{JsonDeserializeStream, JsonSerializeStream, SerializeUpdateJson};
+use marshal_update::tester::{SharedTester, Tester};
 use marshal_update::tree::Tree;
 
-struct SimpleTester<T: SerializeStream> {
-    encode_ctx: Context,
-    decode_ctx: Context,
-    input: T,
-    input_stream: T::Stream,
-    output: T,
-}
-
-impl<
-        T: SerializeStream
-            + SerializeUpdate<JsonEncoder>
-            + for<'de> DeserializeUpdate<'de, JsonDecoder<'de>>,
-    > SimpleTester<T>
-{
-    pub fn new(input: T, expected: &str) -> anyhow::Result<Self> {
-        let mut encode_ctx = Context::new();
-        let mut decode_ctx = Context::new();
-        let output = JsonEncoderBuilder::new().serialize(&input, &mut encode_ctx)?;
-        assert_eq!(expected, output);
-        let input_stream = input.start_stream(&mut encode_ctx)?;
-        let output = JsonDecoderBuilder::new(output.as_bytes()).deserialize(&mut decode_ctx)?;
-        Ok(SimpleTester {
-            encode_ctx,
-            decode_ctx,
-            input,
-            input_stream,
-            output,
-        })
-    }
-    pub fn input_mut(&mut self) -> &mut T {
-        &mut self.input
-    }
-    pub fn output(&self) -> &T {
-        &self.output
-    }
-    #[track_caller]
-    pub fn next(&mut self, expected: &str) -> anyhow::Result<()> {
-        let output = JsonEncoderBuilder::new().with(|e| {
-            self.input
-                .serialize_update(&mut self.input_stream, e, &mut self.encode_ctx)
-        })?;
-        assert_eq!(output, expected);
-        JsonDecoderBuilder::new(output.as_bytes())
-            .with(|d| self.output.deserialize_update(d, &mut self.decode_ctx))?;
-        Ok(())
-    }
-}
-
-struct Tester<T> {
-    serializer: JsonSerializeStream<T>,
-    deserializer: JsonDeserializeStream,
-}
-
-impl<
-        T: 'static
-            + Sync
-            + Send
-            + SerializeUpdateJson
-            + for<'de> DeserializeUpdate<'de, JsonDecoder<'de>>,
-    > Tester<T>
-{
-    #[track_caller]
-    pub fn new(value: Arc<Tree<T>>, expected: &str) -> anyhow::Result<(Self, Arc<Tree<T>>)> {
-        let mut serializer = JsonSerializeStream::new(value);
-        let start = serializer.next()?;
-        assert_eq!(start, expected);
-        let (deserializer, output) = JsonDeserializeStream::new(start.as_bytes())?;
-        Ok((
-            Tester {
-                serializer,
-                deserializer,
-            },
-            output,
-        ))
-    }
-    #[track_caller]
-    pub fn next(&mut self, expected: &str) -> anyhow::Result<()> {
-        let message = self.serializer.next()?;
-        assert_eq!(message, expected);
-        self.deserializer.next(message.as_bytes())?;
-        Ok(())
-    }
-}
 
 #[test]
 fn test_simple() -> anyhow::Result<()> {
-    let mut tester = SimpleTester::new(4u8, "4")?;
+    let mut tester = Tester::new(4u8, "4")?;
     tester.next("null")?;
     *tester.input_mut() = 8;
     tester.next("8")?;
@@ -110,7 +22,7 @@ fn test_simple() -> anyhow::Result<()> {
 #[test]
 fn test_simple_graph() -> anyhow::Result<()> {
     let input = Arc::new(Tree::new(4u8));
-    let (mut tester, output) = Tester::new(
+    let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
   "id": 0,
@@ -133,7 +45,7 @@ fn test_simple_graph() -> anyhow::Result<()> {
 fn test_strong_graph() -> anyhow::Result<()> {
     let input: Arc<Tree<Option<Arc<Tree<u8>>>>> = Arc::new(Tree::new(None));
     let inner: Arc<Tree<u8>> = Arc::new(Tree::new(4u8));
-    let (mut tester, output) = Tester::new(
+    let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
   "id": 0,
@@ -161,7 +73,7 @@ fn test_weak_graph() -> anyhow::Result<()> {
     let input: Arc<Tree<(Option<sync::Weak<Tree<u8>>>, Option<Arc<Tree<u8>>>)>> =
         Arc::new(Tree::new((None, None)));
     let inner: Arc<Tree<u8>> = Arc::new(Tree::new(4u8));
-    let (mut tester, output) = Tester::new(
+    let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
   "id": 0,
@@ -209,7 +121,7 @@ fn test_unit_struct() -> anyhow::Result<()> {
     #[derive(Serialize, Deserialize, DeserializeUpdate, SerializeStream, SerializeUpdate)]
     struct Foo;
     let input: Arc<Tree<Foo>> = Arc::new(Tree::new(Foo));
-    let (mut tester, _) = Tester::new(
+    let (mut tester, _) = SharedTester::new(
         input.clone(),
         r#"{
   "id": 0,
@@ -225,7 +137,7 @@ fn test_tuple_struct() -> anyhow::Result<()> {
     #[derive(Serialize, Deserialize, DeserializeUpdate, SerializeStream, SerializeUpdate)]
     struct Foo(u8, u16);
     let input: Arc<Tree<Foo>> = Arc::new(Tree::new(Foo(4, 8)));
-    let (mut tester, output) = Tester::new(
+    let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
   "id": 0,
@@ -257,7 +169,7 @@ fn test_struct() -> anyhow::Result<()> {
         y: u16,
     }
     let input: Arc<Tree<Foo>> = Arc::new(Tree::new(Foo { x: 4, y: 8 }));
-    let (mut tester, output) = Tester::new(
+    let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
   "id": 0,
@@ -285,7 +197,7 @@ fn test_struct() -> anyhow::Result<()> {
 fn test_map() -> anyhow::Result<()> {
     let mut map = UpdateHashMap::new();
     map.insert(4, 8);
-    let mut tester = SimpleTester::new(
+    let mut tester = Tester::new(
         map,
         r#"{
   "4": 8
@@ -308,8 +220,8 @@ fn test_map() -> anyhow::Result<()> {
     assert!(
         tester.output().get(&4).is_none(),
         "{:?} {:?}",
-        tester.input,
-        tester.output
+        tester.input(),
+        tester.output()
     );
     tester.input_mut().insert(15, 23);
 

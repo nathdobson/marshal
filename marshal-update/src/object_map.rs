@@ -2,14 +2,17 @@ use std::any::TypeId;
 use std::collections::{HashMap, HashSet};
 use std::ops::CoerceUnsized;
 
+use crate::de::DeserializeUpdate;
 use marshal::context::Context;
+use marshal::de::Deserialize;
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
-use crate::ser::{SerializeStream, SerializeUpdate};
 use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct ObjectMap<C: Object> {
     map: HashMap<TypeId, C::Pointer<C::Dyn>>,
@@ -27,17 +30,18 @@ impl<C: Object> ObjectMap<C> {
             publisher: SetPublisher::new(),
         }
     }
-    pub fn get<T: 'static>(&self) -> Option<&T>
+    pub fn get<T: 'static>(&self) -> Option<&<C::Pointer<T> as AsFlatRef>::FlatRef>
     where
-        <C::Pointer<C::Dyn> as AsFlatRef>::FlatRef: DowncastRef<T>,
+        for<'a> &'a <C::Pointer<C::Dyn> as AsFlatRef>::FlatRef:
+            CoerceUnsized<&'a <C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
+        <C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
+            DowncastRef<<C::Pointer<T> as AsFlatRef>::FlatRef>,
     {
-        Some(
-            self.map
-                .get(&TypeId::of::<T>())?
-                .as_flat_ref()
-                .downcast_ref()
-                .unwrap(),
-        )
+        let dyn_flat_ref: &<C::Pointer<C::Dyn> as AsFlatRef>::FlatRef =
+            self.map.get(&TypeId::of::<T>())?.as_flat_ref();
+        let any_flat_ref: &<C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef = dyn_flat_ref;
+        let flat_ref: &<C::Pointer<T> as AsFlatRef>::FlatRef = any_flat_ref.downcast_ref().unwrap();
+        Some(flat_ref)
     }
     pub fn get_or_default<T: 'static>(&mut self) -> &T
     where
@@ -57,6 +61,7 @@ impl<C: Object> ObjectMap<C> {
         C::Pointer<C::Dyn>: DerefRaw<RawTarget = C::Dyn>,
         C::Dyn: RawAny,
     {
+        self.publisher.send(&value.deref_raw().raw_type_id());
         self.map.insert(value.deref_raw().raw_type_id(), value);
     }
 }
@@ -78,7 +83,7 @@ where
 impl<C: Object> SerializeStream for ObjectMap<C> {
     type Stream = ObjectMapStream;
 
-    fn start_stream(&self, ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+    fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
         Ok(ObjectMapStream {
             subscriber: self.publisher.subscribe(),
         })
@@ -104,6 +109,38 @@ where
                 .serialize(e.encode_element()?, ctx)?;
         }
         e.end()?;
+        Ok(())
+    }
+}
+
+impl<'de, D: Decoder<'de>, C: Object> Deserialize<'de, D> for ObjectMap<C>
+where
+    C::Pointer<C::Dyn>: DerefRaw<RawTarget = C::Dyn>,
+    C::Dyn: RawAny,
+    C::Pointer<C::Dyn>: Deserialize<'de, D>,
+{
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
+        let mut result = Self::new();
+        result.deserialize_update(d, ctx)?;
+        Ok(result)
+    }
+}
+
+impl<'de, D: Decoder<'de>, C: Object> DeserializeUpdate<'de, D> for ObjectMap<C>
+where
+    C::Pointer<C::Dyn>: DerefRaw<RawTarget = C::Dyn>,
+    C::Dyn: RawAny,
+    C::Pointer<C::Dyn>: Deserialize<'de, D>,
+{
+    fn deserialize_update<'p>(
+        &mut self,
+        d: AnyDecoder<'p, 'de, D>,
+        ctx: &mut Context,
+    ) -> anyhow::Result<()> {
+        let mut d = d.decode(DecodeHint::Seq)?.try_into_seq()?;
+        while let Some(d) = d.decode_next()? {
+            self.insert(C::Pointer::<C::Dyn>::deserialize(d, ctx)?);
+        }
         Ok(())
     }
 }

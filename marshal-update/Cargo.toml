@@ -17,3 +17,4 @@ atomic_refcell = {workspace=true}
 weak-table = {workspace=true}
 marshal-derive = {workspace=true}
 marshal-object = {workspace=true}
+catalog = {workspace=true}

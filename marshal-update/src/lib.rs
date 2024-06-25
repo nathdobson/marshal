@@ -13,5 +13,6 @@ pub mod prim;
 pub mod ser;
 pub mod tree;
 pub mod version;
-mod object_map;
+pub mod object_map;
+pub mod tester;
 
