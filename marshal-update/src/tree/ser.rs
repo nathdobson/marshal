@@ -1,9 +1,9 @@
-use std::{mem, sync};
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::marker::Unsize;
 use std::sync::Arc;
+use std::{mem, sync};
 
 use by_address::ByThinAddress;
 use parking_lot::Mutex;
@@ -117,7 +117,7 @@ impl<S: ?Sized> SerializeForest<S> {
             let value = &mut state.value;
             let stream = state.stream.as_mut().unwrap();
             let mut e = e.encode_entry()?;
-            let id = TreeSharedSerializeContext::get_id(ctx, Arc::downgrade(&tree))
+            let id = TreeSharedSerializeContext::get_id(ctx, Arc::downgrade(&tree))?
                 .ok_or(TreeError::MissingId)?;
             id.serialize(e.encode_key()?, ctx)?;
             value.serialize_update_dyn(&mut **stream, e.encode_value()?, ctx)?;

@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 itertools = { workspace = true }
 anyhow = { workspace = true }
-type-map = { workspace = true }
 base64 = { workspace = true }
 marshal-core = { workspace = true }
 marshal-derive = {workspace=true}

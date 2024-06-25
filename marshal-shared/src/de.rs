@@ -126,7 +126,7 @@ pub fn deserialize_arc<'de, D: Decoder<'de>, T: 'static + Sync + Send + Deserial
     ctx: &mut Context,
 ) -> anyhow::Result<(usize, Arc<T>)> {
     let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx)?;
-    let shared_ctx = ctx.get_or_default::<SharedArcDeserializeContext>();
+    let shared_ctx = ctx.get_mut::<SharedArcDeserializeContext>()?;
     if let Some(value) = shared.inner {
         let state = shared_ctx
             .shared
@@ -149,7 +149,7 @@ pub fn deserialize_rc<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D>>(
     ctx: &mut Context,
 ) -> anyhow::Result<Rc<T>> {
     let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx)?;
-    let shared_ctx = ctx.get_or_default::<SharedRcDeserializeContext>();
+    let shared_ctx = ctx.get_mut::<SharedRcDeserializeContext>()?;
     if let Some(value) = shared.inner {
         let state = shared_ctx
             .shared
@@ -174,7 +174,7 @@ pub fn deserialize_arc_weak<
     ctx: &mut Context,
 ) -> anyhow::Result<(usize, sync::Weak<T>)> {
     let id = <usize as Deserialize<D>>::deserialize(d, ctx)?;
-    let shared_ctx = ctx.get_or_default::<SharedArcDeserializeContext>();
+    let shared_ctx = ctx.get_mut::<SharedArcDeserializeContext>()?;
     Ok((
         id,
         shared_ctx
@@ -190,7 +190,7 @@ pub fn deserialize_rc_weak<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D
     ctx: &mut Context,
 ) -> anyhow::Result<rc::Weak<T>> {
     let id = <usize as Deserialize<D>>::deserialize(d, ctx)?;
-    let shared_ctx = ctx.get_or_default::<SharedRcDeserializeContext>();
+    let shared_ctx = ctx.get_mut::<SharedRcDeserializeContext>()?;
     shared_ctx
         .shared
         .entry(id)

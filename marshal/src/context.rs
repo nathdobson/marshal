@@ -1,36 +1,49 @@
+use std::any::{type_name, TypeId};
+use std::collections::HashMap;
 use std::{
     any::Any,
     fmt::{Display, Formatter},
 };
-use std::any::type_name;
 
-use type_map::TypeMap;
-
-pub struct Context {
-    map: TypeMap,
+pub struct Context<'ctx> {
+    map: HashMap<TypeId, &'ctx mut dyn Any>,
 }
 
-impl Context {
+impl<'ctx> Context<'ctx> {
     pub fn new() -> Self {
         Context {
-            map: TypeMap::new(),
+            map: HashMap::new(),
         }
     }
-    pub fn insert<T: Any>(&mut self, value: T) {
-        self.map.insert(value);
+    pub fn insert<T: Any>(&mut self, value: &'ctx mut T) {
+        self.map.insert(TypeId::of::<T>(), value);
     }
     pub fn get<T: Any>(&self) -> Result<&T, GetError> {
-        self.map
-            .get::<T>()
-            .ok_or_else(|| GetError(type_name::<T>()))
+        Ok(self
+            .map
+            .get(&TypeId::of::<T>())
+            .ok_or_else(|| GetError(type_name::<T>()))?
+            .downcast_ref()
+            .unwrap())
     }
     pub fn get_mut<T: Any>(&mut self) -> Result<&mut T, GetError> {
-        self.map
-            .get_mut::<T>()
-            .ok_or_else(|| GetError(type_name::<T>()))
+        Ok(self
+            .map
+            .get_mut(&TypeId::of::<T>())
+            .ok_or_else(|| GetError(type_name::<T>()))?
+            .downcast_mut()
+            .unwrap())
     }
-    pub fn get_or_default<T: Any + Default>(&mut self) -> &mut T {
-        self.map.entry::<T>().or_insert_with(T::default)
+    pub fn insert_scoped<'scope, T: Any>(
+        &'scope mut self,
+        value: &'scope mut T,
+    ) -> Context<'scope> {
+        let mut new = Context::new();
+        new.insert(value);
+        for (k, v) in self.map.iter_mut() {
+            new.map.insert(*k, &mut **v);
+        }
+        new
     }
 }
 
@@ -39,7 +52,7 @@ pub struct GetError(&'static str);
 
 impl Display for GetError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Could not find `{}' in DeserializeContext", self.0)
+        write!(f, "Could not find `{}' in Context", self.0)
     }
 }
 

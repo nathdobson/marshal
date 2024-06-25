@@ -1,7 +1,7 @@
-use std::{mem, rc, sync};
 use std::any::Any;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::{mem, rc, sync};
 
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
@@ -10,9 +10,9 @@ use marshal::ser::Serialize;
 use marshal::Serialize;
 use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
-use marshal_pointer::DerefRaw;
 use marshal_pointer::rc_ref::RcRef;
 use marshal_pointer::rc_weak_ref::RcWeakRef;
+use marshal_pointer::DerefRaw;
 
 struct ByAddress<T>(T);
 
@@ -50,20 +50,27 @@ impl<WeakAny> Default for SharedSerializeContext<WeakAny> {
 }
 
 impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
-    pub fn get_id(ctx: &mut Context, weak: WeakAny) -> Option<usize> {
-        let this = ctx.get_or_default::<Self>();
-        Some(this.shared.get(&ByAddress(weak))?.id)
+    pub fn get_id(ctx: &mut Context, weak: WeakAny) -> anyhow::Result<Option<usize>> {
+        let this = ctx.get_mut::<Self>()?;
+        if let Some(this) = this.shared.get(&ByAddress(weak)) {
+            Ok(Some(this.id))
+        } else {
+            Ok(None)
+        }
     }
-    fn get_state(ctx: &mut Context, weak: WeakAny) -> &mut PointerState {
-        let this = ctx.get_or_default::<Self>();
-        this.shared.entry(ByAddress(weak)).or_insert_with(|| {
+    fn get_state<'a, 'ctx>(
+        ctx: &'a mut Context<'ctx>,
+        weak: WeakAny,
+    ) -> anyhow::Result<&'a mut PointerState> {
+        let this = ctx.get_mut::<Self>()?;
+        Ok(this.shared.entry(ByAddress(weak)).or_insert_with(|| {
             let state = PointerState {
                 id: this.next_id,
                 written: false,
             };
             this.next_id += 1;
             state
-        })
+        }))
     }
     pub fn serialize_strong<T: Serialize<E>, E: Encoder>(
         value: &T,
@@ -71,7 +78,7 @@ impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
         e: AnyEncoder<E>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
-        let state = Self::get_state(ctx, weak);
+        let state = Self::get_state(ctx, weak)?;
         let id = state.id;
         let written = mem::replace(&mut state.written, true);
         Shared::<T> {
@@ -85,7 +92,7 @@ impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
         e: AnyEncoder<E>,
         ctx: &mut Context,
     ) -> anyhow::Result<()> {
-        let state = Self::get_state(ctx, weak);
+        let state = Self::get_state(ctx, weak)?;
         let id = state.id;
         id.serialize(e, ctx)
     }

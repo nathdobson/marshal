@@ -529,7 +529,6 @@ dependencies = [
  "rand_xorshift",
  "serde",
  "serde_json",
- "type-map",
  "typetag",
 ]
 
