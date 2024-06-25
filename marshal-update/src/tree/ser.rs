@@ -62,7 +62,7 @@ where
     ) -> anyhow::Result<()> {
         let forest = ctx.get_mut::<SerializeForest<E::SerializeUpdateDyn>>()?;
         forest.serializers.insert(this.into(), this.arc());
-        this.forest.get_or_init(|| forest.queue.clone());
+        this.serialize_queue.get_or_init(|| forest.queue.clone());
         {
             let ref mut state = *this.state.borrow_mut();
             let value = &mut state.value;

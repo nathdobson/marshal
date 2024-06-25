@@ -2,6 +2,7 @@ use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::Unsize;
 use std::ops::{Deref, DerefMut};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
@@ -14,6 +15,19 @@ pub mod bin;
 mod de;
 pub mod json;
 pub mod ser;
+
+static FOREST_ID: AtomicU64 = AtomicU64::new(0);
+pub struct Forest {
+    id: u64,
+}
+
+impl Forest {
+    pub fn new() -> Self {
+        Forest {
+            id: FOREST_ID.fetch_add(1, Ordering::Relaxed),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum TreeError {
@@ -34,7 +48,8 @@ pub struct TreeState<T: ?Sized> {
 }
 
 pub struct Tree<T: ?Sized> {
-    forest: OnceLock<Arc<SerializeQueue>>,
+    forest_id: OnceLock<u64>,
+    serialize_queue: OnceLock<Arc<SerializeQueue>>,
     state: AtomicRefCell<TreeState<T>>,
 }
 
@@ -73,7 +88,8 @@ impl<T: Sync + Send + ?Sized> Tree<T> {
         T: Sized,
     {
         Tree {
-            forest: OnceLock::new(),
+            forest_id: OnceLock::new(),
+            serialize_queue: OnceLock::new(),
             state: AtomicRefCell::new(TreeState {
                 stream: None,
                 value,
@@ -89,7 +105,7 @@ impl<T: Sync + Send + ?Sized> Tree<T> {
     where
         T: Unsize<dyn Sync + Send + Any>,
     {
-        if let Some(forest) = self.forest.get() {
+        if let Some(forest) = self.serialize_queue.get() {
             forest.queue.lock().insert(ByThinAddress(self.clone()));
         }
         TreeWriteGuard {
