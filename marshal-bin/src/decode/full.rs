@@ -32,7 +32,7 @@ impl<'de, 's> BinDecoderBuilder<'de, 's> {
         ));
         AnyDecoder::new(&mut self.inner, any)
     }
-    pub fn deserialize<T: DeserializeBin<'de>>(mut self, ctx: &mut Context) -> anyhow::Result<T> {
+    pub fn deserialize<T: DeserializeBin<'de>>(mut self, mut ctx: Context) -> anyhow::Result<T> {
         let result = T::deserialize(self.build(), ctx)?;
         self.end()?;
         Ok(result)

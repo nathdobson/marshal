@@ -27,7 +27,7 @@ impl<'s> BinEncoderBuilder<'s> {
     pub fn serialize<T: SerializeBin>(
         mut self,
         value: &T,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<Vec<u8>> {
         value.serialize(self.build(), ctx)?;
         self.end()

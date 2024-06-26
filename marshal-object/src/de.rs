@@ -15,13 +15,13 @@ pub trait DeserializeVariantForDiscriminant<'de, D: Decoder<'de>>: Object {
     fn deserialize_variant(
         discriminant: usize,
         d: AnyDecoder<'_, 'de, D>,
-        ctx: &mut Context,
+        ctx: Context,
     ) -> anyhow::Result<Self::Pointer<Self::Dyn>>;
 }
 
 pub fn deserialize_object<'p, 'de, O: Object, D: Decoder<'de>>(
     d: AnyDecoder<'p, 'de, D>,
-    ctx: &mut Context,
+    ctx: Context,
 ) -> anyhow::Result<O::Pointer<O::Dyn>>
 where
     O: DeserializeVariantForDiscriminant<'de, D>,

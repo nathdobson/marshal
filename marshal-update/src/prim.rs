@@ -46,13 +46,13 @@ pub struct PrimStream {
 }
 
 impl<E: Encoder, T: ?Sized + Serialize<E>> Serialize<E> for Prim<T> {
-    fn serialize(&self, e: AnyEncoder<'_, E>, ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, e: AnyEncoder<'_, E>, ctx: Context) -> anyhow::Result<()> {
         self.inner.serialize(e, ctx)
     }
 }
 
 impl<'de, D: Decoder<'de>, T: Deserialize<'de, D>> Deserialize<'de, D> for Prim<T> {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
         Ok(Prim::new(T::deserialize(d, ctx)?))
     }
 }
@@ -61,7 +61,7 @@ impl<'de, D: Decoder<'de>, T: Deserialize<'de, D>> DeserializeUpdate<'de, D> for
     fn deserialize_update<'p>(
         &mut self,
         d: AnyDecoder<'p, 'de, D>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(x) = Option::<T>::deserialize(d, ctx)? {
             **self = x;
@@ -73,7 +73,7 @@ impl<'de, D: Decoder<'de>, T: Deserialize<'de, D>> DeserializeUpdate<'de, D> for
 impl<T: ?Sized> SerializeStream for Prim<T> {
     type Stream = PrimStream;
 
-    fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+    fn start_stream(&self, mut ctx: Context) -> anyhow::Result<Self::Stream> {
         Ok(PrimStream {
             version: self.version,
         })
@@ -85,7 +85,7 @@ impl<E: Encoder, T: Serialize<E>> SerializeUpdate<E> for Prim<T> {
         &self,
         stream: &mut Self::Stream,
         e: AnyEncoder<E>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         let m = if stream.version != self.version {
             stream.version = self.version;

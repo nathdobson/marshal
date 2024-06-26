@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use marshal::context::Context;
+use marshal::context::{Context, OwnedContext};
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
@@ -17,12 +17,12 @@ pub fn test_round_trip<
 ) -> anyhow::Result<()> {
     println!("{:?}", input);
     let mut w = JsonEncoderBuilder::new();
-    let mut c = Context::new();
-    input.serialize(w.build(), &mut c)?;
+    let mut c = OwnedContext::new();
+    input.serialize(w.build(), c.borrow())?;
     let found = w.end()?;
     assert_eq!(expected.trim_start(), found);
     let mut p = JsonDecoderBuilder::new(found.as_bytes());
-    let f = T::deserialize(p.build(), &mut c)?;
+    let f = T::deserialize(p.build(), c.borrow())?;
     p.end()?;
     assert_eq!(input, f);
     Ok(())

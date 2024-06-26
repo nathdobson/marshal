@@ -11,7 +11,7 @@ macro_rules! derive_serialize_update_for_clone {
         $(
             impl SerializeStream for $ty {
                 type Stream = $ty;
-                fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+                fn start_stream(&self, mut ctx: Context) -> anyhow::Result<Self::Stream> {
                     println!("starting stream");
                     Ok(self.clone())
                 }
@@ -21,7 +21,7 @@ macro_rules! derive_serialize_update_for_clone {
                     &self,
                     stream: &mut Self::Stream,
                     e: AnyEncoder<E>,
-                    ctx: &mut Context,
+                    mut ctx: Context,
                 ) -> anyhow::Result<()> {
                     let m = if stream != self {
                         stream.clone_from(self);

@@ -35,7 +35,7 @@ impl<'de> JsonDecoderBuilder<'de> {
     }
     pub fn deserialize<T: Deserialize<'de, JsonDecoder<'de>>>(
         mut self,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<T> {
         let result = T::deserialize(self.build(), ctx)?;
         self.end()?;

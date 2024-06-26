@@ -123,9 +123,9 @@ struct Shared<X> {
 
 pub fn deserialize_arc<'de, D: Decoder<'de>, T: 'static + Sync + Send + Deserialize<'de, D>>(
     d: AnyDecoder<'_, 'de, D>,
-    ctx: &mut Context,
+    mut ctx: Context,
 ) -> anyhow::Result<(usize, Arc<T>)> {
-    let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx)?;
+    let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx.reborrow())?;
     let shared_ctx = ctx.get_mut::<SharedArcDeserializeContext>()?;
     if let Some(value) = shared.inner {
         let state = shared_ctx
@@ -146,9 +146,9 @@ pub fn deserialize_arc<'de, D: Decoder<'de>, T: 'static + Sync + Send + Deserial
 }
 pub fn deserialize_rc<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D>>(
     d: AnyDecoder<'_, 'de, D>,
-    ctx: &mut Context,
+    mut ctx: Context,
 ) -> anyhow::Result<Rc<T>> {
-    let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx)?;
+    let shared = <Shared<T> as Deserialize<'de, D>>::deserialize(d, ctx.reborrow())?;
     let shared_ctx = ctx.get_mut::<SharedRcDeserializeContext>()?;
     if let Some(value) = shared.inner {
         let state = shared_ctx
@@ -171,9 +171,9 @@ pub fn deserialize_arc_weak<
     T: 'static + Sync + Send + Deserialize<'de, D>,
 >(
     d: AnyDecoder<'_, 'de, D>,
-    ctx: &mut Context,
+    mut ctx: Context,
 ) -> anyhow::Result<(usize, sync::Weak<T>)> {
-    let id = <usize as Deserialize<D>>::deserialize(d, ctx)?;
+    let id = <usize as Deserialize<D>>::deserialize(d, ctx.reborrow())?;
     let shared_ctx = ctx.get_mut::<SharedArcDeserializeContext>()?;
     Ok((
         id,
@@ -187,9 +187,9 @@ pub fn deserialize_arc_weak<
 
 pub fn deserialize_rc_weak<'de, D: Decoder<'de>, T: 'static + Deserialize<'de, D>>(
     d: AnyDecoder<'_, 'de, D>,
-    ctx: &mut Context,
+    mut ctx: Context,
 ) -> anyhow::Result<rc::Weak<T>> {
-    let id = <usize as Deserialize<D>>::deserialize(d, ctx)?;
+    let id = <usize as Deserialize<D>>::deserialize(d, ctx.reborrow())?;
     let shared_ctx = ctx.get_mut::<SharedRcDeserializeContext>()?;
     shared_ctx
         .shared
@@ -206,7 +206,7 @@ macro_rules! derive_deserialize_rc_shared {
         {
             fn deserialize_rc<'p>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
-                ctx: &mut $crate::reexports::marshal::context::Context,
+                mut ctx: $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::rc::Rc<Self>> {
                 $crate::de::deserialize_rc::<D, Self>(p, ctx)
             }
@@ -222,7 +222,7 @@ macro_rules! derive_deserialize_rc_weak_shared {
         {
             fn deserialize_rc_weak<'p>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
-                ctx: &mut $crate::reexports::marshal::context::Context,
+                mut ctx: $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::rc::Weak<Self>> {
                 $crate::de::deserialize_rc_weak::<D, Self>(p, ctx)
             }
@@ -238,7 +238,7 @@ macro_rules! derive_deserialize_arc_weak_shared {
         {
             fn deserialize_arc_weak<'p>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
-                ctx: &mut $crate::reexports::marshal::context::Context,
+                ctx: $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::sync::Weak<Self>> {
                 ::std::result::Result::Ok($crate::de::deserialize_arc_weak::<D, Self>(p, ctx)?.1)
             }
@@ -254,7 +254,7 @@ macro_rules! derive_deserialize_arc_shared {
         {
             fn deserialize_arc<'p>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
-                ctx: &mut $crate::reexports::marshal::context::Context,
+                ctx: $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
                 ::std::result::Result::Ok($crate::de::deserialize_arc::<D, Self>(p, ctx)?.1)
             }

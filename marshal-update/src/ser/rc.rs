@@ -10,7 +10,7 @@ use crate::ser::{SerializeStream, SerializeUpdate};
 
 impl<T: ?Sized + Sync + Send> SerializeStream for Arc<T> {
     type Stream = sync::Weak<T>;
-    fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+    fn start_stream(&self, _ctx: Context) -> anyhow::Result<Self::Stream> {
         Ok(Arc::downgrade(self))
     }
 }
@@ -23,7 +23,7 @@ where
         &self,
         stream: &mut Self::Stream,
         e: AnyEncoder<E>,
-        ctx: &mut Context,
+        ctx: Context,
     ) -> anyhow::Result<()> {
         let m = if stream.deref_raw() as *const () != self.deref_raw() as *const () {
             *stream = Arc::downgrade(self);
@@ -37,7 +37,7 @@ where
 
 impl<T: ?Sized + Sync + Send> SerializeStream for sync::Weak<T> {
     type Stream = sync::Weak<T>;
-    fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+    fn start_stream(&self, _ctx: Context) -> anyhow::Result<Self::Stream> {
         Ok(self.clone())
     }
 }
@@ -50,7 +50,7 @@ where
         &self,
         stream: &mut Self::Stream,
         e: AnyEncoder<E>,
-        ctx: &mut Context,
+        ctx: Context,
     ) -> anyhow::Result<()> {
         let m = if stream.deref_raw() as *const () != self.deref_raw() as *const () {
             *stream = self.clone();

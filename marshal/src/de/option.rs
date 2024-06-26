@@ -4,7 +4,7 @@ use crate::context::Context;
 use crate::de::Deserialize;
 
 impl<'de, P: Decoder<'de>, T: Deserialize<'de, P>> Deserialize<'de, P> for Option<T> {
-    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, ctx: Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Option)? {
             DecoderView::None => Ok(None),
             DecoderView::Some(mut p) => {

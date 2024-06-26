@@ -10,7 +10,7 @@ macro_rules! derive_number {
             fn serialize(
                 &self,
                 w: $crate::encode::AnyEncoder<'_, W>,
-                _ctx: &mut Context,
+                _ctx: Context,
             ) -> anyhow::Result<()> {
                 w.encode_prim(Primitive::$v(*self))
             }
@@ -38,13 +38,13 @@ derive_number!(char, Char);
 derive_number!(bool, Bool);
 
 impl<W: Encoder> Serialize<W> for usize {
-    fn serialize(&self, w: AnyEncoder<'_, W>, _ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, _ctx: Context) -> anyhow::Result<()> {
         w.encode_prim(Primitive::U64(*self as u64))
     }
 }
 
 impl<W: Encoder> Serialize<W> for isize {
-    fn serialize(&self, w: AnyEncoder<'_, W>, _ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, _ctx: Context) -> anyhow::Result<()> {
         w.encode_prim(Primitive::I64(*self as i64))
     }
 }

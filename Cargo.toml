@@ -35,6 +35,8 @@ marshal-shared = {path="marshal-shared"}
 pretty_assertions = "1.4.0"
 parking_lot = "0.12.3"
 atomic_refcell = "0.1.13"
+slab = "0.4.9"
+tokenlock = "0.3.8"
 
 [profile.bench]
 debug = true

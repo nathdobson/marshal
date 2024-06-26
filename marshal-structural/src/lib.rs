@@ -12,9 +12,7 @@ use std::mem::{align_of, size_of};
 use marshal::context::Context;
 use marshal::de::{Deserialize, SchemaError};
 use marshal::ser::Serialize;
-use marshal_core::decode::{
-    AnyDecoder, DecodeHint, Decoder, DecoderView,
-};
+use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
 use marshal_core::encode::{AnyEncoder, Encoder, StructEncoder};
 
 #[cfg(test)]
@@ -73,19 +71,11 @@ impl<const FIELD: &'static str, H, T: StructList> StructList for StructCons<FIEL
 }
 
 trait SerializeStructList<W: Encoder>: StructList {
-    fn serialize_struct_list(
-        &self,
-        _: StructEncoder<'_, W>,
-        ctx: &mut Context,
-    ) -> anyhow::Result<()>;
+    fn serialize_struct_list(&self, _: StructEncoder<'_, W>, ctx: Context) -> anyhow::Result<()>;
 }
 
 impl<const STRUCT: &'static str, W: Encoder> SerializeStructList<W> for StructNil<STRUCT> {
-    fn serialize_struct_list(
-        &self,
-        e: StructEncoder<'_, W>,
-        _ctx: &mut Context,
-    ) -> anyhow::Result<()> {
+    fn serialize_struct_list(&self, e: StructEncoder<'_, W>, _ctx: Context) -> anyhow::Result<()> {
         e.end()
     }
 }
@@ -96,10 +86,10 @@ impl<const FIELD: &'static str, W: Encoder, H: Serialize<W>, T: SerializeStructL
     fn serialize_struct_list(
         &self,
         mut e: StructEncoder<'_, W>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
-        self.head.serialize(e.encode_field()?, ctx)?;
-        self.tail.serialize_struct_list(e, ctx)
+        self.head.serialize(e.encode_field()?, ctx.reborrow())?;
+        self.tail.serialize_struct_list(e, ctx.reborrow())
     }
 }
 
@@ -107,7 +97,7 @@ impl<const STRUCT: &'static str, W: Encoder> Serialize<W> for StructNil<STRUCT>
 where
     Self: SerializeStructList<W>,
 {
-    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: Context) -> anyhow::Result<()> {
         let w = w.encode_struct(Self::STRUCT, Self::FIELDS)?;
         self.serialize_struct_list(w, ctx)?;
         Ok(())
@@ -118,7 +108,7 @@ impl<const FIELD: &'static str, W: Encoder, H, T> Serialize<W> for StructCons<FI
 where
     Self: SerializeStructList<W>,
 {
-    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: Context) -> anyhow::Result<()> {
         let w = w.encode_struct(Self::STRUCT, Self::FIELDS)?;
         self.serialize_struct_list(w, ctx)?;
         Ok(())
@@ -131,13 +121,10 @@ trait DeserializeStructList<'de, D: Decoder<'de>>: StructList + Sized {
         builder: &mut Self::Builder,
         field: &str,
         value: AnyDecoder<'_, 'de, D>,
-        ctx: &mut Context,
+        ctx: Context,
     ) -> anyhow::Result<()>;
     fn build(builder: Self::Builder) -> anyhow::Result<Self>;
-    fn deserialize_struct_list(
-        d: AnyDecoder<'_, 'de, D>,
-        ctx: &mut Context,
-    ) -> anyhow::Result<Self> {
+    fn deserialize_struct_list(d: AnyDecoder<'_, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
         let mut builder = Self::Builder::default();
         match d.decode(DecodeHint::Struct {
             name: Self::STRUCT,
@@ -149,7 +136,7 @@ trait DeserializeStructList<'de, D: Decoder<'de>>: StructList + Sized {
                         DecoderView::String(x) => x,
                         _ => todo!(),
                     };
-                    Self::decode_field(&mut builder, &*field, d.decode_value()?, ctx)?;
+                    Self::decode_field(&mut builder, &*field, d.decode_value()?, ctx.reborrow())?;
                     d.decode_end()?;
                 }
             }
@@ -168,7 +155,7 @@ impl<'de, const STRUCT: &'static str, D: Decoder<'de>> DeserializeStructList<'de
         _: &mut Self::Builder,
         _: &str,
         value: AnyDecoder<'_, 'de, D>,
-        _: &mut Context,
+        _: Context,
     ) -> anyhow::Result<()> {
         value.ignore()
     }
@@ -192,7 +179,7 @@ impl<
         builder: &mut Self::Builder,
         field: &str,
         value: AnyDecoder<'_, 'de, D>,
-        ctx: &mut Context,
+        ctx: Context,
     ) -> anyhow::Result<()> {
         if field == FIELD {
             builder.head = Some(H::deserialize(value, ctx)?);
@@ -216,7 +203,7 @@ impl<'de, const STRUCT: &'static str, D: Decoder<'de>> Deserialize<'de, D> for S
 where
     Self: DeserializeStructList<'de, D>,
 {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         Self::deserialize_struct_list(d, ctx)
     }
 }
@@ -226,7 +213,7 @@ impl<'de, const FIELD: &'static str, D: Decoder<'de>, H, T> Deserialize<'de, D>
 where
     Self: DeserializeStructList<'de, D>,
 {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         Self::deserialize_struct_list(d, ctx)
     }
 }

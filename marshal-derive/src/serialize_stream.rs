@@ -35,7 +35,7 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                 struct #stream_ident;
                 #imp {
                     type Stream = #stream_ident;
-                    fn start_stream(&self, ctx:&mut #context_type)->#result_type<#stream_ident>{
+                    fn start_stream(&self, mut ctx: #context_type)->#result_type<#stream_ident>{
                         Ok(#stream_ident)
                     }
                 }
@@ -53,10 +53,10 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                 }
                 #imp {
                     type Stream = #stream_ident;
-                    fn start_stream(&self, ctx:&mut #context_type) -> #result_type<#stream_ident>{
+                    fn start_stream(&self, mut ctx: #context_type) -> #result_type<#stream_ident>{
                         Ok(#stream_ident{
                             #(
-                                #field_idents: self.#field_idents.start_stream(ctx)?,
+                                #field_idents: self.#field_idents.start_stream(ctx.reborrow())?,
                             )*
                         })
                     }
@@ -75,10 +75,10 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                 );
                 #imp {
                     type Stream = #stream_ident;
-                    fn start_stream(&self, ctx:&mut #context_type) -> #result_type<#stream_ident>{
+                    fn start_stream(&self, mut ctx: #context_type) -> #result_type<#stream_ident>{
                         Ok(#stream_ident(
                             #(
-                                self.#field_index_idents.start_stream(ctx)?
+                                self.#field_index_idents.start_stream(ctx.reborrow())?
                             ),*
                         ))
                     }

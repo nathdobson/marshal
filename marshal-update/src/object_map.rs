@@ -70,10 +70,10 @@ impl<E: Encoder, C: Object> Serialize<E> for ObjectMap<C>
 where
     C::Pointer<C::Dyn>: Serialize<E>,
 {
-    fn serialize(&self, e: AnyEncoder<'_, E>, ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, e: AnyEncoder<'_, E>, mut ctx: Context) -> anyhow::Result<()> {
         let mut e = e.encode_seq(Some(self.map.len()))?;
         for x in self.map.values() {
-            x.serialize(e.encode_element()?, ctx)?;
+            x.serialize(e.encode_element()?, ctx.reborrow())?;
         }
         e.end()?;
         Ok(())
@@ -83,7 +83,7 @@ where
 impl<C: Object> SerializeStream for ObjectMap<C> {
     type Stream = ObjectMapStream;
 
-    fn start_stream(&self, _ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+    fn start_stream(&self, _ctx: Context) -> anyhow::Result<Self::Stream> {
         Ok(ObjectMapStream {
             subscriber: self.publisher.subscribe(),
         })
@@ -98,7 +98,7 @@ where
         &self,
         stream: &mut Self::Stream,
         e: AnyEncoder<E>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         let ref mut ids = *stream.subscriber.recv();
         let mut e = e.encode_seq(Some(ids.len()))?;
@@ -106,7 +106,7 @@ where
             self.map
                 .get(&id)
                 .unwrap()
-                .serialize(e.encode_element()?, ctx)?;
+                .serialize(e.encode_element()?, ctx.reborrow())?;
         }
         e.end()?;
         Ok(())
@@ -119,7 +119,7 @@ where
     C::Dyn: RawAny,
     C::Pointer<C::Dyn>: Deserialize<'de, D>,
 {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         let mut result = Self::new();
         result.deserialize_update(d, ctx)?;
         Ok(result)
@@ -135,11 +135,11 @@ where
     fn deserialize_update<'p>(
         &mut self,
         d: AnyDecoder<'p, 'de, D>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut d = d.decode(DecodeHint::Seq)?.try_into_seq()?;
         while let Some(d) = d.decode_next()? {
-            self.insert(C::Pointer::<C::Dyn>::deserialize(d, ctx)?);
+            self.insert(C::Pointer::<C::Dyn>::deserialize(d, ctx.reborrow())?);
         }
         Ok(())
     }

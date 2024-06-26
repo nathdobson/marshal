@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use std::rc;
 use std::rc::Rc;
 
-use marshal::context::Context;
+use marshal::context::{Context, OwnedContext};
 use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
@@ -98,16 +98,16 @@ pub fn json_round_trip<T: Debug + SerializeJson + for<'de> DeserializeJson<'de>>
     input: &T,
     expected: &str,
 ) -> anyhow::Result<T> {
-    let mut ser_ctx = Context::new();
+    let mut ser_ctx = OwnedContext::new();
     let mut shared_ser_ctx = SharedSerializeContext::<rc::Weak<dyn Any>>::default();
-    ser_ctx.insert(&mut shared_ser_ctx);
+    ser_ctx.insert_mut(&mut shared_ser_ctx);
     println!("{:?}", input);
-    let found = JsonEncoderBuilder::new().serialize(input, &mut ser_ctx)?;
+    let found = JsonEncoderBuilder::new().serialize(input, ser_ctx.borrow())?;
     assert_eq!(expected.trim_start(), found);
-    let mut de_ctx = Context::new();
+    let mut de_ctx = OwnedContext::new();
     let mut shared_de_ctx = SharedRcDeserializeContext::default();
-    de_ctx.insert(&mut shared_de_ctx);
-    let output = JsonDecoderBuilder::new(found.as_bytes()).deserialize::<T>(&mut de_ctx)?;
+    de_ctx.insert_mut(&mut shared_de_ctx);
+    let output = JsonDecoderBuilder::new(found.as_bytes()).deserialize::<T>(de_ctx.borrow())?;
     Ok(output)
 }
 
@@ -116,12 +116,12 @@ pub fn bin_round_trip<T: Debug + SerializeBin + for<'de> DeserializeBin<'de>>(
     input: &T,
     expected: &[&[u8]],
 ) -> anyhow::Result<T> {
-    let mut ser_ctx = Context::new();
+    let mut ser_ctx = OwnedContext::new();
     let mut shared_ser_ctx = SharedSerializeContext::<rc::Weak<dyn Any>>::default();
-    ser_ctx.insert(&mut shared_ser_ctx);
+    ser_ctx.insert_mut(&mut shared_ser_ctx);
     println!("{:?}", input);
     let found =
-        BinEncoderBuilder::new(&mut BinEncoderSchema::new()).serialize(input, &mut ser_ctx)?;
+        BinEncoderBuilder::new(&mut BinEncoderSchema::new()).serialize(input, ser_ctx.borrow())?;
     let compare = &found[0..found.len() - VU128_MAX_PADDING];
     assert!(
         expected.contains(&compare),
@@ -129,11 +129,11 @@ pub fn bin_round_trip<T: Debug + SerializeBin + for<'de> DeserializeBin<'de>>(
         compare,
         expected
     );
-    let mut de_ctx = Context::new();
+    let mut de_ctx = OwnedContext::new();
     let mut shared_de_ctx = SharedRcDeserializeContext::default();
-    de_ctx.insert(&mut shared_de_ctx);
+    de_ctx.insert_mut(&mut shared_de_ctx);
     let output = BinDecoderBuilder::new(&found, &mut BinDecoderSchema::new())
-        .deserialize::<T>(&mut de_ctx)?;
+        .deserialize::<T>(de_ctx.borrow())?;
     Ok(output)
 }
 

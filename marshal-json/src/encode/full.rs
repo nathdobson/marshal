@@ -37,7 +37,7 @@ impl JsonEncoderBuilder {
     pub fn serialize<T: ?Sized + Serialize<JsonEncoder>>(
         mut self,
         value: &T,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<String> {
         value.serialize(self.build(), ctx)?;
         self.end()

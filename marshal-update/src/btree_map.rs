@@ -26,13 +26,13 @@ pub struct UpdateBTreeMapStream<K, VS> {
 impl<K: Ord + Sync + Send + Clone, V: SerializeStream> SerializeStream for UpdateBTreeMap<K, V> {
     type Stream = UpdateBTreeMapStream<K, V::Stream>;
 
-    fn start_stream(&self, ctx: &mut Context) -> anyhow::Result<Self::Stream> {
+    fn start_stream(&self, mut ctx: Context) -> anyhow::Result<Self::Stream> {
         Ok(UpdateBTreeMapStream {
             subscriber: self.publisher.subscribe(),
             streams: self
                 .map
                 .iter()
-                .map(|(k, v)| Ok((k.clone(), v.start_stream(ctx)?)))
+                .map(|(k, v)| Ok((k.clone(), v.start_stream(ctx.reborrow())?)))
                 .collect::<anyhow::Result<_>>()?,
         })
     }
@@ -41,7 +41,7 @@ impl<K: Ord + Sync + Send + Clone, V: SerializeStream> SerializeStream for Updat
 impl<E: Encoder, K: Ord + Sync + Send + Serialize<E>, V: Serialize<E>> Serialize<E>
     for UpdateBTreeMap<K, V>
 {
-    fn serialize(&self, e: AnyEncoder<'_, E>, ctx: &mut Context) -> anyhow::Result<()> {
+    fn serialize(&self, e: AnyEncoder<'_, E>, ctx: Context) -> anyhow::Result<()> {
         self.map.serialize(e, ctx)
     }
 }
@@ -53,23 +53,23 @@ impl<E: Encoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate
         &self,
         stream: &mut Self::Stream,
         e: AnyEncoder<E>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         let queue = mem::replace(&mut *stream.subscriber.recv(), BTreeSet::new());
         let mut e = e.encode_map(Some(queue.len()))?;
         for key in queue {
             let mut e = e.encode_entry()?;
-            key.serialize(e.encode_key()?, ctx)?;
+            key.serialize(e.encode_key()?, ctx.reborrow())?;
             let source = self.map.get(&key);
             if let Some(source) = source {
                 let mut e = e.encode_value()?.encode_some()?;
                 match stream.streams.entry(key) {
                     Entry::Occupied(mut o) => {
-                        source.serialize_update(o.get_mut(), e.encode_some()?, ctx)?;
+                        source.serialize_update(o.get_mut(), e.encode_some()?, ctx.reborrow())?;
                     }
                     Entry::Vacant(v) => {
-                        v.insert(source.start_stream(ctx)?);
-                        source.serialize(e.encode_some()?, ctx)?;
+                        v.insert(source.start_stream(ctx.reborrow())?);
+                        source.serialize(e.encode_some()?, ctx.reborrow())?;
                     }
                 }
                 e.end()?;
@@ -87,7 +87,7 @@ impl<E: Encoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate
 impl<'de, D: Decoder<'de>, K: Ord + Deserialize<'de, D>, V: Deserialize<'de, D>> Deserialize<'de, D>
     for UpdateBTreeMap<K, V>
 {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
         Ok(Self::from(BTreeMap::deserialize(d, ctx)?))
     }
 }
@@ -107,19 +107,19 @@ impl<'de, D: Decoder<'de>, K: Ord + Deserialize<'de, D>, V: DeserializeUpdate<'d
     fn deserialize_update<'p>(
         &mut self,
         d: AnyDecoder<'p, 'de, D>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut d = d.decode(DecodeHint::Map)?.try_into_map()?;
         while let Some(mut d) = d.decode_next()? {
-            let key = K::deserialize(d.decode_key()?, ctx)?;
+            let key = K::deserialize(d.decode_key()?, ctx.reborrow())?;
             let v = d.decode_value()?;
             if let Some(mut v) = v.decode(DecodeHint::Option)?.try_into_option()? {
                 match self.map.entry(key) {
                     Entry::Occupied(mut o) => {
-                        o.get_mut().deserialize_update(v.decode_some()?, ctx)?;
+                        o.get_mut().deserialize_update(v.decode_some()?, ctx.reborrow())?;
                     }
                     Entry::Vacant(vac) => {
-                        vac.insert(V::deserialize(v.decode_some()?, ctx)?);
+                        vac.insert(V::deserialize(v.decode_some()?, ctx.reborrow())?);
                     }
                 }
                 v.decode_end()?;

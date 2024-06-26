@@ -5,7 +5,7 @@ use crate::context::Context;
 use crate::de::{Deserialize, SchemaError};
 
 impl<'de, P: Decoder<'de>> Deserialize<'de, P> for () {
-    fn deserialize(p: AnyDecoder<'_, 'de, P>, _: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize(p: AnyDecoder<'_, 'de, P>, _ctx: Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Primitive(PrimitiveType::Unit))? {
             DecoderView::Primitive(Primitive::Unit) => Ok(()),
             unexpected => unexpected.mismatch("unit")?,
@@ -20,13 +20,13 @@ macro_rules! derive_tuple {
             $( $T: Deserialize<'de, P>, )*
         > Deserialize<'de, P> for ($($T,)*)
         {
-            fn deserialize(p: AnyDecoder<'_,'de,P>, context: &mut Context) -> anyhow::Result<Self> {
+            fn deserialize(p: AnyDecoder<'_,'de,P>, mut ctx: Context) -> anyhow::Result<Self> {
                 match p.decode(DecodeHint::Tuple { len: 4 })? {
                     DecoderView::Seq(mut p) => {
                         let result=(
                             $(
                                 {
-                                    let x = $T::deserialize(p.decode_next()?.ok_or(SchemaError::TupleTooShort)?, context)?;
+                                    let x = $T::deserialize(p.decode_next()?.ok_or(SchemaError::TupleTooShort)?, ctx.reborrow())?;
                                     x
                                 },
                             )*

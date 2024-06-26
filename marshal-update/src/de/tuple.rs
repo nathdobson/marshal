@@ -10,13 +10,13 @@ impl<'de, D: Decoder<'de>, T1: DeserializeUpdate<'de, D>, T2: DeserializeUpdate<
     fn deserialize_update<'p>(
         &mut self,
         d: AnyDecoder<'p, 'de, D>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut d = d.decode(DecodeHint::Tuple { len: 2 })?.try_into_seq()?;
         self.0
-            .deserialize_update(d.decode_next()?.ok_or(SchemaError::TupleTooShort)?, ctx)?;
+            .deserialize_update(d.decode_next()?.ok_or(SchemaError::TupleTooShort)?, ctx.reborrow())?;
         self.1
-            .deserialize_update(d.decode_next()?.ok_or(SchemaError::TupleTooShort)?, ctx)?;
+            .deserialize_update(d.decode_next()?.ok_or(SchemaError::TupleTooShort)?, ctx.reborrow())?;
         if let Some(_) = d.decode_next()? {
             return Err(SchemaError::TupleTooLong.into());
         }

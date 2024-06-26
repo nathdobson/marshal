@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-use marshal::context::Context;
+use marshal::context::{Context, OwnedContext};
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
@@ -25,13 +25,13 @@ fn test_round_trip<
     println!("{:?}", input);
     let mut encoder_schema = BinEncoderSchema::new();
     let mut w = BinEncoderBuilder::new(&mut encoder_schema);
-    let mut c = Context::new();
-    input.serialize(w.build(), &mut c)?;
+    let mut c = OwnedContext::new();
+    input.serialize(w.build(), c.borrow())?;
     let found = w.end()?;
     assert_eq!(&found[0..found.len() - VU128_MAX_PADDING], expected);
     let mut decoder_schema = BinDecoderSchema::new();
     let mut p = BinDecoderBuilder::new(&found, &mut decoder_schema);
-    let f = T::deserialize(p.build(), &mut c)?;
+    let f = T::deserialize(p.build(), c.borrow())?;
     p.end()?;
     assert_eq!(input, f);
     Ok(())
@@ -48,13 +48,13 @@ fn test_transmute<
     println!("{:?}", input);
     let mut writer_schema = BinEncoderSchema::new();
     let mut w = BinEncoderBuilder::new(&mut writer_schema);
-    let mut c = Context::new();
-    input.serialize(w.build(), &mut c)?;
+    let mut c = OwnedContext::new();
+    input.serialize(w.build(), c.borrow())?;
     let found = w.end()?;
     assert_eq!(&found[0..found.len() - VU128_MAX_PADDING], expected);
     let mut decoder_schema = BinDecoderSchema::new();
     let mut p = BinDecoderBuilder::new(&found, &mut decoder_schema);
-    let f = T2::deserialize(p.build(), &mut c)?;
+    let f = T2::deserialize(p.build(), c.borrow())?;
     assert_eq!(output, f);
     Ok(())
 }

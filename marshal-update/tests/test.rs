@@ -4,11 +4,11 @@ use std::sync;
 use std::sync::Arc;
 
 use marshal_derive::{Deserialize, Serialize};
-use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
+use marshal_update::forest::ForestRoot;
 use marshal_update::hash_map::UpdateHashMap;
 use marshal_update::tester::{SharedTester, Tester};
-use marshal_update::tree::Tree;
-
+use marshal_update::tree::{Forest, Tree};
+use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
 
 #[test]
 fn test_simple() -> anyhow::Result<()> {
@@ -21,7 +21,8 @@ fn test_simple() -> anyhow::Result<()> {
 
 #[test]
 fn test_simple_graph() -> anyhow::Result<()> {
-    let input = Arc::new(Tree::new(4u8));
+    let mut forest = Forest::new();
+    let input = forest.add(4u8);
     let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
@@ -43,8 +44,9 @@ fn test_simple_graph() -> anyhow::Result<()> {
 
 #[test]
 fn test_strong_graph() -> anyhow::Result<()> {
-    let input: Arc<Tree<Option<Arc<Tree<u8>>>>> = Arc::new(Tree::new(None));
-    let inner: Arc<Tree<u8>> = Arc::new(Tree::new(4u8));
+    let mut forest = Forest::new();
+    let input: Arc<Tree<Option<Arc<Tree<u8>>>>> = forest.add(None);
+    let inner: Arc<Tree<u8>> = forest.add(4u8);
     let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
@@ -70,9 +72,10 @@ fn test_strong_graph() -> anyhow::Result<()> {
 
 #[test]
 fn test_weak_graph() -> anyhow::Result<()> {
+    let mut forest = Forest::new();
     let input: Arc<Tree<(Option<sync::Weak<Tree<u8>>>, Option<Arc<Tree<u8>>>)>> =
-        Arc::new(Tree::new((None, None)));
-    let inner: Arc<Tree<u8>> = Arc::new(Tree::new(4u8));
+        forest.add((None, None));
+    let inner: Arc<Tree<u8>> = forest.add(4u8);
     let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
@@ -120,7 +123,8 @@ fn test_weak_graph() -> anyhow::Result<()> {
 fn test_unit_struct() -> anyhow::Result<()> {
     #[derive(Serialize, Deserialize, DeserializeUpdate, SerializeStream, SerializeUpdate)]
     struct Foo;
-    let input: Arc<Tree<Foo>> = Arc::new(Tree::new(Foo));
+    let mut forest = Forest::new();
+    let input: Arc<Tree<Foo>> = forest.add(Foo);
     let (mut tester, _) = SharedTester::new(
         input.clone(),
         r#"{
@@ -136,7 +140,8 @@ fn test_unit_struct() -> anyhow::Result<()> {
 fn test_tuple_struct() -> anyhow::Result<()> {
     #[derive(Serialize, Deserialize, DeserializeUpdate, SerializeStream, SerializeUpdate)]
     struct Foo(u8, u16);
-    let input: Arc<Tree<Foo>> = Arc::new(Tree::new(Foo(4, 8)));
+    let mut forest = Forest::new();
+    let input: Arc<Tree<Foo>> = forest.add(Foo(4, 8));
     let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
@@ -168,7 +173,8 @@ fn test_struct() -> anyhow::Result<()> {
         x: u8,
         y: u16,
     }
-    let input: Arc<Tree<Foo>> = Arc::new(Tree::new(Foo { x: 4, y: 8 }));
+    let mut forest = Forest::new();
+    let input: Arc<Tree<Foo>> = forest.add(Foo { x: 4, y: 8 });
     let (mut tester, output) = SharedTester::new(
         input.clone(),
         r#"{
@@ -235,3 +241,4 @@ fn test_map() -> anyhow::Result<()> {
     assert_eq!(*tester.output().get(&15).unwrap(), 23);
     Ok(())
 }
+

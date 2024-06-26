@@ -11,7 +11,7 @@ macro_rules! derive_deserialize_update_for_option {
                 fn deserialize_update<'p>(
                     &mut self,
                     d: AnyDecoder<'p, 'de, D>,
-                    ctx: &mut Context,
+                    mut ctx: Context,
                 ) -> anyhow::Result<()> {
                     if let Some(update) = Option::<Self>::deserialize(d, ctx)? {
                         *self = update;

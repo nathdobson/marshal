@@ -2,7 +2,7 @@ use crate::de::DeserializeUpdate;
 use crate::ser::{SerializeStream, SerializeUpdate};
 use crate::tree::json::{JsonDeserializeStream, JsonSerializeStream, SerializeUpdateJson};
 use crate::tree::Tree;
-use marshal::context::Context;
+use marshal::context::{Context, OwnedContext};
 use marshal_json::decode::full::{JsonDecoder, JsonDecoderBuilder};
 use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder};
 use std::sync::Arc;
@@ -20,12 +20,12 @@ impl<
     > Tester<T>
 {
     pub fn new(input: T, expected: &str) -> anyhow::Result<Self> {
-        let mut encode_ctx = Context::new();
-        let output = JsonEncoderBuilder::new().serialize(&input, &mut encode_ctx)?;
+        let mut encode_ctx = OwnedContext::new();
+        let output = JsonEncoderBuilder::new().serialize(&input, encode_ctx.borrow())?;
         assert_eq!(expected, output);
-        let input_stream = input.start_stream(&mut encode_ctx)?;
-        let mut decode_ctx = Context::new();
-        let output = JsonDecoderBuilder::new(output.as_bytes()).deserialize(&mut decode_ctx)?;
+        let input_stream = input.start_stream(encode_ctx.borrow())?;
+        let mut decode_ctx = OwnedContext::new();
+        let output = JsonDecoderBuilder::new(output.as_bytes()).deserialize(decode_ctx.borrow())?;
         Ok(Tester {
             input,
             input_stream,
@@ -43,15 +43,15 @@ impl<
     }
     #[track_caller]
     pub fn next(&mut self, expected: &str) -> anyhow::Result<()> {
-        let mut encode_ctx = Context::new();
+        let mut encode_ctx = OwnedContext::new();
         let output = JsonEncoderBuilder::new().with(|e| {
             self.input
-                .serialize_update(&mut self.input_stream, e, &mut encode_ctx)
+                .serialize_update(&mut self.input_stream, e, encode_ctx.borrow())
         })?;
         assert_eq!(output, expected);
-        let mut decode_ctx = Context::new();
+        let mut decode_ctx = OwnedContext::new();
         JsonDecoderBuilder::new(output.as_bytes())
-            .with(|d| self.output.deserialize_update(d, &mut decode_ctx))?;
+            .with(|d| self.output.deserialize_update(d, decode_ctx.borrow()))?;
         Ok(())
     }
 }

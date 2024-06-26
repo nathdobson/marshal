@@ -1,49 +1,120 @@
 use std::any::{type_name, TypeId};
+use std::borrow::Cow::Owned;
 use std::collections::HashMap;
 use std::{
     any::Any,
     fmt::{Display, Formatter},
 };
 
-pub struct Context<'ctx> {
+pub struct MutContext<'ctx> {
     map: HashMap<TypeId, &'ctx mut dyn Any>,
 }
 
-impl<'ctx> Context<'ctx> {
+pub struct ConstContext<'ctx> {
+    map: HashMap<TypeId, &'ctx dyn Any>,
+}
+
+pub struct OwnedContext<'ctx> {
+    mut_ctx: MutContext<'ctx>,
+    const_ctx: ConstContext<'ctx>,
+}
+
+pub struct Context<'map, 'ctx> {
+    mut_ctx: &'map mut MutContext<'ctx>,
+    const_ctx: &'map ConstContext<'ctx>,
+}
+
+impl<'ctx> MutContext<'ctx> {
     pub fn new() -> Self {
-        Context {
+        MutContext {
             map: HashMap::new(),
         }
     }
-    pub fn insert<T: Any>(&mut self, value: &'ctx mut T) {
-        self.map.insert(TypeId::of::<T>(), value);
+}
+
+impl<'ctx> ConstContext<'ctx> {
+    pub fn new() -> Self {
+        ConstContext {
+            map: HashMap::new(),
+        }
     }
-    pub fn get<T: Any>(&self) -> Result<&T, GetError> {
+}
+
+impl<'ctx> OwnedContext<'ctx> {
+    pub fn new() -> Self {
+        OwnedContext {
+            mut_ctx: MutContext::new(),
+            const_ctx: ConstContext::new(),
+        }
+    }
+    pub fn insert_mut<T: Any>(&mut self, value: &'ctx mut T) {
+        self.mut_ctx.map.insert(TypeId::of::<T>(), value);
+    }
+    pub fn insert_const<T: Any>(&mut self, value: &'ctx T) {
+        self.const_ctx.map.insert(TypeId::of::<T>(), value);
+    }
+    pub fn borrow<'borrow>(&'borrow mut self) -> Context<'borrow, 'ctx> {
+        Context {
+            mut_ctx: &mut self.mut_ctx,
+            const_ctx: &self.const_ctx,
+        }
+    }
+}
+
+impl<'map, 'ctx> Context<'map, 'ctx> {
+    pub fn get_const<T: Any>(&self) -> Result<&T, GetError> {
         Ok(self
+            .const_ctx
             .map
             .get(&TypeId::of::<T>())
             .ok_or_else(|| GetError(type_name::<T>()))?
             .downcast_ref()
             .unwrap())
     }
-    pub fn get_mut<T: Any>(&mut self) -> Result<&mut T, GetError> {
+    pub fn get_mut<T: Any>(self) -> Result<&'map mut T, GetError> {
         Ok(self
+            .mut_ctx
             .map
             .get_mut(&TypeId::of::<T>())
             .ok_or_else(|| GetError(type_name::<T>()))?
             .downcast_mut()
             .unwrap())
     }
-    pub fn insert_scoped<'scope, T: Any>(
+    pub fn clone_scoped(&mut self) -> OwnedContext {
+        let mut_map = self
+            .mut_ctx
+            .map
+            .iter_mut()
+            .map(|(k, v)| (*k, &mut **v))
+            .collect();
+        let const_map = self.const_ctx.map.iter().map(|(k, v)| (*k, &**v)).collect();
+        OwnedContext {
+            mut_ctx: MutContext { map: mut_map },
+            const_ctx: ConstContext { map: const_map },
+        }
+    }
+    pub fn insert_mut_scoped<'scope, T: Any>(
         &'scope mut self,
         value: &'scope mut T,
-    ) -> Context<'scope> {
-        let mut new = Context::new();
-        new.insert(value);
-        for (k, v) in self.map.iter_mut() {
-            new.map.insert(*k, &mut **v);
+    ) -> OwnedContext<'scope> {
+        let mut clone = self.clone_scoped();
+        clone.insert_mut(value);
+        clone
+    }
+    pub fn insert_const_scoped<'scope, T: Any>(
+        &'scope mut self,
+        value: &'scope T,
+    ) -> OwnedContext<'scope> {
+        let mut clone = self.clone_scoped();
+        clone.insert_const(value);
+        clone
+    }
+    #[inline]
+    pub fn reborrow<'map2>(&'map2 mut self) -> Context<'map2, 'ctx> {
+        Context {
+            mut_ctx: self.mut_ctx,
+            const_ctx: self.const_ctx,
         }
-        new
     }
 }
 

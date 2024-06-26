@@ -5,27 +5,32 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
+use crate::tree::id::ForestId;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use by_address::ByThinAddress;
+use marshal_derive::Deserialize;
 use safe_once::sync::OnceLock;
 
 use crate::tree::ser::SerializeQueue;
 
 pub mod bin;
 mod de;
+mod id;
 pub mod json;
 pub mod ser;
 
-static FOREST_ID: AtomicU64 = AtomicU64::new(0);
 pub struct Forest {
-    id: u64,
+    id: ForestId,
 }
 
 impl Forest {
     pub fn new() -> Self {
         Forest {
-            id: FOREST_ID.fetch_add(1, Ordering::Relaxed),
+            id: ForestId::new(),
         }
+    }
+    pub fn add<T: Sync + Send>(&mut self, value: T) -> Arc<Tree<T>> {
+        Arc::new(Tree::new(value, self.id))
     }
 }
 
@@ -48,7 +53,7 @@ pub struct TreeState<T: ?Sized> {
 }
 
 pub struct Tree<T: ?Sized> {
-    forest_id: OnceLock<u64>,
+    forest_id: ForestId,
     serialize_queue: OnceLock<Arc<SerializeQueue>>,
     state: AtomicRefCell<TreeState<T>>,
 }
@@ -83,12 +88,12 @@ impl<'a, T: ?Sized> DerefMut for TreeWriteGuard<'a, T> {
 }
 
 impl<T: Sync + Send + ?Sized> Tree<T> {
-    pub fn new(value: T) -> Self
+    pub fn new(value: T, forest_id: ForestId) -> Self
     where
         T: Sized,
     {
         Tree {
-            forest_id: OnceLock::new(),
+            forest_id,
             serialize_queue: OnceLock::new(),
             state: AtomicRefCell::new(TreeState {
                 stream: None,

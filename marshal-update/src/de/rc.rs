@@ -14,7 +14,7 @@ where
     fn deserialize_update<'p>(
         &mut self,
         d: AnyDecoder<'p, 'de, D>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(update) = Option::<Arc<T>>::deserialize(d, ctx)? {
             *self = update;
@@ -30,7 +30,7 @@ where
     fn deserialize_update<'p>(
         &mut self,
         d: AnyDecoder<'p, 'de, D>,
-        ctx: &mut Context,
+        mut ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(update) = Option::<sync::Weak<T>>::deserialize(d, ctx)? {
             *self = update;

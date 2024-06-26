@@ -18,3 +18,5 @@ weak-table = {workspace=true}
 marshal-derive = {workspace=true}
 marshal-object = {workspace=true}
 catalog = {workspace=true}
+slab = {workspace=true}
+tokenlock = {workspace=true}

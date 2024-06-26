@@ -14,7 +14,7 @@ mod tuple;
 mod vec;
 
 pub trait Serialize<W: Encoder> {
-    fn serialize(&self, e: AnyEncoder<'_, W>, ctx: &mut Context) -> anyhow::Result<()>;
+    fn serialize(&self, e: AnyEncoder<'_, W>, ctx: Context) -> anyhow::Result<()>;
 }
 
 fn is_object_safe<W: Encoder, T: Serialize<W>>(x: &T) -> &dyn Serialize<W> {

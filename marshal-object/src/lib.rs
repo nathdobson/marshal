@@ -263,7 +263,7 @@ macro_rules! derive_box_object {
         impl<E: $crate::reexports::marshal::encode::Encoder> $crate::reexports::marshal::ser::Serialize<E> for ::std::boxed::Box<dyn $tr>
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize(&self, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: &mut $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
+            fn serialize(&self, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_object::<$carrier,E>(<::std::boxed::Box<dyn $tr> as $crate::reexports::marshal_pointer::AsFlatRef>::as_flat_ref(self), e, ctx)
             }
         }
@@ -271,7 +271,7 @@ macro_rules! derive_box_object {
         where
             $carrier: $crate::de::DeserializeVariantForDiscriminant<'de, D>,
         {
-            fn deserialize<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: &mut $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<Self> {
+            fn deserialize<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<Self> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -285,7 +285,7 @@ macro_rules! derive_rc_object {
         impl<E: $crate::reexports::marshal::encode::Encoder> $crate::reexports::marshal::ser::rc::SerializeRc<E> for dyn $tr
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize_rc(this: &$crate::reexports::marshal_pointer::rc_ref::RcRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: &mut $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
+            fn serialize_rc(this: &$crate::reexports::marshal_pointer::rc_ref::RcRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_object::<$carrier,E>(this, e, ctx)
             }
         }
@@ -293,7 +293,7 @@ macro_rules! derive_rc_object {
         where
             $carrier: $crate::de::DeserializeVariantForDiscriminant<'de, D>,
         {
-            fn deserialize_rc<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: &mut $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::rc::Rc<Self>> {
+            fn deserialize_rc<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::rc::Rc<Self>> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -307,7 +307,7 @@ macro_rules! derive_arc_object {
         impl<E: $crate::reexports::marshal::encode::Encoder> $crate::reexports::marshal::ser::rc::SerializeArc<E> for dyn $tr
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize_arc(this: &$crate::reexports::marshal_pointer::arc_ref::ArcRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: &mut $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
+            fn serialize_arc(this: &$crate::reexports::marshal_pointer::arc_ref::ArcRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
                 //serialize_object::<$carrier,E>(&**this, e, ctx)
                 ::std::todo!("X");
             }
@@ -316,7 +316,7 @@ macro_rules! derive_arc_object {
         where
             $carrier: $crate::de::DeserializeVariantForDiscriminant<'de, D>,
         {
-            fn deserialize_arc<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: &mut $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
+            fn deserialize_arc<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -330,7 +330,7 @@ macro_rules! derive_rc_weak_object {
         impl<E: $crate::reexports::marshal::encode::Encoder> $crate::reexports::marshal::ser::rc::SerializeRcWeak<E> for dyn $tr
             where dyn $tr: $crate::reexports::marshal::ser::Serialize<E>,
         {
-            fn serialize_rc_weak(this: &$crate::reexports::marshal_pointer::rc_weak_ref::RcWeakRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: &mut $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
+            fn serialize_rc_weak(this: &$crate::reexports::marshal_pointer::rc_weak_ref::RcWeakRef<Self>, e: $crate::reexports::marshal::encode::AnyEncoder<'_, E>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
                 ::std::todo!();
                 // $crate::ser::serialize_rc_weak_object::<$carrier,E>(this, e, ctx)
             }
@@ -339,7 +339,7 @@ macro_rules! derive_rc_weak_object {
         where
             $carrier: $crate::de::DeserializeVariantForDiscriminant<'de, D>,
         {
-            fn deserialize_rc_weak<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: &mut $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::rc::Weak<Self>> {
+            fn deserialize_rc_weak<'p>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::rc::Weak<Self>> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }

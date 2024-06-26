@@ -35,7 +35,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
         Data::Struct(data) => match ParsedFields::new(&data.fields) {
             ParsedFields::Unit => Ok(quote! {
                 #imp {
-                    fn serialize_update(&self, stream: &mut Self::Stream, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize_update(&self, stream: &mut Self::Stream, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
                         encoder.encode_unit_struct(#type_name)
                     }
                 }
@@ -47,14 +47,14 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
                 field_indices: _,
             }) => Ok(quote! {
                 #imp {
-                    fn serialize_update(&self, stream:&mut Self::Stream, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize_update(&self, stream:&mut Self::Stream, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
                         let mut encoder = encoder.encode_struct( #type_name, &[
                                 #(
                                     #field_literals
                                 ),*
                             ])?;
                         #(
-                            self.#field_idents.serialize_update(&mut stream.#field_idents, encoder.encode_field()?,ctx)?;
+                            self.#field_idents.serialize_update(&mut stream.#field_idents, encoder.encode_field()?,ctx.reborrow())?;
                         )*
                         encoder.end()?;
                         ::std::result::Result::Ok(())
@@ -68,10 +68,10 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
                 field_named_idents: _,
             }) => Ok(quote! {
                 #imp {
-                    fn serialize_update(&self, stream:&mut Self::Stream, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize_update(&self, stream:&mut Self::Stream, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
                         let mut encoder = encoder.encode_tuple_struct( #type_name, #field_count)?;
                         #(
-                            self.#field_index_idents.serialize_update(&mut stream.#field_index_idents, encoder.encode_field()?, ctx)?;
+                            self.#field_index_idents.serialize_update(&mut stream.#field_index_idents, encoder.encode_field()?, ctx.reborrow())?;
                         )*
                         encoder.end()?;
                         #result_type::Ok(())
@@ -103,7 +103,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
                             Self::#variant_ident{ #(#field_idents),* } => {
                                 let mut encoder = encoder.encode_struct_variant( #type_name, &[#( #variant_literals ),*], #variant_index, &[#(#field_literals),*])?;
                                 #(
-                                    #serialize_update_trait::<W>::serialize(#field_idents, encoder.encode_field()?, ctx)?;
+                                    #serialize_update_trait::<W>::serialize(#field_idents, encoder.encode_field()?, ctx.reborrow())?;
                                 )*
                                 encoder.end()?;
                                 ::std::result::Result::Ok(())
@@ -120,7 +120,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
                             Self::#variant_ident(#( #field_named_idents ),*) => {
                                 let mut encoder = encoder.encode_tuple_variant( #type_name, &[#( #variant_literals ),*], #variant_index, #field_count)?;
                                 #(
-                                    #serialize_update_trait::<W>::serialize(#field_named_idents, encoder.encode_field()?, ctx)?;
+                                    #serialize_update_trait::<W>::serialize(#field_named_idents, encoder.encode_field()?, ctx.reborrow())?;
                                 )*
                                 encoder.end()?;
                                 ::std::result::Result::Ok(())
@@ -139,7 +139,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
             }
             Ok(quote! {
                 #imp {
-                    fn serialize(&self, encoder: #any_encoder_type<'_,W>, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize(&self, encoder: #any_encoder_type<'_,W>, mut ctx: #context_type) -> #result_type<()> {
                         match self{
                             #(
                                 #matches

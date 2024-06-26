@@ -17,7 +17,7 @@ pub enum JsonValue {
 }
 
 impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
-    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, ctx: &mut Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, mut ctx: Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Any)? {
             DecoderView::Primitive(Primitive::Bool(x)) => Ok(JsonValue::Bool(x)),
             DecoderView::Primitive(Primitive::F64(x)) => Ok(JsonValue::Number(x)),
@@ -26,7 +26,7 @@ impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
             DecoderView::Seq(mut p) => {
                 let mut vec = vec![];
                 while let Some(next) = p.decode_next()? {
-                    vec.push(<JsonValue as Deserialize<'de, P>>::deserialize(next, ctx)?);
+                    vec.push(<JsonValue as Deserialize<'de, P>>::deserialize(next, ctx.reborrow())?);
                 }
                 Ok(JsonValue::Array(vec))
             }
@@ -40,7 +40,7 @@ impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
                         .into_owned();
                     let value = <JsonValue as Deserialize<'de, P>>::deserialize(
                         entry.decode_value()?,
-                        ctx,
+                        ctx.reborrow(),
                     )?;
                     entry.decode_end()?;
                     map.insert(key, value);

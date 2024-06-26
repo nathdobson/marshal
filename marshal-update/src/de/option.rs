@@ -8,7 +8,7 @@ impl<'de, D: Decoder<'de>, T: DeserializeUpdate<'de, D>> DeserializeUpdate<'de, 
     fn deserialize_update<'p>(
         &mut self,
         d: AnyDecoder<'p, 'de, D>,
-        ctx: &mut Context,
+        mut ctx:  Context,
     ) -> anyhow::Result<()> {
         if let Some(this) = self {
             if let Some(mut d) = d.decode(DecodeHint::Option)?.try_into_option()? {

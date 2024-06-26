@@ -33,7 +33,7 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
         Data::Struct(data) => match ParsedFields::new(&data.fields) {
             ParsedFields::Unit => Ok(quote! {
                 #imp {
-                    fn serialize(&self, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize(&self, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
                         encoder.encode_unit_struct(#type_name)
                     }
                 }
@@ -45,14 +45,14 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
                 field_indices: _,
             }) => Ok(quote! {
                 #imp {
-                    fn serialize(&self, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize(&self, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
                         let mut encoder = encoder.encode_struct( #type_name, &[
                                 #(
                                     #field_literals
                                 ),*
                             ])?;
                         #(
-                            #serialize_trait::<W>::serialize(&self.#field_idents, encoder.encode_field()?, ctx)?;
+                            #serialize_trait::<W>::serialize(&self.#field_idents, encoder.encode_field()?, ctx.reborrow())?;
                         )*
                         encoder.end()?;
                         ::std::result::Result::Ok(())
@@ -66,10 +66,10 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
                 field_named_idents: _,
             }) => Ok(quote! {
                 #imp {
-                    fn serialize(&self, encoder: #any_encoder_type<'_, W>, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize(&self, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
                         let mut encoder=encoder.encode_tuple_struct( #type_name, #field_count)?;
                         #(
-                            #serialize_trait::<W>::serialize(&self.#field_index_idents, encoder.encode_field()?, ctx)?;
+                            #serialize_trait::<W>::serialize(&self.#field_index_idents, encoder.encode_field()?, ctx.reborrow())?;
                         )*
                         encoder.end()?;
                         #result_type::Ok(())
@@ -101,7 +101,7 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
                             Self::#variant_ident{ #(#field_idents),* } => {
                                 let mut encoder = encoder.encode_struct_variant( #type_name, &[#( #variant_literals ),*], #variant_index, &[#(#field_literals),*])?;
                                 #(
-                                    #serialize_trait::<W>::serialize(#field_idents, encoder.encode_field()?, ctx)?;
+                                    #serialize_trait::<W>::serialize(#field_idents, encoder.encode_field()?, ctx.reborrow())?;
                                 )*
                                 encoder.end()?;
                                 ::std::result::Result::Ok(())
@@ -118,7 +118,7 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
                             Self::#variant_ident(#( #field_named_idents ),*) => {
                                 let mut encoder = encoder.encode_tuple_variant( #type_name, &[#( #variant_literals ),*], #variant_index, #field_count)?;
                                 #(
-                                    #serialize_trait::<W>::serialize(#field_named_idents, encoder.encode_field()?, ctx)?;
+                                    #serialize_trait::<W>::serialize(#field_named_idents, encoder.encode_field()?, ctx.reborrow())?;
                                 )*
                                 encoder.end()?;
                                 ::std::result::Result::Ok(())
@@ -137,7 +137,7 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
             }
             Ok(quote! {
                 #imp {
-                    fn serialize(&self, encoder: #any_encoder_type<'_,W>, ctx: &mut #context_type) -> #result_type<()> {
+                    fn serialize(&self, encoder: #any_encoder_type<'_,W>, mut ctx: #context_type) -> #result_type<()> {
                         match self{
                             #(
                                 #matches
