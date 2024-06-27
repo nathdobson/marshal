@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::sync;
-use std::sync::Arc;
 
 use marshal::context::OwnedContext;
 use marshal_json::decode::full::{JsonDecoder, JsonDecoderBuilder};
@@ -9,9 +8,8 @@ use marshal_shared::de::SharedArcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
 
 use crate::de::DeserializeUpdate;
-use crate::forest::Tree;
+use crate::forest::forest::Tree;
 use crate::ser::{SerializeStream, SerializeUpdate};
-use crate::tree::json::{JsonDeserializeStream, JsonSerializeStream, SerializeUpdateJson};
 
 pub struct Tester<T: SerializeStream> {
     shared_ser_ctx: SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>,
@@ -69,43 +67,6 @@ impl<
         decode_ctx.insert_mut(&mut self.shared_de_ctx);
         JsonDecoderBuilder::new(output.as_bytes())
             .with(|d| self.output.deserialize_update(d, decode_ctx.borrow()))?;
-        Ok(())
-    }
-}
-
-pub struct SharedTester<T> {
-    serializer: JsonSerializeStream<T>,
-    deserializer: JsonDeserializeStream,
-}
-
-impl<
-        T: 'static
-            + Sync
-            + Send
-            + SerializeUpdateJson
-            + SerializeStream
-            + for<'de> DeserializeUpdate<'de, JsonDecoder<'de>>,
-    > SharedTester<T>
-{
-    #[track_caller]
-    pub fn new(value: Arc<Tree<T>>, expected: &str) -> anyhow::Result<(Self, Arc<Tree<T>>)> {
-        let mut serializer = JsonSerializeStream::new(value);
-        let start = serializer.next()?;
-        assert_eq!(start, expected);
-        let (deserializer, output) = JsonDeserializeStream::new(start.as_bytes())?;
-        Ok((
-            SharedTester {
-                serializer,
-                deserializer,
-            },
-            output,
-        ))
-    }
-    #[track_caller]
-    pub fn next(&mut self, expected: &str) -> anyhow::Result<()> {
-        let message = self.serializer.next()?;
-        assert_eq!(message, expected);
-        self.deserializer.next(message.as_bytes())?;
         Ok(())
     }
 }

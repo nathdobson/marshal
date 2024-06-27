@@ -11,7 +11,6 @@ pub mod de;
 pub mod hash_map;
 pub mod prim;
 pub mod ser;
-pub mod tree;
 pub mod version;
 pub mod object_map;
 pub mod tester;

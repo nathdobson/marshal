@@ -1,8 +1,11 @@
 #![deny(unused_must_use)]
 
-use marshal_update::forest::{Forest, ForestRoot, Tree};
-use marshal_update::tester::Tester;
 use std::sync::Arc;
+
+use marshal_update::forest::forest::Forest;
+use marshal_update::forest::forest::ForestRoot;
+use marshal_update::forest::forest::Tree;
+use marshal_update::tester::Tester;
 
 #[test]
 fn test_forest() -> anyhow::Result<()> {
