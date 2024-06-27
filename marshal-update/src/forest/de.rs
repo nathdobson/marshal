@@ -14,7 +14,7 @@ use crate::forest::error::TreeError;
 use crate::forest::forest::{Forest, ForestId, ForestRoot, Tree};
 use crate::ser::DeserializeUpdateDyn;
 
-pub struct ForestDeserializerTable {
+pub(super) struct ForestDeserializerTable {
     forest: ForestId,
     deserializers: HashMap<usize, Box<dyn Sync + Send + Any>>,
 }
@@ -109,7 +109,7 @@ where
 impl<'de, D: Decoder<'de>, T: Deserialize<'de, D>> Deserialize<'de, D> for Tree<T> {
     fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
         let tree = T::deserialize(d, ctx.reborrow())?;
-        Ok(ctx.get_mut::<ForestDeserializerTable>()?.forest.add(tree))
+        Ok(ctx.get_mut::<ForestDeserializerTable>()?.forest.add_raw(tree))
     }
 }
 

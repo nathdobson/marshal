@@ -22,9 +22,8 @@ pub trait DynamicEncoder {
     type SerializeUpdateDyn: 'static + Sync + Send + ?Sized;
 }
 
-pub type ForestSharedSerializeContext =
-    SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>;
-pub struct ForestSerializerTable {
+type ForestSharedSerializeContext = SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>;
+pub(super) struct ForestSerializerTable {
     streamers:
         HashMap<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>, Arc<Tree<dyn SerializeStreamDyn>>>,
     serializers: HashMap<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>, Box<dyn Sync + Send + Any>>,
@@ -90,7 +89,7 @@ where
         e: AnyEncoder<E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
-        let forest=self.forest();
+        let forest = self.forest();
         let ref mut serializer_table = *forest.serializers().borrow_mut();
 
         let mut ctx = ctx.clone_scoped();
