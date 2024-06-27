@@ -27,30 +27,35 @@ pub trait SerializeUpdate<E: Encoder>: Serialize<E> + SerializeStream {
     ) -> anyhow::Result<()>;
 }
 
-pub trait SerializeUpdateDyn<E: Encoder>: 'static + Serialize<E> {
+pub trait SerializeStreamDyn {
     fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + Any>>;
+}
+
+pub trait SerializeUpdateDyn<E: Encoder>: 'static + Serialize<E> + SerializeStreamDyn {
     fn serialize_update_dyn(
         &self,
-        stream: &mut dyn Any,
+        stream: &mut Box<dyn Sync + Send + Any>,
         e: AnyEncoder<E>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
 
+impl<T: SerializeStream<Stream: 'static>> SerializeStreamDyn for T {
+    fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + Any>> {
+        Ok(Box::new(self.start_stream(ctx)?))
+    }
+}
+
 impl<E: Encoder, T: 'static + SerializeUpdate<E> + SerializeStream<Stream: 'static>>
     SerializeUpdateDyn<E> for T
 {
-    fn start_stream_dyn(&self, mut ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + Any>> {
-        Ok(Box::new(self.start_stream(ctx)?))
-    }
-
     fn serialize_update_dyn(
         &self,
-        stream: &mut dyn Any,
+        stream: &mut Box<dyn Sync + Send + Any>,
         e: AnyEncoder<E>,
-        mut ctx: Context,
+        ctx: Context,
     ) -> anyhow::Result<()> {
-        Ok(self.serialize_update(stream.downcast_mut().unwrap(), e, ctx)?)
+        Ok(self.serialize_update((**stream).downcast_mut().unwrap(), e, ctx)?)
     }
 }
 
@@ -68,7 +73,7 @@ impl<'de, D: Decoder<'de>, T: 'static + DeserializeUpdate<'de, D>> DeserializeUp
     fn deserialize_update_dyn(
         &mut self,
         d: AnyDecoder<'_, 'de, D>,
-        mut ctx: Context,
+        ctx: Context,
     ) -> anyhow::Result<()> {
         self.deserialize_update(d, ctx)
     }

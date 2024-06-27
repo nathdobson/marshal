@@ -89,7 +89,7 @@ impl<E: Encoder, K: Eq + Hash + Sync + Send + Clone + Serialize<E>, V: Serialize
 impl<'de, D: Decoder<'de>, K: Eq + Hash + Deserialize<'de, D>, V: Deserialize<'de, D>>
     Deserialize<'de, D> for UpdateHashMap<K, V>
 {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>,  ctx: Context) -> anyhow::Result<Self> {
         Ok(Self::from(HashMap::deserialize(d, ctx)?))
     }
 }

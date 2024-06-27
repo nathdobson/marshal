@@ -10,7 +10,7 @@ pub struct OptionStream<T: SerializeStream> {
 impl<T: SerializeStream> SerializeStream for Option<T> {
     type Stream = OptionStream<T>;
 
-    fn start_stream(&self, mut ctx: Context) -> anyhow::Result<Self::Stream> {
+    fn start_stream(&self,  ctx: Context) -> anyhow::Result<Self::Stream> {
         if let Some(this) = self {
             Ok(OptionStream {
                 old: Some(this.start_stream(ctx)?),

@@ -2,24 +2,24 @@ use std::any::Any;
 use std::sync;
 use std::sync::Arc;
 
-use marshal::context::{Context, OwnedContext};
+use marshal::context::OwnedContext;
 use marshal_json::decode::full::{JsonDecoder, JsonDecoderBuilder};
 use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder};
 use marshal_shared::de::SharedArcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
 
 use crate::de::DeserializeUpdate;
-use crate::ser::{DeserializeUpdateDyn, SerializeUpdateDyn};
+use crate::forest::{Forest, Tree};
+use crate::ser::{DeserializeUpdateDyn, SerializeStream, SerializeUpdateDyn};
 use crate::tree::de::{DeserializeForest, DynamicDecoder};
 use crate::tree::ser::{DynamicEncoder, SerializeForest};
-use crate::tree::{Forest, Tree};
 
-pub trait SerializeUpdateJson: SerializeUpdateDyn<JsonEncoder> {}
+pub trait SerializeUpdateJson: Any + SerializeUpdateDyn<JsonEncoder> {}
 
-impl<T: ?Sized + SerializeUpdateDyn<JsonEncoder>> SerializeUpdateJson for T {}
+impl<T: ?Sized + Any + SerializeUpdateDyn<JsonEncoder>> SerializeUpdateJson for T {}
 
 impl DynamicEncoder for JsonEncoder {
-    type SerializeUpdateDyn = dyn SerializeUpdateJson;
+    type SerializeUpdateDyn = dyn Sync + Send + SerializeUpdateJson;
 }
 type JsonSerializeForest = SerializeForest<dyn SerializeUpdateJson>;
 
@@ -31,7 +31,7 @@ pub struct JsonSerializeStream<T> {
 
 impl<T> JsonSerializeStream<T>
 where
-    T: Sync + Send + SerializeUpdateJson,
+    T: Sync + Send + SerializeUpdateJson + SerializeStream,
 {
     pub fn new(value: Arc<Tree<T>>) -> Self {
         JsonSerializeStream {
@@ -53,9 +53,15 @@ where
     }
 }
 
-pub trait DeserializeUpdateJson: for<'de> DeserializeUpdateDyn<'de, JsonDecoder<'de>> {}
+pub trait DeserializeUpdateJson:
+    Sync + Send + Any + for<'de> DeserializeUpdateDyn<'de, JsonDecoder<'de>>
+{
+}
 
-impl<T: ?Sized + for<'de> DeserializeUpdateDyn<'de, JsonDecoder<'de>>> DeserializeUpdateJson for T {}
+impl<T: ?Sized + Sync + Send + for<'de> DeserializeUpdateDyn<'de, JsonDecoder<'de>>>
+    DeserializeUpdateJson for T
+{
+}
 
 pub type JsonDeserializeForest = DeserializeForest<dyn DeserializeUpdateJson>;
 pub struct JsonDeserializeStream {

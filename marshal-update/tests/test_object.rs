@@ -1,12 +1,13 @@
 #![deny(unused_must_use)]
 
 #![feature(arbitrary_self_types)]
-use marshal_bin::bin_object;
+
 use std::fmt::Debug;
 
+use marshal_bin::bin_object;
 use marshal_derive::{Deserialize, Serialize};
 use marshal_json::json_object;
-use marshal_object::{derive_box_object, derive_variant, AsDiscriminant};
+use marshal_object::{AsDiscriminant, derive_box_object, derive_variant};
 use marshal_pointer::RawAny;
 use marshal_update::object_map::ObjectMap;
 use marshal_update::tester::Tester;

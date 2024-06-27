@@ -2,7 +2,6 @@ use std::any::TypeId;
 use std::collections::{HashMap, HashSet};
 use std::ops::CoerceUnsized;
 
-use crate::de::DeserializeUpdate;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
@@ -11,8 +10,9 @@ use marshal::ser::Serialize;
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
-use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::de::DeserializeUpdate;
 use crate::ser::{SerializeStream, SerializeUpdate};
+use crate::ser::set_channel::{SetPublisher, SetSubscriber};
 
 pub struct ObjectMap<C: Object> {
     map: HashMap<TypeId, C::Pointer<C::Dyn>>,

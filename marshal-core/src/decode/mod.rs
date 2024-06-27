@@ -6,8 +6,10 @@ use std::marker::PhantomData;
 use crate::{Primitive, PrimitiveType};
 
 pub mod depth_budget;
-pub mod poison;
 pub mod newtype;
+pub mod poison;
+mod helper;
+mod polonius;
 
 // pub mod depth_budget;
 // pub mod poison;
@@ -307,6 +309,8 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> AnyDecoder<'p, 'de, D> {
     }
 }
 
+
+
 impl<'p, 'de, D: ?Sized + Decoder<'de>> SeqDecoder<'p, 'de, D> {
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<AnyDecoder<'p2, 'de, D>>> {
         if let Some(any) = self.this.decode_seq_next(self.seq.as_mut().unwrap())? {
@@ -501,6 +505,16 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> DecoderView<'p, 'de, D> {
         match self {
             DecoderView::None => Ok(None),
             DecoderView::Some(x) => Ok(Some(x)),
+            unexpected => unexpected.mismatch("option")?,
+        }
+    }
+    pub fn try_into_identifier(
+        self,
+        ids: &'static [&'static str],
+    ) -> anyhow::Result<Option<usize>> {
+        match self {
+            DecoderView::Primitive(n) => Ok(Some(n.try_into()?)),
+            DecoderView::String(s) => Ok(ids.iter().position(|x| **x == s)),
             unexpected => unexpected.mismatch("option")?,
         }
     }

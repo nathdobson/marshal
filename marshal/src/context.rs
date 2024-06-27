@@ -1,17 +1,27 @@
-use std::any::{type_name, TypeId};
-use std::borrow::Cow::Owned;
-use std::collections::HashMap;
 use std::{
     any::Any,
     fmt::{Display, Formatter},
 };
+use std::any::{type_name, TypeId};
+use std::collections::HashMap;
+use std::fmt::Debug;
+
+trait ContextEntry: Any {
+    fn type_name_dyn(&self) -> &'static str;
+}
+
+impl<T: 'static> ContextEntry for T {
+    fn type_name_dyn(&self) -> &'static str {
+        type_name::<T>()
+    }
+}
 
 pub struct MutContext<'ctx> {
-    map: HashMap<TypeId, &'ctx mut dyn Any>,
+    map: HashMap<TypeId, &'ctx mut dyn ContextEntry>,
 }
 
 pub struct ConstContext<'ctx> {
-    map: HashMap<TypeId, &'ctx dyn Any>,
+    map: HashMap<TypeId, &'ctx dyn ContextEntry>,
 }
 
 pub struct OwnedContext<'ctx> {
@@ -61,22 +71,38 @@ impl<'ctx> OwnedContext<'ctx> {
     }
 }
 
-impl<'map, 'ctx> Context<'map, 'ctx> {
+impl<'ctx> ConstContext<'ctx> {
     pub fn get_const<T: Any>(&self) -> Result<&T, GetError> {
-        Ok(self
-            .const_ctx
+        Ok(((*self
             .map
             .get(&TypeId::of::<T>())
-            .ok_or_else(|| GetError(type_name::<T>()))?
+            .ok_or_else(|| GetError(type_name::<T>()))?) as &dyn Any)
             .downcast_ref()
             .unwrap())
     }
+}
+
+impl<'map, 'ctx> Context<'map, 'ctx> {
+    pub fn get_const<T: Any>(&self) -> Result<&T, GetError> {
+        self.const_ctx.get_const()
+    }
+    pub fn get_const_reborrow<'map2, T: Any>(
+        &'map2 mut self,
+    ) -> Result<(&'map2 T, Context<'map2, 'ctx>), GetError> {
+        Ok((
+            self.const_ctx.get_const()?,
+            Context {
+                mut_ctx: &mut *self.mut_ctx,
+                const_ctx: &*self.const_ctx,
+            },
+        ))
+    }
     pub fn get_mut<T: Any>(self) -> Result<&'map mut T, GetError> {
-        Ok(self
+        Ok(((*self
             .mut_ctx
             .map
             .get_mut(&TypeId::of::<T>())
-            .ok_or_else(|| GetError(type_name::<T>()))?
+            .ok_or_else(|| GetError(type_name::<T>()))?) as &mut dyn Any)
             .downcast_mut()
             .unwrap())
     }
@@ -128,3 +154,32 @@ impl Display for GetError {
 }
 
 impl std::error::Error for GetError {}
+
+impl<'map, 'ctx> Debug for Context<'map, 'ctx> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut f = f.debug_struct("Context");
+        f.field("const", &self.const_ctx);
+        f.field("mut", &self.mut_ctx);
+        f.finish()
+    }
+}
+
+impl<'ctx> Debug for ConstContext<'ctx> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut f = f.debug_list();
+        for x in self.map.values() {
+            f.entry(&(**x).type_name_dyn());
+        }
+        f.finish()
+    }
+}
+
+impl<'ctx> Debug for MutContext<'ctx> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut f = f.debug_list();
+        for x in self.map.values() {
+            f.entry(&(**x).type_name_dyn());
+        }
+        f.finish()
+    }
+}

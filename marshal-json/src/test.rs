@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use marshal::context::{Context, OwnedContext};
+use marshal::context::OwnedContext;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};

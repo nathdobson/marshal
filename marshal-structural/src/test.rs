@@ -1,4 +1,4 @@
-use marshal::context::{Context, OwnedContext};
+use marshal::context::OwnedContext;
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
 

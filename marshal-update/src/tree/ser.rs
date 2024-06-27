@@ -1,9 +1,8 @@
+use std::{mem, sync};
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
 use std::marker::Unsize;
 use std::sync::Arc;
-use std::{mem, sync};
 
 use by_address::ByThinAddress;
 use parking_lot::Mutex;
@@ -12,22 +11,13 @@ use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::rc::{SerializeArc, SerializeArcWeak};
 use marshal::ser::Serialize;
+use marshal_pointer::Address;
 use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
-use marshal_pointer::DerefRaw;
 use marshal_shared::ser::SharedSerializeContext;
 
 use crate::ser::SerializeUpdateDyn;
 use crate::tree::{Tree, TreeError};
-
-#[derive(Eq, Ord, PartialEq, PartialOrd, Hash)]
-pub(crate) struct Address(*const ());
-
-impl<'a, T: ?Sized> From<&'a ArcRef<T>> for Address {
-    fn from(value: &'a ArcRef<T>) -> Self {
-        Address(value.deref_raw() as *const T as *const ())
-    }
-}
 
 type TreeSharedSerializeContext = SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>;
 
@@ -47,7 +37,7 @@ impl<E: Encoder, T: Serialize<E>> Serialize<E> for Tree<T> {
 }
 
 pub trait DynamicEncoder {
-    type SerializeUpdateDyn: 'static + ?Sized;
+    type SerializeUpdateDyn: 'static + Sync + Send + ?Sized;
 }
 
 impl<E, T> SerializeArc<E> for Tree<T>
@@ -60,8 +50,12 @@ where
         e: AnyEncoder<'_, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
-        let forest = ctx.reborrow().get_mut::<SerializeForest<E::SerializeUpdateDyn>>()?;
-        forest.serializers.insert(this.into(), this.arc());
+        let forest = ctx
+            .reborrow()
+            .get_mut::<SerializeForest<E::SerializeUpdateDyn>>()?;
+        forest
+            .serializers
+            .insert(Address::from_arc_ref(this), this.arc());
         this.serialize_queue.get_or_init(|| forest.queue.clone());
         {
             let ref mut state = *this.state.borrow_mut();
@@ -107,10 +101,11 @@ impl<S: ?Sized> SerializeForest<S> {
         let mut e = e.encode_map(None)?;
         for tree in queue {
             let tree = tree.0;
-            let serializer = ctx.reborrow()
+            let serializer = ctx
+                .reborrow()
                 .get_mut::<Self>()?
                 .serializers
-                .get(&Address(&*tree as *const Tree<dyn Any> as *const ()))
+                .get(&Address::from_arc(&tree))
                 .unwrap()
                 .clone();
             let ref mut state = *serializer.state.borrow_mut();
@@ -120,7 +115,7 @@ impl<S: ?Sized> SerializeForest<S> {
             let id = TreeSharedSerializeContext::get_id(ctx.reborrow(), Arc::downgrade(&tree))?
                 .ok_or(TreeError::MissingId)?;
             id.serialize(e.encode_key()?, ctx.reborrow())?;
-            value.serialize_update_dyn(&mut **stream, e.encode_value()?, ctx.reborrow())?;
+            value.serialize_update_dyn(stream, e.encode_value()?, ctx.reborrow())?;
             e.end()?;
         }
         e.end()?;

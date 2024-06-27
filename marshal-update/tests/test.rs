@@ -4,11 +4,10 @@ use std::sync;
 use std::sync::Arc;
 
 use marshal_derive::{Deserialize, Serialize};
-use marshal_update::forest::ForestRoot;
+use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
 use marshal_update::hash_map::UpdateHashMap;
 use marshal_update::tester::{SharedTester, Tester};
 use marshal_update::tree::{Forest, Tree};
-use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
 
 #[test]
 fn test_simple() -> anyhow::Result<()> {

@@ -1,7 +1,8 @@
+use std::{mem, rc, sync};
 use std::any::Any;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::{mem, rc, sync};
+use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
@@ -10,15 +11,15 @@ use marshal::ser::Serialize;
 use marshal::Serialize;
 use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
+use marshal_pointer::DerefRaw;
 use marshal_pointer::rc_ref::RcRef;
 use marshal_pointer::rc_weak_ref::RcWeakRef;
-use marshal_pointer::DerefRaw;
 
 struct ByAddress<T>(T);
 
 impl<T: DerefRaw> Hash for ByAddress<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.deref_raw().hash(state)
+        (self.0.deref_raw() as *const ()).hash(state)
     }
 }
 
@@ -50,7 +51,7 @@ impl<WeakAny> Default for SharedSerializeContext<WeakAny> {
 }
 
 impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
-    pub fn get_id(mut ctx: Context, weak: WeakAny) -> anyhow::Result<Option<usize>> {
+    pub fn get_id(ctx: Context, weak: WeakAny) -> anyhow::Result<Option<usize>> {
         let this = ctx.get_mut::<Self>()?;
         if let Some(this) = this.shared.get(&ByAddress(weak)) {
             Ok(Some(this.id))
@@ -59,7 +60,7 @@ impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
         }
     }
     fn get_state<'a, 'ctx>(
-        mut ctx: Context<'a, 'ctx>,
+        ctx: Context<'a, 'ctx>,
         weak: WeakAny,
     ) -> anyhow::Result<&'a mut PointerState> {
         let this = ctx.get_mut::<Self>()?;
@@ -107,33 +108,41 @@ struct Shared<'a, T> {
 pub fn serialize_rc<E: Encoder, T: 'static + Serialize<E>>(
     ptr: &RcRef<T>,
     e: AnyEncoder<'_, E>,
-    mut ctx: Context,
+    ctx: Context,
 ) -> anyhow::Result<()> {
     SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_strong(&**ptr, ptr.weak(), e, ctx)
 }
 
-pub fn serialize_arc<E: Encoder, T: 'static + Serialize<E>>(
+pub fn serialize_arc<E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
     ptr: &ArcRef<T>,
     e: AnyEncoder<'_, E>,
-    mut ctx: Context,
+    ctx: Context,
 ) -> anyhow::Result<()> {
-    SharedSerializeContext::<sync::Weak<dyn Any>>::serialize_strong(&**ptr, ptr.weak(), e, ctx)
+    SharedSerializeContext::<sync::Weak<dyn Sync + Send + Any>>::serialize_strong(
+        &**ptr,
+        ptr.weak(),
+        e,
+        ctx,
+    )
 }
 
 pub fn serialize_rc_weak<E: Encoder, T: 'static + Serialize<E>>(
     ptr: &RcWeakRef<T>,
     e: AnyEncoder<'_, E>,
-    mut ctx: Context,
+    ctx: Context,
 ) -> anyhow::Result<()> {
     SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_weak(ptr.weak(), e, ctx)
 }
 
-pub fn serialize_arc_weak<E: Encoder, T: 'static + Serialize<E>>(
+pub fn serialize_arc_weak<E: Encoder, T: 'static + ?Sized + Sync + Send>(
     ptr: &ArcWeakRef<T>,
     e: AnyEncoder<'_, E>,
-    mut ctx: Context,
-) -> anyhow::Result<()> {
-    SharedSerializeContext::<sync::Weak<dyn Any>>::serialize_weak(ptr.weak(), e, ctx)
+    ctx: Context,
+) -> anyhow::Result<()>
+where
+    sync::Weak<T>: CoerceUnsized<sync::Weak<dyn Sync + Send + Any>>,
+{
+    SharedSerializeContext::<sync::Weak<dyn Sync + Send + Any>>::serialize_weak(ptr.weak(), e, ctx)
 }
 
 #[macro_export]

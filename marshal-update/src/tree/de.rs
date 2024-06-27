@@ -1,16 +1,15 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::marker::{PhantomData, Unsize};
 use std::sync::{Arc, Weak};
 
 use marshal::context::Context;
-use marshal::de::rc::{DeserializeArc, DeserializeArcWeak};
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
-use marshal_derive::Deserialize;
+use marshal::de::rc::{DeserializeArc, DeserializeArcWeak};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 use marshal_shared::de::{deserialize_arc, deserialize_arc_weak};
 
 use crate::ser::DeserializeUpdateDyn;
-use crate::tree::id::ForestId;
 use crate::tree::{Forest, Tree, TreeError};
 
 pub struct DeserializeForest<S: ?Sized> {
@@ -63,7 +62,7 @@ impl<'de, D: Decoder<'de> + DynamicDecoder, T: 'static + Sync + Send + Deseriali
 }
 
 pub trait DynamicDecoder {
-    type DeserializeUpdateDyn: 'static + ?Sized;
+    type DeserializeUpdateDyn: 'static + ?Sized + Sync + Send + Any + Unsize<dyn Sync + Send + Any>;
 }
 
 impl<S: ?Sized> DeserializeForest<S> {
@@ -83,7 +82,8 @@ impl<S: ?Sized> DeserializeForest<S> {
         let mut d = d.decode(DecodeHint::Map)?.try_into_map()?;
         while let Some(mut d) = d.decode_next()? {
             let id = usize::deserialize(d.decode_key()?, ctx.reborrow())?;
-            let value = ctx.reborrow()
+            let value = ctx
+                .reborrow()
                 .get_mut::<DeserializeForest<S>>()?
                 .entries
                 .get(&id)

@@ -19,19 +19,21 @@ use std::any::{Any, TypeId};
 use std::rc::Rc;
 use std::sync::Arc;
 
+use crate::arc_ref::ArcRef;
+
 mod arc_inner;
 pub mod arc_ref;
 pub mod arc_weak_ref;
 pub mod boxed;
 pub mod empty_arc;
+pub mod empty_rc;
 pub mod flat;
+mod global_uninit;
 mod rc_inner;
 pub mod rc_ref;
 pub mod rc_weak_ref;
 pub mod unique_arc;
 pub mod unique_rc;
-pub mod empty_rc;
-mod global_uninit;
 
 pub trait AsFlatRef {
     type FlatRef: ?Sized;
@@ -98,5 +100,20 @@ pub fn rc_weak_downcast<T: 'static>(
         } else {
             Err(weak)
         }
+    }
+}
+
+#[derive(Eq, Ord, PartialEq, PartialOrd, Hash, Copy, Clone)]
+pub struct Address(*const ());
+
+unsafe impl Sync for Address {}
+unsafe impl Send for Address {}
+
+impl Address {
+    pub fn from_arc<T: ?Sized>(arc: &Arc<T>) -> Self {
+        Address(arc.deref_raw() as *const ())
+    }
+    pub fn from_arc_ref<T: ?Sized>(r: &ArcRef<T>) -> Self {
+        Address(r.deref_raw() as *const ())
     }
 }

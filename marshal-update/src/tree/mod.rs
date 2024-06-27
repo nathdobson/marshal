@@ -2,19 +2,17 @@ use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::Unsize;
 use std::ops::{Deref, DerefMut};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use crate::tree::id::ForestId;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use by_address::ByThinAddress;
-use marshal_derive::Deserialize;
 use safe_once::sync::OnceLock;
 
+use crate::tree::id::ForestId;
 use crate::tree::ser::SerializeQueue;
 
 pub mod bin;
-mod de;
+pub mod de;
 mod id;
 pub mod json;
 pub mod ser;
@@ -53,7 +51,7 @@ pub struct TreeState<T: ?Sized> {
 }
 
 pub struct Tree<T: ?Sized> {
-    forest_id: ForestId,
+    _forest_id: ForestId,
     serialize_queue: OnceLock<Arc<SerializeQueue>>,
     state: AtomicRefCell<TreeState<T>>,
 }
@@ -93,7 +91,7 @@ impl<T: Sync + Send + ?Sized> Tree<T> {
         T: Sized,
     {
         Tree {
-            forest_id,
+            _forest_id: forest_id,
             serialize_queue: OnceLock::new(),
             state: AtomicRefCell::new(TreeState {
                 stream: None,

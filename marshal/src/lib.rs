@@ -9,6 +9,8 @@
 #![feature(adt_const_params)]
 #![allow(incomplete_features)]
 #![feature(macro_metavar_expr)]
+#![feature(debug_closure_helpers)]
+#![feature(trait_upcasting)]
 
 pub use marshal_core::*;
 pub use marshal_derive::Deserialize;

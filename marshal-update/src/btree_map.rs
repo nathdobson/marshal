@@ -87,7 +87,7 @@ impl<E: Encoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate
 impl<'de, D: Decoder<'de>, K: Ord + Deserialize<'de, D>, V: Deserialize<'de, D>> Deserialize<'de, D>
     for UpdateBTreeMap<K, V>
 {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         Ok(Self::from(BTreeMap::deserialize(d, ctx)?))
     }
 }
