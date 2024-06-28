@@ -2,10 +2,10 @@ use std::slice;
 
 use crate::Primitive;
 
-pub mod poison;
 pub mod newtype;
+pub mod poison;
 
-pub trait Encoder {
+pub trait Encoder: 'static {
     type AnyEncoder;
     type SomeCloser;
     type TupleEncoder;

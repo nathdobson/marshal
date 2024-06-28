@@ -546,6 +546,7 @@ dependencies = [
  "marshal-pointer",
  "num-derive",
  "num-traits",
+ "parking_lot 0.12.3",
  "safe-once",
  "safe-once-map",
  "vu128",

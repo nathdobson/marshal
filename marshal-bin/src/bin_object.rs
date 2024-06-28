@@ -24,10 +24,10 @@ pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
         d: AnyDecoder<'p, 'de, BinDecoder<'de, 's>>,
         ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
-    fn bin_serialize_variant<'p, 's>(
+    fn bin_serialize_variant<'p>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: AnyEncoder<'p, BinEncoder<'s>>,
+        e: AnyEncoder<'p, BinEncoder>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
@@ -53,14 +53,14 @@ where
     fn bin_serialize_variant<'p, 's>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: AnyEncoder<'p, BinEncoder<'s>>,
+        e: AnyEncoder<'p, BinEncoder>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let upcast = this as &<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef;
         let downcast = upcast
             .downcast_ref()
             .expect("failed to downcast for serializer");
-        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<BinEncoder<'s>>>::serialize(
+        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<BinEncoder>>::serialize(
             downcast, e, ctx,
         )
     }

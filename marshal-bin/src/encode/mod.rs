@@ -1,25 +1,37 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
 
 use by_address::ByAddress;
+use lock_api::ArcMutexGuard;
+use parking_lot::{Mutex, RawMutex};
 
 use marshal_core::encode::Encoder;
 use marshal_core::Primitive;
 
-use crate::{TypeTag, VU128_MAX_PADDING};
 use crate::to_from_vu128::{Array, ToFromVu128};
+use crate::{TypeTag, VU128_MAX_PADDING};
 
 pub mod full;
 
-pub struct BinEncoderSchema {
+struct BinEncoderSchemaInner {
     enum_def_indexes: HashMap<ByAddress<&'static [&'static str]>, usize>,
+}
+
+pub struct BinEncoderSchema {
+    inner: Arc<Mutex<BinEncoderSchemaInner>>,
 }
 
 impl BinEncoderSchema {
     pub fn new() -> Self {
         BinEncoderSchema {
-            enum_def_indexes: HashMap::new(),
+            inner: Arc::new(Mutex::new(BinEncoderSchemaInner {
+                enum_def_indexes: HashMap::new(),
+            })),
         }
+    }
+    fn lock(&self) -> ArcMutexGuard<RawMutex, BinEncoderSchemaInner> {
+        self.inner.try_lock_arc().unwrap()
     }
 }
 
@@ -38,16 +50,16 @@ impl Display for BinEncoderError {
 
 impl std::error::Error for BinEncoderError {}
 
-pub struct SimpleBinEncoder<'s> {
+pub struct SimpleBinEncoder {
     output: Vec<u8>,
-    schema: &'s mut BinEncoderSchema,
+    schema: ArcMutexGuard<RawMutex, BinEncoderSchemaInner>,
 }
 
-impl<'s> SimpleBinEncoder<'s> {
-    pub fn new(schema: &mut BinEncoderSchema) -> SimpleBinEncoder {
+impl SimpleBinEncoder {
+    pub fn new(schema: &BinEncoderSchema) -> SimpleBinEncoder {
         SimpleBinEncoder {
             output: vec![],
-            schema,
+            schema: schema.inner.try_lock_arc().unwrap(),
         }
     }
     pub fn end(mut self) -> anyhow::Result<Vec<u8>> {
@@ -105,7 +117,7 @@ impl<'s> SimpleBinEncoder<'s> {
     }
 }
 
-impl<'s> Encoder for SimpleBinEncoder<'s> {
+impl Encoder for SimpleBinEncoder {
     type AnyEncoder = ();
     type SomeCloser = ();
     type TupleEncoder = ();

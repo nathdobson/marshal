@@ -6,21 +6,21 @@ use marshal_core::encode::poison::PoisonEncoder;
 use crate::encode::{BinEncoderSchema, SimpleBinEncoder};
 use crate::SerializeBin;
 
-pub struct BinEncoder<'s>(PoisonEncoder<SimpleBinEncoder<'s>>);
+pub struct BinEncoder(PoisonEncoder<SimpleBinEncoder>);
 
-derive_encoder_for_newtype!(BinEncoder<'s>(PoisonEncoder<SimpleBinEncoder<'s>>));
+derive_encoder_for_newtype!(BinEncoder(PoisonEncoder<SimpleBinEncoder>));
 
-pub struct BinEncoderBuilder<'s> {
-    inner: BinEncoder<'s>
+pub struct BinEncoderBuilder {
+    inner: BinEncoder
 }
 
-impl<'s> BinEncoderBuilder<'s> {
-    pub fn new(schema: &'s mut BinEncoderSchema) -> Self {
+impl BinEncoderBuilder {
+    pub fn new(schema: &BinEncoderSchema) -> Self {
         BinEncoderBuilder {
             inner: BinEncoder(PoisonEncoder::new(SimpleBinEncoder::new(schema))),
         }
     }
-    pub fn build<'w>(&'w mut self) -> AnyEncoder<'w, BinEncoder<'s>> {
+    pub fn build<'w>(&'w mut self) -> AnyEncoder<'w, BinEncoder> {
         let any = self.inner.0.start(());
         AnyEncoder::new(&mut self.inner, any)
     }

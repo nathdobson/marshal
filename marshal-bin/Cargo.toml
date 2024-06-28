@@ -16,6 +16,7 @@ lock_api = "0.4.12"
 marshal = { workspace = true }
 marshal-object = {workspace=true}
 marshal-pointer = {workspace=true}
+parking_lot = {workspace=true,features=["arc_lock"]}
 
 [dev-dependencies]
 marshal-derive = { workspace = true }

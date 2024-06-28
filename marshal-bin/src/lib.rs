@@ -70,5 +70,5 @@ pub enum TypeTag {
     Some = 26,
 }
 
-pub trait SerializeBin = for<'s> Serialize<BinEncoder<'s>>;
+pub trait SerializeBin = for<'s> Serialize<BinEncoder>;
 pub trait DeserializeBin<'de> = for<'s> Deserialize<'de, BinDecoder<'de, 's>>;
