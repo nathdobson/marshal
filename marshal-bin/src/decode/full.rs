@@ -7,17 +7,17 @@ use marshal_core::derive_decoder_for_newtype;
 use crate::decode::{BinAnyDecoder, BinDecoderSchema, SimpleBinDecoder};
 use crate::DeserializeBin;
 
-pub struct BinDecoder<'de, 's>(PoisonDecoder<DepthBudgetDecoder<SimpleBinDecoder<'de, 's>>>);
+pub struct BinDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleBinDecoder<'de>>>);
 
-derive_decoder_for_newtype!(BinDecoder<'de, 's>(PoisonDecoder<DepthBudgetDecoder<SimpleBinDecoder<'de, 's>>>));
+derive_decoder_for_newtype!(BinDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleBinDecoder<'de>>>));
 
-pub struct BinDecoderBuilder<'de, 's> {
-    inner: BinDecoder<'de, 's>,
+pub struct BinDecoderBuilder<'de> {
+    inner: BinDecoder<'de>,
     depth_budget: usize,
 }
 
-impl<'de, 's> BinDecoderBuilder<'de, 's> {
-    pub fn new(input: &'de [u8], schema: &'s mut BinDecoderSchema) -> Self {
+impl<'de> BinDecoderBuilder<'de> {
+    pub fn new(input: &'de [u8], schema: &BinDecoderSchema) -> Self {
         BinDecoderBuilder {
             inner: BinDecoder(PoisonDecoder::new(DepthBudgetDecoder::new(
                 SimpleBinDecoder::new(input, schema),
@@ -25,7 +25,7 @@ impl<'de, 's> BinDecoderBuilder<'de, 's> {
             depth_budget: 100,
         }
     }
-    pub fn build<'p>(&'p mut self) -> AnyDecoder<'p, 'de, BinDecoder<'de, 's>> {
+    pub fn build<'p>(&'p mut self) -> AnyDecoder<'p, 'de, BinDecoder<'de>> {
         let any = self.inner.0.start(WithDepthBudget::new(
             self.depth_budget,
             BinAnyDecoder::default(),

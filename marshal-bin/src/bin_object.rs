@@ -19,9 +19,9 @@ use crate::SerializeBin;
 pub trait SerializeDyn = SerializeBin;
 
 pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
-    fn bin_deserialize_variant<'p, 'de, 's>(
+    fn bin_deserialize_variant<'p, 'de>(
         &self,
-        d: AnyDecoder<'p, 'de, BinDecoder<'de, 's>>,
+        d: AnyDecoder<'p, 'de, BinDecoder<'de>>,
         ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn bin_serialize_variant<'p>(
@@ -34,7 +34,7 @@ pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
 
 impl<O: Object, V: 'static> DeserializeVariantBin<O> for PhantomData<fn() -> V>
 where
-    O::Pointer<V>: for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
+    O::Pointer<V>: for<'de> Deserialize<'de, BinDecoder<'de>>,
     O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
@@ -42,9 +42,9 @@ where
         DowncastRef<<O::Pointer<V> as AsFlatRef>::FlatRef>,
     <O::Pointer<V> as AsFlatRef>::FlatRef: SerializeBin,
 {
-    fn bin_deserialize_variant<'p, 'de, 's>(
+    fn bin_deserialize_variant<'p, 'de>(
         &self,
-        d: AnyDecoder<'p, 'de, BinDecoder<'de, 's>>,
+        d: AnyDecoder<'p, 'de, BinDecoder<'de>>,
         mut ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(<O::Pointer<V>>::deserialize(d, ctx)?)
@@ -73,7 +73,7 @@ impl<O: Object> DeserializeProvider for FormatDeserializeProvider<O> {}
 impl<O: Object, V: 'static> DeserializeVariantProvider<V> for FormatDeserializeProvider<O>
 where
     O::Pointer<V>:
-        CoerceUnsized<O::Pointer<O::Dyn>> + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
+        CoerceUnsized<O::Pointer<O::Dyn>> + for<'de> Deserialize<'de, BinDecoder<'de>>,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
     <O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
@@ -94,20 +94,20 @@ macro_rules! bin_object {
             static DESERIALIZERS: $crate::reexports::safe_once::sync::LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::bin_object::DeserializeVariantBin<$carrier>>>> =
                     $crate::reexports::safe_once::sync::LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
 
-            impl<'de,'s> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::BinDecoder<'de,'s>> for $carrier {
+            impl<'de> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::BinDecoder<'de>> for $carrier {
                 fn deserialize_variant<'p>(
                     disc: usize,
-                    d: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, $crate::decode::full::BinDecoder<'de,'s>>,
+                    d: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, $crate::decode::full::BinDecoder<'de>>,
                     mut ctx: $crate::reexports::marshal::context::Context,
                 ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::reexports::marshal_object::Object>::Pointer<<$carrier as $crate::reexports::marshal_object::Object>::Dyn>> {
                     DESERIALIZERS[disc].bin_deserialize_variant(d, ctx)
                 }
             }
-            impl<'s> $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::BinEncoder<'s>> for $carrier {
+            impl $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::BinEncoder> for $carrier {
                 fn serialize_variant(
                     this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc: usize,
-                    e: $crate::reexports::marshal::encode::AnyEncoder<'_,$crate::encode::full::BinEncoder<'s>>,
+                    e: $crate::reexports::marshal::encode::AnyEncoder<'_,$crate::encode::full::BinEncoder>,
                     mut ctx: $crate::reexports::marshal::context::Context
                 ) -> $crate::reexports::anyhow::Result<()> {
                     DESERIALIZERS[disc].bin_serialize_variant(this, e, ctx)

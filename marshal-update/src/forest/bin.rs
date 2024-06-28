@@ -8,25 +8,22 @@ use crate::ser::{DeserializeUpdateDyn, SerializeUpdateDyn};
 
 pub trait SerializeUpdateBin: Sync + Send + for<'s> SerializeUpdateDyn<BinEncoder> {}
 
-impl<T: ?Sized + Sync + Send + for<'s> SerializeUpdateDyn<BinEncoder>> SerializeUpdateBin
-    for T
-{
-}
+impl<T: ?Sized + Sync + Send + for<'s> SerializeUpdateDyn<BinEncoder>> SerializeUpdateBin for T {}
 
 impl<'s> DynamicEncoder for BinEncoder {
     type SerializeUpdateDyn = dyn SerializeUpdateBin;
 }
 
 pub trait DeserializeUpdateBin:
-    Sync + Send + Any + for<'de, 's> DeserializeUpdateDyn<'de, BinDecoder<'de, 's>>
+    Sync + Send + Any + for<'de> DeserializeUpdateDyn<'de, BinDecoder<'de>>
 {
 }
 
-impl<T: ?Sized + Sync + Send + for<'de, 's> DeserializeUpdateDyn<'de, BinDecoder<'de, 's>>>
+impl<T: ?Sized + Sync + Send + for<'de> DeserializeUpdateDyn<'de, BinDecoder<'de>>>
     DeserializeUpdateBin for T
 {
 }
 
-impl<'de, 's> DynamicDecoder for BinDecoder<'de, 's> {
+impl<'de> DynamicDecoder for BinDecoder<'de> {
     type DeserializeUpdateDyn = dyn DeserializeUpdateBin;
 }

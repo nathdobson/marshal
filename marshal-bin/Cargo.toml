@@ -17,6 +17,7 @@ marshal = { workspace = true }
 marshal-object = {workspace=true}
 marshal-pointer = {workspace=true}
 parking_lot = {workspace=true,features=["arc_lock"]}
+id-vec = {workspace=true}
 
 [dev-dependencies]
 marshal-derive = { workspace = true }

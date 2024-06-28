@@ -434,6 +434,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
 
 [[package]]
+name = "id-vec"
+version = "0.5.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c9c16dab9e3409c9b131c028e63f51b1bf7be3735d8b285de46ffdcacf7b718"
+
+[[package]]
 name = "inventory"
 version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -538,6 +544,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "by_address",
+ "id-vec",
  "lock_api 0.4.12",
  "marshal",
  "marshal-core",

@@ -1,24 +1,28 @@
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
 
 use by_address::ByAddress;
+use id_vec::{Id, IdVec};
+use lock_api::ArcMutexGuard;
 use num_traits::FromPrimitive;
-use safe_once_map::cell::OnceCellMap;
+use parking_lot::{Mutex, RawMutex};
 
+use marshal_core::decode::{DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
 
-use crate::{TypeTag, VU128_MAX_PADDING};
 use crate::to_from_vu128::{Array, ToFromVu128};
-use crate::util::StableCellVec;
+use crate::{TypeTag, VU128_MAX_PADDING};
 
 pub mod full;
 
 type EnumDefNative = &'static [&'static str];
 
+#[derive(Copy, Clone)]
 enum EnumDefKey {
     Native(usize),
-    Foreign(String),
+    Foreign(Id<String>),
 }
 
 struct EnumDefTranslation {
@@ -27,25 +31,35 @@ struct EnumDefTranslation {
 
 struct EnumDefForeign {
     fields: Vec<String>,
-    default_translation: EnumDefTranslation,
-    custom_translation: OnceCellMap<ByAddress<EnumDefNative>, EnumDefTranslation>,
+    default_translation: Id<EnumDefTranslation>,
+    custom_translation: HashMap<ByAddress<EnumDefNative>, Id<EnumDefTranslation>>,
+}
+
+struct BinDecoderSchemaInner {
+    strings: IdVec<String>,
+    translations: IdVec<EnumDefTranslation>,
+    foreign: IdVec<EnumDefForeign>,
 }
 
 pub struct BinDecoderSchema {
-    enum_defs: StableCellVec<EnumDefForeign>,
+    inner: Arc<Mutex<BinDecoderSchemaInner>>,
 }
 
 impl BinDecoderSchema {
     pub fn new() -> Self {
         BinDecoderSchema {
-            enum_defs: StableCellVec::new(),
+            inner: Arc::new(Mutex::new(BinDecoderSchemaInner {
+                strings: IdVec::new(),
+                translations: IdVec::new(),
+                foreign: IdVec::new(),
+            })),
         }
     }
 }
 
-pub struct SimpleBinDecoder<'de, 's> {
+pub struct SimpleBinDecoder<'de> {
     content: &'de [u8],
-    schema: &'s BinDecoderSchema,
+    schema: ArcMutexGuard<RawMutex, BinDecoderSchemaInner>,
 }
 
 #[derive(Debug)]
@@ -73,11 +87,11 @@ impl Display for BinDecoderError {
 
 impl std::error::Error for BinDecoderError {}
 
-impl<'de, 's> SimpleBinDecoder<'de, 's> {
-    pub fn new(data: &'de [u8], schema: &'s mut BinDecoderSchema) -> SimpleBinDecoder<'de, 's> {
+impl<'de> SimpleBinDecoder<'de> {
+    pub fn new(data: &'de [u8], schema: &BinDecoderSchema) -> SimpleBinDecoder<'de> {
         SimpleBinDecoder {
             content: data,
-            schema,
+            schema: schema.inner.try_lock_arc().unwrap(),
         }
     }
     pub fn end(self) -> anyhow::Result<()> {
@@ -91,7 +105,7 @@ impl<'de, 's> SimpleBinDecoder<'de, 's> {
     }
 }
 
-impl<'de, 's> SimpleBinDecoder<'de, 's> {
+impl<'de> SimpleBinDecoder<'de> {
     fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
         Ok(self.content.take(..count).ok_or(BinDecoderError::Eof)?)
     }
@@ -123,56 +137,63 @@ impl<'de, 's> SimpleBinDecoder<'de, 's> {
             .collect::<anyhow::Result<Vec<_>>>()?;
         let def = EnumDefForeign {
             fields,
-            default_translation: EnumDefTranslation { keys: vec![] },
+            default_translation: self
+                .schema
+                .translations
+                .insert(EnumDefTranslation { keys: vec![] }),
             custom_translation: Default::default(),
         };
-        self.schema.enum_defs.push(def);
+        self.schema.foreign.insert(def);
         Ok(())
     }
-    fn read_enum_def_ref(&mut self) -> anyhow::Result<&'s EnumDefForeign> {
+    fn read_enum_def_ref(&mut self) -> anyhow::Result<Id<EnumDefForeign>> {
         let index = self.read_usize()?;
-        Ok(self
-            .schema
-            .enum_defs
-            .get(index)
-            .ok_or(BinDecoderError::NoSuchEnumDef)?)
+        assert!(index < self.schema.foreign.len());
+        Ok(Id::from_index(index))
     }
-}
+    fn get_translation(
+        &mut self,
+        foreign: Id<EnumDefForeign>,
+        native: Option<EnumDefNative>,
+    ) -> Id<EnumDefTranslation> {
+        let schema = &mut *self.schema;
 
-impl EnumDefForeign {
-    fn get_translation<'s>(&'s self, native: Option<EnumDefNative>) -> &'s EnumDefTranslation {
+        let foreign = &mut schema.foreign[foreign];
         match native {
-            None => &self.default_translation,
-            Some(native) => self
+            None => foreign.default_translation,
+            Some(native) => *foreign
                 .custom_translation
-                .get_or_insert(Cow::Owned(ByAddress(native)))
-                .get_or_init(|| EnumDefTranslation {
-                    keys: self
-                        .fields
-                        .iter()
-                        .map(|foreign| {
-                            if let Some(native) = native.iter().position(|native| native == foreign)
-                            {
-                                EnumDefKey::Native(native)
-                            } else {
-                                EnumDefKey::Foreign(foreign.clone())
-                            }
-                        })
-                        .collect(),
+                .entry(ByAddress(native))
+                .or_insert_with(|| {
+                    schema.translations.insert(EnumDefTranslation {
+                        keys: foreign
+                            .fields
+                            .iter()
+                            .map(|foreign| {
+                                if let Some(native) =
+                                    native.iter().position(|native| native == foreign)
+                                {
+                                    EnumDefKey::Native(native)
+                                } else {
+                                    EnumDefKey::Foreign(schema.strings.insert(foreign.clone()))
+                                }
+                            })
+                            .collect(),
+                    })
                 }),
         }
     }
 }
 
-impl<'s> Default for BinAnyDecoder<'s> {
+impl Default for BinAnyDecoder {
     fn default() -> Self {
         BinAnyDecoder::Read
     }
 }
 
-pub enum BinAnyDecoder<'s> {
+pub enum BinAnyDecoder {
     U32(u32),
-    Str(&'s str),
+    Str(Id<String>),
     Read,
 }
 
@@ -180,30 +201,33 @@ pub struct BinSeqDecoder {
     len: usize,
 }
 
-pub struct BinMapDecoder<'s>(BinMapDecoderInner<'s>);
+pub struct BinMapDecoder(BinMapDecoderInner);
 
-enum BinMapDecoderInner<'s> {
-    WithSchema(&'s [EnumDefKey]),
+enum BinMapDecoderInner {
+    WithSchema {
+        translation: Id<EnumDefTranslation>,
+        index: usize,
+    },
     WithLength(usize),
 }
 
-pub enum BinKeyDecoder<'s> {
-    Foreign(&'s str),
+pub enum BinKeyDecoder {
+    Foreign(Id<String>),
     Native(usize),
     Read,
 }
 
-pub struct BinDiscriminantDecoder<'s> {
-    variant: &'s EnumDefKey,
+pub struct BinDiscriminantDecoder {
+    variant: EnumDefKey,
 }
 
-impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
-    type AnyDecoder = BinAnyDecoder<'s>;
+impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
+    type AnyDecoder = BinAnyDecoder;
     type SeqDecoder = BinSeqDecoder;
-    type MapDecoder = BinMapDecoder<'s>;
-    type KeyDecoder = BinKeyDecoder<'s>;
+    type MapDecoder = BinMapDecoder;
+    type KeyDecoder = BinKeyDecoder;
     type ValueDecoder = ();
-    type DiscriminantDecoder = BinDiscriminantDecoder<'s>;
+    type DiscriminantDecoder = BinDiscriminantDecoder;
     type VariantDecoder = ();
     type EnumCloser = ();
     type SomeDecoder = ();
@@ -217,7 +241,9 @@ impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
         match any {
             BinAnyDecoder::U32(x) => return Ok(SimpleDecoderView::Primitive(Primitive::U32(x))),
             BinAnyDecoder::Str(x) => {
-                return Ok(SimpleDecoderView::String(Cow::Owned(x.to_string())));
+                return Ok(SimpleDecoderView::String(Cow::Owned(
+                    self.schema.strings[x].clone(),
+                )));
             }
             BinAnyDecoder::Read => {}
         }
@@ -301,9 +327,12 @@ impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
                         DecodeHint::Struct { name: _, fields } => Some(fields),
                         _ => None,
                     };
-                    let trans = enum_def.get_translation(fields);
+                    let trans = self.get_translation(enum_def, fields);
                     return Ok(SimpleDecoderView::Map(BinMapDecoder(
-                        BinMapDecoderInner::WithSchema(&trans.keys),
+                        BinMapDecoderInner::WithSchema {
+                            translation: trans,
+                            index: 0,
+                        },
                     )));
                 }
                 TypeTag::TupleStruct => {
@@ -317,7 +346,8 @@ impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
                         DecodeHint::Enum { name: _, variants } => Some(variants),
                         _ => None,
                     };
-                    let variant = &enum_def.get_translation(variants).keys[variant];
+                    let trans = self.get_translation(enum_def, variants);
+                    let variant = self.schema.translations[trans].keys[variant];
                     return Ok(SimpleDecoderView::Enum(BinDiscriminantDecoder { variant }));
                 }
                 TypeTag::Seq => {
@@ -371,14 +401,17 @@ impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
         map: &mut Self::MapDecoder,
     ) -> anyhow::Result<Option<Self::KeyDecoder>> {
         match &mut map.0 {
-            BinMapDecoderInner::WithSchema(schema) => {
-                if let Some(key) = schema.take_first() {
-                    match key {
-                        EnumDefKey::Native(x) => Ok(Some(BinKeyDecoder::Native(*x))),
+            BinMapDecoderInner::WithSchema { translation, index } => {
+                let keys = &self.schema.translations[*translation].keys;
+                if *index == keys.len() {
+                    Ok(None)
+                } else {
+                    let i = *index;
+                    *index += 1;
+                    match keys[i] {
+                        EnumDefKey::Native(x) => Ok(Some(BinKeyDecoder::Native(x))),
                         EnumDefKey::Foreign(x) => Ok(Some(BinKeyDecoder::Foreign(x))),
                     }
-                } else {
-                    Ok(None)
                 }
             }
             BinMapDecoderInner::WithLength(len) => {
@@ -417,7 +450,7 @@ impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
     ) -> anyhow::Result<(Self::AnyDecoder, Self::VariantDecoder)> {
         Ok((
             match e.variant {
-                EnumDefKey::Native(x) => BinAnyDecoder::U32(u32::try_from(*x)?),
+                EnumDefKey::Native(x) => BinAnyDecoder::U32(u32::try_from(x)?),
                 EnumDefKey::Foreign(y) => BinAnyDecoder::Str(y),
             },
             (),
