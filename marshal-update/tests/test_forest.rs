@@ -1,12 +1,14 @@
 #![deny(unused_must_use)]
 
+use std::sync::Arc;
+
+use pretty_assertions::assert_eq;
+
 use marshal_derive::{Deserialize, DeserializeUpdate, Serialize, SerializeStream, SerializeUpdate};
 use marshal_update::forest::forest::Forest;
 use marshal_update::forest::forest::ForestRoot;
 use marshal_update::forest::forest::Tree;
 use marshal_update::tester::Tester;
-use std::sync::Arc;
-use pretty_assertions::assert_eq;
 
 #[test]
 fn test_forest() -> anyhow::Result<()> {

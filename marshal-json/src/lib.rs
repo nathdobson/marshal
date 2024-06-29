@@ -12,7 +12,7 @@ use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 
 use crate::decode::full::JsonGenDecoder;
-use crate::encode::full::{JsonEncoder, JsonGenEncoder};
+use crate::encode::full::JsonGenEncoder;
 
 pub mod decode;
 pub mod encode;

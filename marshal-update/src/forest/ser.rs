@@ -1,13 +1,12 @@
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
-use std::marker::Unsize;
 use std::sync;
 use std::sync::Arc;
 
 use by_address::ByAddress;
 
 use marshal::context::Context;
-use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
+use marshal::encode::{AnyGenEncoder,  GenEncoder};
 use marshal::ser::rc::SerializeArc;
 use marshal::ser::Serialize;
 use marshal_pointer::arc_ref::ArcRef;
@@ -15,8 +14,9 @@ use marshal_shared::ser::SharedSerializeContext;
 
 use crate::forest::error::TreeError;
 use crate::forest::forest::{Forest, ForestRoot, Tree};
-use crate::ser::set_channel::SetSubscriber;
 use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
+use crate::ser::set_channel::SetSubscriber;
+
 type ForestSharedSerializeContext = SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>;
 pub(super) struct ForestSerializerTable {
     streamers:

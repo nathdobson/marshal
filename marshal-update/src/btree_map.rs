@@ -1,17 +1,17 @@
-use std::collections::btree_map::Entry;
 use std::collections::{BTreeMap, BTreeSet};
+use std::collections::btree_map::Entry;
 use std::fmt::{Debug, Formatter};
 use std::mem;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
-use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
+use marshal::encode::{AnyGenEncoder,  GenEncoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
-use crate::ser::set_channel::{SetPublisher, SetSubscriber};
 use crate::ser::{SerializeStream, SerializeUpdate};
+use crate::ser::set_channel::{SetPublisher, SetSubscriber};
 
 pub struct UpdateBTreeMap<K, V> {
     map: BTreeMap<K, V>,

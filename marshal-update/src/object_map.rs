@@ -5,14 +5,14 @@ use std::ops::CoerceUnsized;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
-use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
+use marshal::encode::{AnyGenEncoder,  GenEncoder};
 use marshal::ser::Serialize;
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 use crate::de::DeserializeUpdate;
-use crate::ser::set_channel::{SetPublisher, SetSubscriber};
 use crate::ser::{SerializeStream, SerializeUpdate};
+use crate::ser::set_channel::{SetPublisher, SetSubscriber};
 
 pub struct ObjectMap<C: Object> {
     map: HashMap<TypeId, C::Pointer<C::Dyn>>,

@@ -1,4 +1,4 @@
-use marshal_core::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
+use marshal_core::encode::{AnyGenEncoder,  GenEncoder};
 use marshal_pointer::boxed::BoxRef;
 
 use crate::context::Context;

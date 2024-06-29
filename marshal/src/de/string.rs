@@ -1,4 +1,4 @@
-use marshal_core::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
+use marshal_core::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
 
 use crate::context::Context;
 use crate::de::Deserialize;

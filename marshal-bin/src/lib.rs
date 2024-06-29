@@ -17,7 +17,7 @@ use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 
 use crate::decode::full::BinGenDecoder;
-use crate::encode::full::{BinEncoder, BinGenEncoder};
+use crate::encode::full::BinGenEncoder;
 
 pub mod bin_object;
 pub mod decode;

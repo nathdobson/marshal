@@ -14,8 +14,8 @@ use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 use crate::decode::full::{JsonDecoder, JsonGenDecoder};
-use crate::encode::full::{JsonEncoder, JsonGenEncoder};
 use crate::DeserializeJson;
+use crate::encode::full::{JsonEncoder, JsonGenEncoder};
 use crate::SerializeJson;
 
 pub trait SerializeDyn = SerializeJson;

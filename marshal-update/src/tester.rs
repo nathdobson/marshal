@@ -1,16 +1,17 @@
 use std::any::Any;
 use std::sync;
 
+use pretty_assertions::assert_eq;
+
 use marshal::context::OwnedContext;
 use marshal_json::decode::full::{JsonDecoderBuilder, JsonGenDecoder};
-use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder, JsonGenEncoder};
+use marshal_json::encode::full::{JsonEncoderBuilder, JsonGenEncoder};
 use marshal_shared::de::SharedArcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
 
 use crate::de::DeserializeUpdate;
 use crate::forest::forest::Tree;
 use crate::ser::{SerializeStream, SerializeUpdate};
-use pretty_assertions::assert_eq;
 
 pub struct Tester<T: SerializeStream> {
     shared_ser_ctx: SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>,

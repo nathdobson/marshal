@@ -5,7 +5,7 @@ use type_map::concurrent::TypeMap;
 
 use marshal::context::Context;
 use marshal::de::SchemaError;
-use marshal::decode::{AnyGenDecoder, DecodeHint,  DecoderView, DecodeVariantHint, GenDecoder};
+use marshal::decode::{AnyGenDecoder, DecodeHint, DecoderView, DecodeVariantHint, GenDecoder};
 
 use crate::{Object, OBJECT_REGISTRY};
 

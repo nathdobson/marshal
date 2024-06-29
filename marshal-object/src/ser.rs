@@ -1,7 +1,7 @@
 use std::rc;
 
 use marshal::context::Context;
-use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
+use marshal::encode::{AnyGenEncoder, GenEncoder};
 use marshal::ser::Serialize;
 use marshal_pointer::AsFlatRef;
 

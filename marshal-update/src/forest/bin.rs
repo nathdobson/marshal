@@ -1,11 +1,3 @@
-use std::any::Any;
-
-use marshal_bin::decode::full::BinGenDecoder;
-use marshal_bin::encode::full::BinEncoder;
-
-// use crate::forest::de::DynamicDecoder;
-use crate::ser::{DeserializeUpdateDyn, SerializeUpdateDyn};
-
 // pub trait SerializeUpdateBin: Sync + Send + for<'s> SerializeUpdateDyn<BinEncoder<'s>> {}
 //
 // impl<T: ?Sized + Sync + Send + for<'s> SerializeUpdateDyn<BinEncoder<'s>>> SerializeUpdateBin

@@ -6,7 +6,7 @@ use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
 
 use crate::decode::full::JsonDecoderBuilder;
-use crate::encode::full::{JsonEncoder, JsonEncoderBuilder, JsonGenEncoder};
+use crate::encode::full::{JsonEncoderBuilder, JsonGenEncoder};
 use crate::JsonGenDecoder;
 
 #[track_caller]

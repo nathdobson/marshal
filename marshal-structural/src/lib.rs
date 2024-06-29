@@ -13,7 +13,7 @@ use marshal::context::Context;
 use marshal::de::{Deserialize, SchemaError};
 use marshal::ser::Serialize;
 use marshal_core::decode::{AnyGenDecoder, DecodeHint, DecoderView, GenDecoder};
-use marshal_core::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder, StructEncoder};
+use marshal_core::encode::{ AnyGenEncoder,  GenEncoder, StructEncoder};
 
 #[cfg(test)]
 mod test;

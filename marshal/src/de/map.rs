@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 
-use marshal_core::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
+use marshal_core::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
 
 use crate::context::Context;
 use crate::de::Deserialize;

@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder,  GenDecoder};
+use marshal::decode::{AnyGenDecoder, GenDecoder};
 use marshal::Deserialize;
 use marshal_pointer::{arc_downcast, arc_weak_downcast, RawAny, rc_downcast, rc_weak_downcast};
 use marshal_pointer::empty_arc::EmptyArc;

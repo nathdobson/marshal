@@ -1,6 +1,6 @@
 use marshal::context::Context;
 use marshal::de::SchemaError;
-use marshal::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
+use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
 
 use crate::de::DeserializeUpdate;
 

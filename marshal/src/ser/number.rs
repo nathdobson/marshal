@@ -1,4 +1,4 @@
-use marshal_core::encode::{AnyGenEncoder, Encoder, GenEncoder};
+use marshal_core::encode::{AnyGenEncoder, GenEncoder};
 use marshal_core::Primitive;
 
 use crate::context::Context;

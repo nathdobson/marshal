@@ -2,7 +2,7 @@ use std::sync;
 use std::sync::Arc;
 
 use marshal::context::Context;
-use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
+use marshal::encode::{AnyGenEncoder,  GenEncoder};
 use marshal::reexports::marshal_pointer::DerefRaw;
 use marshal::ser::Serialize;
 

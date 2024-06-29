@@ -1,19 +1,19 @@
+use std::{mem, rc, sync};
 use std::any::Any;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::ops::CoerceUnsized;
-use std::{mem, rc, sync};
 
 use marshal::context::Context;
-use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
+use marshal::encode::{AnyGenEncoder, GenEncoder};
 use marshal::reexports::anyhow;
 use marshal::ser::Serialize;
 use marshal::Serialize;
 use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
+use marshal_pointer::DerefRaw;
 use marshal_pointer::rc_ref::RcRef;
 use marshal_pointer::rc_weak_ref::RcWeakRef;
-use marshal_pointer::DerefRaw;
 
 struct ByAddress<T>(T);
 

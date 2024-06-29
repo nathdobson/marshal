@@ -2,7 +2,7 @@ use std::any::Any;
 
 use marshal::context::Context;
 use marshal::decode::{AnyGenDecoder, GenDecoder};
-use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
+use marshal::encode::{AnyGenEncoder, GenEncoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
