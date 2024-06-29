@@ -648,6 +648,7 @@ dependencies = [
  "marshal-pointer",
  "marshal-shared",
  "parking_lot 0.12.3",
+ "pretty_assertions",
  "safe-once",
  "slab",
  "tokenlock",

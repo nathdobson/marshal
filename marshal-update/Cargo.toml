@@ -20,3 +20,4 @@ marshal-object = {workspace=true}
 catalog = {workspace=true}
 slab = {workspace=true}
 tokenlock = {workspace=true}
+pretty_assertions = {workspace = true}

@@ -10,6 +10,7 @@ use marshal_shared::ser::SharedSerializeContext;
 use crate::de::DeserializeUpdate;
 use crate::forest::forest::Tree;
 use crate::ser::{SerializeStream, SerializeUpdate};
+use pretty_assertions::assert_eq;
 
 pub struct Tester<T: SerializeStream> {
     shared_ser_ctx: SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>,
