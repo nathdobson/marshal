@@ -23,7 +23,7 @@ impl<E: SpecEncoder> PoisonEncoder<E> {
     pub fn new(inner: E) -> Self {
         PoisonEncoder { inner, depth: 0 }
     }
-    pub fn start(&mut self, inner: E::AnyEncoder) -> <Self as SpecEncoder>::AnyEncoder {
+    pub fn start(&mut self, inner: E::AnySpecEncoder) -> <Self as SpecEncoder>::AnySpecEncoder {
         self.push(inner)
     }
     pub fn end(self) -> anyhow::Result<E> {
@@ -63,7 +63,7 @@ pub struct PoisonWrapper<T> {
 }
 
 impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
-    type AnyEncoder = PoisonWrapper<E::AnyEncoder>;
+    type AnySpecEncoder = PoisonWrapper<E::AnySpecEncoder>;
     type SomeCloser = PoisonWrapper<E::SomeCloser>;
     type TupleEncoder = PoisonWrapper<E::TupleEncoder>;
     type SeqEncoder = PoisonWrapper<E::SeqEncoder>;
@@ -75,30 +75,30 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     type TupleVariantEncoder = PoisonWrapper<E::TupleVariantEncoder>;
     type StructVariantEncoder = PoisonWrapper<E::StructVariantEncoder>;
 
-    fn encode_prim(&mut self, any: Self::AnyEncoder, prim: Primitive) -> anyhow::Result<()> {
+    fn encode_prim(&mut self, any: Self::AnySpecEncoder, prim: Primitive) -> anyhow::Result<()> {
         let any = self.pop(any)?;
         self.inner.encode_prim(any, prim)
     }
 
-    fn encode_str(&mut self, any: Self::AnyEncoder, s: &str) -> anyhow::Result<()> {
+    fn encode_str(&mut self, any: Self::AnySpecEncoder, s: &str) -> anyhow::Result<()> {
         let any = self.pop(any)?;
         self.inner.encode_str(any, s)
     }
 
-    fn encode_bytes(&mut self, any: Self::AnyEncoder, s: &[u8]) -> anyhow::Result<()> {
+    fn encode_bytes(&mut self, any: Self::AnySpecEncoder, s: &[u8]) -> anyhow::Result<()> {
         let any = self.pop(any)?;
         self.inner.encode_bytes(any, s)
     }
 
-    fn encode_none(&mut self, any: Self::AnyEncoder) -> anyhow::Result<()> {
+    fn encode_none(&mut self, any: Self::AnySpecEncoder) -> anyhow::Result<()> {
         let any = self.pop(any)?;
         self.inner.encode_none(any)
     }
 
     fn encode_some(
         &mut self,
-        any: Self::AnyEncoder,
-    ) -> anyhow::Result<(Self::AnyEncoder, Self::SomeCloser)> {
+        any: Self::AnySpecEncoder,
+    ) -> anyhow::Result<(Self::AnySpecEncoder, Self::SomeCloser)> {
         let any = self.pop(any)?;
         let (some_encoder, some_closer) = self.inner.encode_some(any)?;
         let some_closer = self.push(some_closer);
@@ -108,7 +108,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_unit_struct(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         name: &'static str,
     ) -> anyhow::Result<()> {
         let any = self.pop(any)?;
@@ -117,7 +117,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_tuple_struct(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         name: &'static str,
         len: usize,
     ) -> anyhow::Result<Self::TupleStructEncoder> {
@@ -128,7 +128,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_struct(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         name: &'static str,
         fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructEncoder> {
@@ -139,7 +139,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_unit_variant(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: usize,
@@ -152,7 +152,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_tuple_variant(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: usize,
@@ -167,7 +167,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_struct_variant(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         name: &'static str,
         variants: &'static [&'static str],
         variant_index: usize,
@@ -182,7 +182,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_seq(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         len: Option<usize>,
     ) -> anyhow::Result<Self::SeqEncoder> {
         let any = self.pop(any)?;
@@ -192,7 +192,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_tuple(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         len: usize,
     ) -> anyhow::Result<Self::TupleEncoder> {
         let any = self.pop(any)?;
@@ -202,7 +202,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
 
     fn encode_map(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         len: Option<usize>,
     ) -> anyhow::Result<Self::MapEncoder> {
         let any = self.pop(any)?;
@@ -218,7 +218,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     fn tuple_encode_element(
         &mut self,
         tuple: &mut Self::TupleEncoder,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let tuple = self.peek(tuple)?;
         let encoder = self.inner.tuple_encode_element(tuple)?;
         Ok(self.push(encoder))
@@ -232,7 +232,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     fn seq_encode_element(
         &mut self,
         seq: &mut Self::SeqEncoder,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let seq = self.peek(seq)?;
         let encoder = self.inner.seq_encode_element(seq)?;
         Ok(self.push(encoder))
@@ -246,7 +246,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     fn map_encode_element(
         &mut self,
         map: &mut Self::MapEncoder,
-    ) -> anyhow::Result<(Self::AnyEncoder, Self::ValueEncoder)> {
+    ) -> anyhow::Result<(Self::AnySpecEncoder, Self::ValueEncoder)> {
         let map = self.peek(map)?;
         let (key, value) = self.inner.map_encode_element(map)?;
         let value = self.push(value);
@@ -263,7 +263,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     fn entry_encode_value(
         &mut self,
         value: Self::ValueEncoder,
-    ) -> anyhow::Result<(Self::AnyEncoder, Self::EntryCloser)> {
+    ) -> anyhow::Result<(Self::AnySpecEncoder, Self::EntryCloser)> {
         let value = self.pop(value)?;
         let (value, closer) = self.inner.entry_encode_value(value)?;
         let closer = self.push(closer);
@@ -280,7 +280,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     fn tuple_struct_encode_field(
         &mut self,
         struc: &mut Self::TupleStructEncoder,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let struc = self.peek(struc)?;
         let encoder = self.inner.tuple_struct_encode_field(struc)?;
         Ok(self.push(encoder))
@@ -296,7 +296,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         &mut self,
         struc: &mut Self::StructEncoder,
         field: &'static str,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let struc = self.peek(struc)?;
         let encoder = self.inner.struct_encode_field(struc, field)?;
         Ok(self.push(encoder))
@@ -311,7 +311,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     fn tuple_variant_encode_field(
         &mut self,
         variant: &mut Self::TupleVariantEncoder,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let variant = self.peek(variant)?;
         let encoder = self.inner.tuple_variant_encode_field(variant)?;
         Ok(self.push(encoder))
@@ -327,7 +327,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         &mut self,
         variant: &mut Self::StructVariantEncoder,
         field: &'static str,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let variant = self.peek(variant)?;
         let encoder = self.inner.struct_variant_encode_field(variant, field)?;
         Ok(self.push(encoder))

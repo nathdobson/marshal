@@ -260,18 +260,18 @@ macro_rules! derive_object {
 macro_rules! derive_box_object {
     ($carrier:ident, $tr:ident $(, $format:ident)*) => {
         $crate::derive_object!($carrier, T, ::std::boxed::Box<T>, $tr $(, $format)* );
-        impl<E: $crate::reexports::marshal::encode::GenEncoder> $crate::reexports::marshal::ser::Serialize<E> for ::std::boxed::Box<dyn $tr>
+        impl<E: $crate::reexports::marshal::encode::Encoder> $crate::reexports::marshal::ser::Serialize<E> for ::std::boxed::Box<dyn $tr>
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
-            fn serialize<'w,'en>(&self, e: $crate::reexports::marshal::encode::AnyGenEncoder<'w,'en, E>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
+            fn serialize<'w,'en>(&self, e: $crate::reexports::marshal::encode::AnyEncoder<'w,'en, E>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_object::<$carrier,E>(<::std::boxed::Box<dyn $tr> as $crate::reexports::marshal_pointer::AsFlatRef>::as_flat_ref(self), e, ctx)
             }
         }
-        impl<D: $crate::reexports::marshal::decode::GenDecoder> $crate::reexports::marshal::de::Deserialize<D> for ::std::boxed::Box<dyn $tr>
+        impl<D: $crate::reexports::marshal::decode::Decoder> $crate::reexports::marshal::de::Deserialize<D> for ::std::boxed::Box<dyn $tr>
         where
             $carrier: $crate::de::DeserializeVariantForDiscriminant<D>,
         {
-            fn deserialize<'p, 'de>(p: $crate::reexports::marshal::decode::AnyGenDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<Self> {
+            fn deserialize<'p, 'de>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<Self> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -282,22 +282,22 @@ macro_rules! derive_box_object {
 macro_rules! derive_rc_object {
     ($carrier:ident, $tr:ident $(, $format:ident)*) => {
         $crate::derive_object!($carrier, T, ::std::rc::Rc<T>, $tr $(, $format)* );
-        impl<E: $crate::reexports::marshal::encode::GenEncoder> $crate::reexports::marshal::ser::rc::SerializeRc<E> for dyn $tr
+        impl<E: $crate::reexports::marshal::encode::Encoder> $crate::reexports::marshal::ser::rc::SerializeRc<E> for dyn $tr
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
             fn serialize_rc<'w,'en>(
                 this: &$crate::reexports::marshal_pointer::rc_ref::RcRef<Self>,
-                e: $crate::reexports::marshal::encode::AnyGenEncoder<'w,'en, E>,
+                e: $crate::reexports::marshal::encode::AnyEncoder<'w,'en, E>,
                 ctx: $crate::reexports::marshal::context::Context
             ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_object::<$carrier,E>(this, e, ctx)
             }
         }
-        impl<D: $crate::reexports::marshal::decode::GenDecoder> $crate::reexports::marshal::de::rc::DeserializeRc<D> for dyn $tr
+        impl<D: $crate::reexports::marshal::decode::Decoder> $crate::reexports::marshal::de::rc::DeserializeRc<D> for dyn $tr
         where
             $carrier: $crate::de::DeserializeVariantForDiscriminant<D>,
         {
-            fn deserialize_rc<'p, 'de>(p: $crate::reexports::marshal::decode::AnyGenDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::rc::Rc<Self>> {
+            fn deserialize_rc<'p, 'de>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::rc::Rc<Self>> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -308,23 +308,23 @@ macro_rules! derive_rc_object {
 macro_rules! derive_arc_object {
     ($carrier:ident, $tr:ident $(, $format:ident)*) => {
         $crate::derive_object!($carrier, T, ::std::sync::Arc<T>, $tr $(, $format)* );
-        impl<E: $crate::reexports::marshal::encode::GenEncoder> $crate::reexports::marshal::ser::rc::SerializeArc<E> for dyn $tr
+        impl<E: $crate::reexports::marshal::encode::Encoder> $crate::reexports::marshal::ser::rc::SerializeArc<E> for dyn $tr
             where $carrier: $crate::ser::SerializeVariantForDiscriminant<E>,
         {
             fn serialize_arc<'w,'en>(
                 this: &$crate::reexports::marshal_pointer::arc_ref::ArcRef<Self>,
-                e: $crate::reexports::marshal::encode::AnyGenEncoder<'w, 'en, E>,
+                e: $crate::reexports::marshal::encode::AnyEncoder<'w, 'en, E>,
                 ctx: $crate::reexports::marshal::context::Context
             ) -> $crate::reexports::anyhow::Result<()> {
                 //serialize_object::<$carrier,E>(&**this, e, ctx)
                 ::std::todo!("X");
             }
         }
-        impl<D: $crate::reexports::marshal::decode::GenDecoder> $crate::reexports::marshal::de::rc::DeserializeArc<D> for dyn $tr
+        impl<D: $crate::reexports::marshal::decode::Decoder> $crate::reexports::marshal::de::rc::DeserializeArc<D> for dyn $tr
         where
             $carrier: $crate::de::DeserializeVariantForDiscriminant<D>,
         {
-            fn deserialize_arc<'p, 'de>(p: $crate::reexports::marshal::decode::AnyGenDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
+            fn deserialize_arc<'p, 'de>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }
@@ -335,23 +335,23 @@ macro_rules! derive_arc_object {
 macro_rules! derive_rc_weak_object {
     ($carrier:ident, $tr:ident $(, $format:ident)*) => {
         $crate::derive_object!($carrier, T, ::std::rc::Weak<T>, $tr $(, $format)* );
-        impl<E: $crate::reexports::marshal::encode::GenEncoder> $crate::reexports::marshal::ser::rc::SerializeRcWeak<E> for dyn $tr
+        impl<E: $crate::reexports::marshal::encode::Encoder> $crate::reexports::marshal::ser::rc::SerializeRcWeak<E> for dyn $tr
             where dyn $tr: $crate::reexports::marshal::ser::Serialize<E>,
         {
             fn serialize_rc_weak<'w,'en>(
                 this: &$crate::reexports::marshal_pointer::rc_weak_ref::RcWeakRef<Self>,
-                e: $crate::reexports::marshal::encode::AnyGenEncoder<'w,'en, E>,
+                e: $crate::reexports::marshal::encode::AnyEncoder<'w,'en, E>,
                 ctx: $crate::reexports::marshal::context::Context
             ) -> $crate::reexports::anyhow::Result<()> {
                 ::std::todo!();
                 // $crate::ser::serialize_rc_weak_object::<$carrier,E>(this, e, ctx)
             }
         }
-        impl<D: $crate::reexports::marshal::decode::GenDecoder> $crate::reexports::marshal::de::rc::DeserializeRcWeak<D> for dyn $tr
+        impl<D: $crate::reexports::marshal::decode::Decoder> $crate::reexports::marshal::de::rc::DeserializeRcWeak<D> for dyn $tr
         where
             $carrier: $crate::de::DeserializeVariantForDiscriminant<D>,
         {
-            fn deserialize_rc_weak<'p, 'de>(p: $crate::reexports::marshal::decode::AnyGenDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::rc::Weak<Self>> {
+            fn deserialize_rc_weak<'p, 'de>(p: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,D>, ctx: $crate::reexports::marshal::context::Context) -> $crate::reexports::anyhow::Result<::std::rc::Weak<Self>> {
                 $crate::de::deserialize_object::<$carrier, D>(p, ctx)
             }
         }

@@ -1,10 +1,10 @@
 use marshal::context::Context;
 use marshal::ser::Serialize;
 use marshal_core::derive_encoder_for_newtype;
-use marshal_core::encode::{AnyEncoder, GenEncoder};
+use marshal_core::encode::{AnySpecEncoder, Encoder};
 use marshal_core::encode::poison::PoisonEncoder;
 
-use crate::encode::{JsonAnyEncoder, SimpleJsonSpecEncoder};
+use crate::encode::{JsonAnySpecEncoder, SimpleJsonSpecEncoder};
 
 pub struct JsonSpecEncoder(PoisonEncoder<SimpleJsonSpecEncoder>);
 
@@ -20,14 +20,14 @@ impl JsonEncoderBuilder {
             inner: JsonSpecEncoder(PoisonEncoder::new(SimpleJsonSpecEncoder::new())),
         }
     }
-    pub fn build(&mut self) -> AnyEncoder<'_, JsonSpecEncoder> {
-        let any = self.inner.0.start(JsonAnyEncoder::new());
-        AnyEncoder::new(&mut self.inner, any)
+    pub fn build(&mut self) -> AnySpecEncoder<'_, JsonSpecEncoder> {
+        let any = self.inner.0.start(JsonAnySpecEncoder::new());
+        AnySpecEncoder::new(&mut self.inner, any)
     }
     pub fn end(mut self) -> anyhow::Result<String> {
         Ok(self.inner.0.end()?.end()?)
     }
-    pub fn with<F: FnOnce(AnyEncoder<JsonSpecEncoder>) -> anyhow::Result<()>>(
+    pub fn with<F: FnOnce(AnySpecEncoder<JsonSpecEncoder>) -> anyhow::Result<()>>(
         mut self,
         f: F,
     ) -> anyhow::Result<String> {
@@ -46,6 +46,6 @@ impl JsonEncoderBuilder {
 
 pub struct JsonEncoder;
 
-impl GenEncoder for JsonEncoder {
+impl Encoder for JsonEncoder {
     type SpecEncoder<'en> = JsonSpecEncoder;
 }

@@ -5,20 +5,20 @@ use type_map::concurrent::TypeMap;
 
 use marshal::context::Context;
 use marshal::de::SchemaError;
-use marshal::decode::{AnyGenDecoder, DecodeHint, DecoderView, DecodeVariantHint, GenDecoder};
+use marshal::decode::{AnyDecoder, DecodeHint, DecoderView, DecodeVariantHint, Decoder};
 
 use crate::{Object, OBJECT_REGISTRY};
 
-pub trait DeserializeVariantForDiscriminant<D: GenDecoder>: Object {
+pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {
     fn deserialize_variant<'p, 'de>(
         discriminant: usize,
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         ctx: Context,
     ) -> anyhow::Result<Self::Pointer<Self::Dyn>>;
 }
 
-pub fn deserialize_object<'p, 'de, O: Object, D: GenDecoder>(
-    d: AnyGenDecoder<'p, 'de, D>,
+pub fn deserialize_object<'p, 'de, O: Object, D: Decoder>(
+    d: AnyDecoder<'p, 'de, D>,
     ctx: Context,
 ) -> anyhow::Result<O::Pointer<O::Dyn>>
 where

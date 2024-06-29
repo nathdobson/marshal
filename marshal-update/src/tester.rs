@@ -4,7 +4,7 @@ use std::sync;
 use pretty_assertions::assert_eq;
 
 use marshal::context::OwnedContext;
-use marshal_json::decode::full::{JsonDecoderBuilder, JsonGenDecoder};
+use marshal_json::decode::full::{JsonDecoderBuilder, JsonDecoder};
 use marshal_json::encode::full::{JsonEncoderBuilder, JsonEncoder};
 use marshal_shared::de::SharedArcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
@@ -24,7 +24,7 @@ pub struct Tester<T: SerializeStream> {
 impl<
         T: SerializeStream
             + SerializeUpdate<JsonEncoder>
-            + DeserializeUpdate<JsonGenDecoder>,
+            + DeserializeUpdate<JsonDecoder>,
     > Tester<T>
 {
     #[track_caller]

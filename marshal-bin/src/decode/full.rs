@@ -1,31 +1,31 @@
 use marshal::context::Context;
-use marshal_core::decode::{AnySpecDecoder, GenDecoder};
+use marshal_core::decode::{AnySpecDecoder, Decoder};
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::PoisonDecoder;
 use marshal_core::derive_decoder_for_newtype;
 
-use crate::decode::{BinAnyDecoder, BinDecoderSchema, SimpleBinDecoder};
+use crate::decode::{BinAnyDecoder, BinDecoderSchema, SimpleBinSpecDecoder};
 use crate::DeserializeBin;
 
-pub struct BinDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleBinDecoder<'de>>>);
+pub struct BinSpecDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleBinSpecDecoder<'de>>>);
 
-derive_decoder_for_newtype!(BinDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleBinDecoder<'de>>>));
+derive_decoder_for_newtype!(BinSpecDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleBinSpecDecoder<'de>>>));
 
 pub struct BinDecoderBuilder<'de> {
-    inner: BinDecoder<'de>,
+    inner: BinSpecDecoder<'de>,
     depth_budget: usize,
 }
 
 impl<'de> BinDecoderBuilder<'de> {
     pub fn new(input: &'de [u8], schema: &'de mut BinDecoderSchema) -> Self {
         BinDecoderBuilder {
-            inner: BinDecoder(PoisonDecoder::new(DepthBudgetDecoder::new(
-                SimpleBinDecoder::new(input, schema),
+            inner: BinSpecDecoder(PoisonDecoder::new(DepthBudgetDecoder::new(
+                SimpleBinSpecDecoder::new(input, schema),
             ))),
             depth_budget: 100,
         }
     }
-    pub fn build<'p>(&'p mut self) -> AnySpecDecoder<'p, 'de, BinDecoder<'de,>> {
+    pub fn build<'p>(&'p mut self) -> AnySpecDecoder<'p, 'de, BinSpecDecoder<'de,>> {
         let any = self.inner.0.start(WithDepthBudget::new(
             self.depth_budget,
             BinAnyDecoder::default(),
@@ -42,8 +42,8 @@ impl<'de> BinDecoderBuilder<'de> {
     }
 }
 
-pub struct BinGenDecoder;
+pub struct BinDecoder;
 
-impl GenDecoder for BinGenDecoder {
-    type SpecDecoder<'de> = BinDecoder<'de>;
+impl Decoder for BinDecoder {
+    type SpecDecoder<'de> = BinSpecDecoder<'de>;
 }

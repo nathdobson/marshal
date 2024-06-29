@@ -19,7 +19,7 @@ mod string;
 #[cfg(test)]
 mod test;
 
-pub struct SimpleJsonDecoder<'de> {
+pub struct SimpleJsonSpecDecoder<'de> {
     cursor: &'de [u8],
 }
 
@@ -49,7 +49,7 @@ pub struct JsonMapDecoder {
     started: bool,
 }
 
-impl<'de> SpecDecoder<'de> for SimpleJsonDecoder<'de> {
+impl<'de> SpecDecoder<'de> for SimpleJsonSpecDecoder<'de> {
     type AnyDecoder = JsonAnyDecoder;
     type SeqDecoder = JsonSeqDecoder;
     type MapDecoder = JsonMapDecoder;
@@ -435,8 +435,8 @@ impl<'de> SpecDecoder<'de> for SimpleJsonDecoder<'de> {
     }
 }
 
-impl<'de> SimpleJsonDecoder<'de> {
+impl<'de> SimpleJsonSpecDecoder<'de> {
     pub fn new(input: &'de [u8]) -> Self {
-        SimpleJsonDecoder { cursor: input }
+        SimpleJsonSpecDecoder { cursor: input }
     }
 }

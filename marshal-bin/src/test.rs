@@ -6,15 +6,15 @@ use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
 
-use crate::{BinGenDecoder, VU128_MAX_PADDING};
+use crate::{BinDecoder, VU128_MAX_PADDING};
 use crate::decode::BinDecoderSchema;
 use crate::decode::full::BinDecoderBuilder;
 use crate::encode::BinEncoderSchema;
-use crate::encode::full::{BinEncoderBuilder, BinGenEncoder};
+use crate::encode::full::{BinEncoderBuilder, BinEncoder};
 
 #[track_caller]
 fn test_round_trip<
-    T: Debug + Eq + for<'s> Serialize<BinGenEncoder> + Deserialize<BinGenDecoder>,
+    T: Debug + Eq + for<'s> Serialize<BinEncoder> + Deserialize<BinDecoder>,
 >(
     input: T,
     expected: &[u8],
@@ -35,8 +35,8 @@ fn test_round_trip<
 }
 
 fn test_transmute<
-    T1: Debug + for<'s> Serialize<BinGenEncoder>,
-    T2: Debug + Eq + Deserialize<BinGenDecoder>,
+    T1: Debug + for<'s> Serialize<BinEncoder>,
+    T2: Debug + Eq + Deserialize<BinDecoder>,
 >(
     input: T1,
     output: T2,

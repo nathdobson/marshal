@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
-use marshal::encode::{AnyGenEncoder, GenEncoder};
+use marshal::encode::{AnyEncoder, Encoder};
 use marshal::reexports::anyhow;
 use marshal::ser::Serialize;
 use marshal::Serialize;
@@ -73,10 +73,10 @@ impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
             state
         }))
     }
-    pub fn serialize_strong<E: GenEncoder, T: Serialize<E>>(
+    pub fn serialize_strong<E: Encoder, T: Serialize<E>>(
         value: &T,
         weak: WeakAny,
-        e: AnyGenEncoder<E>,
+        e: AnyEncoder<E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let state = Self::get_state(ctx.reborrow(), weak)?;
@@ -88,9 +88,9 @@ impl<WeakAny: 'static + DerefRaw> SharedSerializeContext<WeakAny> {
         }
         .serialize(e, ctx)
     }
-    pub fn serialize_weak<E: GenEncoder>(
+    pub fn serialize_weak<E: Encoder>(
         weak: WeakAny,
-        e: AnyGenEncoder<E>,
+        e: AnyEncoder<E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let state = Self::get_state(ctx.reborrow(), weak)?;
@@ -105,17 +105,17 @@ struct Shared<'a, T> {
     inner: Option<&'a T>,
 }
 
-pub fn serialize_rc<'w, 'en, E: GenEncoder, T: 'static + Serialize<E>>(
+pub fn serialize_rc<'w, 'en, E: Encoder, T: 'static + Serialize<E>>(
     ptr: &RcRef<T>,
-    e: AnyGenEncoder<'w, 'en, E>,
+    e: AnyEncoder<'w, 'en, E>,
     ctx: Context,
 ) -> anyhow::Result<()> {
     SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_strong(&**ptr, ptr.weak(), e, ctx)
 }
 
-pub fn serialize_arc<'w, 'en, E: GenEncoder, T: 'static + Sync + Send + Serialize<E>>(
+pub fn serialize_arc<'w, 'en, E: Encoder, T: 'static + Sync + Send + Serialize<E>>(
     ptr: &ArcRef<T>,
-    e: AnyGenEncoder<'w, 'en, E>,
+    e: AnyEncoder<'w, 'en, E>,
     ctx: Context,
 ) -> anyhow::Result<()> {
     SharedSerializeContext::<sync::Weak<dyn Sync + Send + Any>>::serialize_strong(
@@ -126,17 +126,17 @@ pub fn serialize_arc<'w, 'en, E: GenEncoder, T: 'static + Sync + Send + Serializ
     )
 }
 
-pub fn serialize_rc_weak<'w, 'en, E: GenEncoder, T: 'static + Serialize<E>>(
+pub fn serialize_rc_weak<'w, 'en, E: Encoder, T: 'static + Serialize<E>>(
     ptr: &RcWeakRef<T>,
-    e: AnyGenEncoder<'w, 'en, E>,
+    e: AnyEncoder<'w, 'en, E>,
     ctx: Context,
 ) -> anyhow::Result<()> {
     SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_weak::<E>(ptr.weak(), e, ctx)
 }
 
-pub fn serialize_arc_weak<'w, 'en, E: GenEncoder, T: 'static + ?Sized + Sync + Send>(
+pub fn serialize_arc_weak<'w, 'en, E: Encoder, T: 'static + ?Sized + Sync + Send>(
     ptr: &ArcWeakRef<T>,
-    e: AnyGenEncoder<'w, 'en, E>,
+    e: AnyEncoder<'w, 'en, E>,
     ctx: Context,
 ) -> anyhow::Result<()>
 where
@@ -152,12 +152,12 @@ where
 #[macro_export]
 macro_rules! derive_serialize_rc_shared {
     ($ty:ty) => {
-        impl<E: $crate::reexports::marshal::encode::GenEncoder>
+        impl<E: $crate::reexports::marshal::encode::Encoder>
             $crate::reexports::marshal::ser::rc::SerializeRc<E> for $ty
         {
             fn serialize_rc<'w, 'en>(
                 this: &$crate::reexports::marshal_pointer::rc_ref::RcRef<Self>,
-                e: $crate::reexports::marshal::encode::AnyGenEncoder<'w, 'en, E>,
+                e: $crate::reexports::marshal::encode::AnyEncoder<'w, 'en, E>,
                 mut ctx: $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_rc::<E, Self>(this, e, ctx)
@@ -169,12 +169,12 @@ macro_rules! derive_serialize_rc_shared {
 #[macro_export]
 macro_rules! derive_serialize_arc_shared {
     ($ty:ty) => {
-        impl<E: $crate::reexports::marshal::encode::GenEncoder>
+        impl<E: $crate::reexports::marshal::encode::Encoder>
             $crate::reexports::marshal::ser::rc::SerializeArc<E> for $ty
         {
             fn serialize_arc<'w, 'en>(
                 this: &$crate::reexports::marshal_pointer::arc_ref::ArcRef<Self>,
-                e: $crate::reexports::marshal::encode::AnyGenEncoder<'w, 'en, E>,
+                e: $crate::reexports::marshal::encode::AnyEncoder<'w, 'en, E>,
                 ctx: $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_arc::<E, Self>(this, e, ctx)
@@ -186,12 +186,12 @@ macro_rules! derive_serialize_arc_shared {
 #[macro_export]
 macro_rules! derive_serialize_rc_weak_shared {
     ($ty:ty) => {
-        impl<E: $crate::reexports::marshal::encode::GenEncoder>
+        impl<E: $crate::reexports::marshal::encode::Encoder>
             $crate::reexports::marshal::ser::rc::SerializeRcWeak<E> for $ty
         {
             fn serialize_rc_weak<'w, 'en>(
                 this: &$crate::reexports::marshal_pointer::rc_weak_ref::RcWeakRef<Self>,
-                e: $crate::reexports::marshal::encode::AnyGenEncoder<'w, 'en, E>,
+                e: $crate::reexports::marshal::encode::AnyEncoder<'w, 'en, E>,
                 mut ctx: $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_rc_weak::<E, Self>(this, e, ctx)
@@ -203,12 +203,12 @@ macro_rules! derive_serialize_rc_weak_shared {
 #[macro_export]
 macro_rules! derive_serialize_arc_weak_shared {
     ($ty:ty) => {
-        impl<E: $crate::reexports::marshal::encode::GenEncoder>
+        impl<E: $crate::reexports::marshal::encode::Encoder>
             $crate::reexports::marshal::ser::rc::SerializeArcWeak<E> for $ty
         {
             fn serialize_arc_weak<'w, 'en>(
                 this: &$crate::reexports::marshal_pointer::arc_weak_ref::ArcWeakRef<Self>,
-                e: $crate::reexports::marshal::encode::AnyGenEncoder<'w, 'en, E>,
+                e: $crate::reexports::marshal::encode::AnyEncoder<'w, 'en, E>,
                 ctx: $crate::reexports::marshal::context::Context,
             ) -> $crate::reexports::anyhow::Result<()> {
                 $crate::ser::serialize_arc_weak::<E, Self>(this, e, ctx)

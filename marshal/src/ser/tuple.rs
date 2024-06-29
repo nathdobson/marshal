@@ -1,13 +1,13 @@
-use marshal_core::encode::{AnyGenEncoder, GenEncoder};
+use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_core::Primitive;
 
 use crate::context::Context;
 use crate::ser::Serialize;
 
-impl<W: GenEncoder> Serialize<W> for () {
+impl<W: Encoder> Serialize<W> for () {
     fn serialize<'w, 'en>(
         &self,
-        w: AnyGenEncoder<'w, 'en, W>,
+        w: AnyEncoder<'w, 'en, W>,
         _ctx: Context,
     ) -> anyhow::Result<()> {
         w.encode_prim(Primitive::Unit)
@@ -16,10 +16,10 @@ impl<W: GenEncoder> Serialize<W> for () {
 
 macro_rules! derive_tuple {
     ($($T:ident),*) => {
-        impl<W: GenEncoder, $( $T: Serialize<W> ),*> Serialize<W>
+        impl<W: Encoder, $( $T: Serialize<W> ),*> Serialize<W>
         for ($($T,)*)
         {
-            fn serialize<'w,'en>(&self, w: $crate::encode::AnyGenEncoder<'w,'en, W>, mut ctx: Context) -> anyhow::Result<()> {
+            fn serialize<'w,'en>(&self, w: $crate::encode::AnyEncoder<'w,'en, W>, mut ctx: Context) -> anyhow::Result<()> {
                 let mut w = w.encode_tuple(${count($T)})?;
                 $(
                     ${ignore($T)}

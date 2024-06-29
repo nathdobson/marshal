@@ -1,4 +1,4 @@
-use marshal_core::encode::{AnyGenEncoder, GenEncoder};
+use marshal_core::encode::{AnyEncoder, Encoder};
 use marshal_core::Primitive;
 
 use crate::context::Context;
@@ -6,10 +6,10 @@ use crate::ser::Serialize;
 
 macro_rules! derive_number {
     ($t:ty, $v:ident) => {
-        impl<W: GenEncoder> Serialize<W> for $t {
+        impl<W: Encoder> Serialize<W> for $t {
             fn serialize<'w, 'en>(
                 &self,
-                w: $crate::encode::AnyGenEncoder<'w, 'en, W>,
+                w: $crate::encode::AnyEncoder<'w, 'en, W>,
                 _ctx: Context,
             ) -> anyhow::Result<()> {
                 w.encode_prim(Primitive::$v(*self))
@@ -37,20 +37,20 @@ derive_number!(char, Char);
 
 derive_number!(bool, Bool);
 
-impl<W: GenEncoder> Serialize<W> for usize {
+impl<W: Encoder> Serialize<W> for usize {
     fn serialize<'w, 'en>(
         &self,
-        w: AnyGenEncoder<'w, 'en, W>,
+        w: AnyEncoder<'w, 'en, W>,
         _ctx: Context,
     ) -> anyhow::Result<()> {
         w.encode_prim(Primitive::U64(*self as u64))
     }
 }
 
-impl<W: GenEncoder> Serialize<W> for isize {
+impl<W: Encoder> Serialize<W> for isize {
     fn serialize<'w, 'en>(
         &self,
-        w: AnyGenEncoder<'w, 'en, W>,
+        w: AnyEncoder<'w, 'en, W>,
         _ctx: Context,
     ) -> anyhow::Result<()> {
         w.encode_prim(Primitive::I64(*self as i64))

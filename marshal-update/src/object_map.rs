@@ -4,8 +4,8 @@ use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
-use marshal::encode::{AnyGenEncoder,  GenEncoder};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
+use marshal::encode::{AnyEncoder,  Encoder};
 use marshal::ser::Serialize;
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
@@ -66,13 +66,13 @@ impl<C: Object> ObjectMap<C> {
     }
 }
 
-impl<E: GenEncoder, C: Object> Serialize<E> for ObjectMap<C>
+impl<E: Encoder, C: Object> Serialize<E> for ObjectMap<C>
 where
     C::Pointer<C::Dyn>: Serialize<E>,
 {
     fn serialize<'w, 'en>(
         &self,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut e = e.encode_seq(Some(self.map.len()))?;
@@ -94,14 +94,14 @@ impl<C: Object> SerializeStream for ObjectMap<C> {
     }
 }
 
-impl<E: GenEncoder, C: Object> SerializeUpdate<E> for ObjectMap<C>
+impl<E: Encoder, C: Object> SerializeUpdate<E> for ObjectMap<C>
 where
     C::Pointer<C::Dyn>: Serialize<E>,
 {
     fn serialize_update(
         &self,
         stream: &mut Self::Stream,
-        e: AnyGenEncoder<E>,
+        e: AnyEncoder<E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let ref mut ids = *stream.subscriber.recv();
@@ -117,20 +117,20 @@ where
     }
 }
 
-impl<D: GenDecoder, C: Object> Deserialize<D> for ObjectMap<C>
+impl<D: Decoder, C: Object> Deserialize<D> for ObjectMap<C>
 where
     C::Pointer<C::Dyn>: DerefRaw<RawTarget = C::Dyn>,
     C::Dyn: RawAny,
     C::Pointer<C::Dyn>: Deserialize<D>,
 {
-    fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         let mut result = Self::new();
         result.deserialize_update(d, ctx)?;
         Ok(result)
     }
 }
 
-impl<D: GenDecoder, C: Object> DeserializeUpdate<D> for ObjectMap<C>
+impl<D: Decoder, C: Object> DeserializeUpdate<D> for ObjectMap<C>
 where
     C::Pointer<C::Dyn>: DerefRaw<RawTarget = C::Dyn>,
     C::Dyn: RawAny,
@@ -138,7 +138,7 @@ where
 {
     fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut d = d.decode(DecodeHint::Seq)?.try_into_seq()?;

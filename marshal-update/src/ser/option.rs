@@ -1,5 +1,5 @@
 use marshal::context::Context;
-use marshal::encode::{AnyGenEncoder, GenEncoder};
+use marshal::encode::{AnyEncoder, Encoder};
 
 use crate::ser::{SerializeStream, SerializeUpdate};
 
@@ -21,11 +21,11 @@ impl<T: SerializeStream> SerializeStream for Option<T> {
     }
 }
 
-impl<E: GenEncoder, T: SerializeUpdate<E>> SerializeUpdate<E> for Option<T> {
+impl<E: Encoder, T: SerializeUpdate<E>> SerializeUpdate<E> for Option<T> {
     fn serialize_update<'w, 'en>(
         &self,
         stream: &mut Self::Stream,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(new) = self {

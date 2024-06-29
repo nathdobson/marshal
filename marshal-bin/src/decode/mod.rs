@@ -43,7 +43,7 @@ impl BinDecoderSchema {
     }
 }
 
-pub struct SimpleBinDecoder<'de> {
+pub struct SimpleBinSpecDecoder<'de> {
     content: &'de [u8],
     schema: &'de BinDecoderSchema,
 }
@@ -73,9 +73,9 @@ impl Display for BinDecoderError {
 
 impl std::error::Error for BinDecoderError {}
 
-impl<'de> SimpleBinDecoder<'de> {
-    pub fn new(data: &'de [u8], schema: &'de mut BinDecoderSchema) -> SimpleBinDecoder<'de> {
-        SimpleBinDecoder {
+impl<'de> SimpleBinSpecDecoder<'de> {
+    pub fn new(data: &'de [u8], schema: &'de mut BinDecoderSchema) -> SimpleBinSpecDecoder<'de> {
+        SimpleBinSpecDecoder {
             content: data,
             schema,
         }
@@ -91,7 +91,7 @@ impl<'de> SimpleBinDecoder<'de> {
     }
 }
 
-impl<'de> SimpleBinDecoder<'de> {
+impl<'de> SimpleBinSpecDecoder<'de> {
     fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
         Ok(self.content.take(..count).ok_or(BinDecoderError::Eof)?)
     }
@@ -197,7 +197,7 @@ pub struct BinDiscriminantDecoder<'de> {
     variant: &'de EnumDefKey,
 }
 
-impl<'de> SpecDecoder<'de> for SimpleBinDecoder<'de> {
+impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
     type AnyDecoder = BinAnyDecoder<'de>;
     type SeqDecoder = BinSeqDecoder;
     type MapDecoder = BinMapDecoder<'de>;

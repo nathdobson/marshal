@@ -1,16 +1,16 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder, GenDecoder};
+use marshal::decode::{AnyDecoder, Decoder};
 
 mod derive_deserialize_update_for_option;
 mod option;
 mod rc;
 mod tuple;
 
-pub trait DeserializeUpdate<D: GenDecoder>: Deserialize<D> {
+pub trait DeserializeUpdate<D: Decoder>: Deserialize<D> {
     fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }

@@ -6,7 +6,7 @@ use std::io::Write;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
 
-use marshal_core::encode::{AnyEncoder, SpecEncoder};
+use marshal_core::encode::{AnySpecEncoder, SpecEncoder};
 use marshal_core::Primitive;
 
 pub mod full;
@@ -40,10 +40,10 @@ impl SimpleJsonSpecEncoder {
             current_indentation: Some(0),
         }
     }
-    pub fn start(&mut self) -> AnyEncoder<SimpleJsonSpecEncoder> {
-        AnyEncoder::new(
+    pub fn start(&mut self) -> AnySpecEncoder<SimpleJsonSpecEncoder> {
+        AnySpecEncoder::new(
             self,
-            JsonAnyEncoder {
+            JsonAnySpecEncoder {
                 ctx: EncodeContext { indentation: 0 },
                 must_be_string: false,
                 cannot_be_null: false,
@@ -75,7 +75,7 @@ impl SimpleJsonSpecEncoder {
         Ok(())
     }
 
-    fn write_prim(&mut self, e: JsonAnyEncoder, value: impl Display) -> anyhow::Result<()> {
+    fn write_prim(&mut self, e: JsonAnySpecEncoder, value: impl Display) -> anyhow::Result<()> {
         self.set_indentation(e.ctx.indentation)?;
         if e.must_be_string {
             write!(&mut self.output, "\"")?;
@@ -134,7 +134,7 @@ impl SimpleJsonSpecEncoder {
     fn write_comma(&mut self, ctx: EncodeContext) -> anyhow::Result<()> {
         self.writeln(ctx, ",")
     }
-    fn write_triv(&mut self, any: JsonAnyEncoder) -> anyhow::Result<()> {
+    fn write_triv(&mut self, any: JsonAnySpecEncoder) -> anyhow::Result<()> {
         if any.cannot_be_null {
             self.open_list(any.ctx)?;
             self.close_list(any.ctx)?;
@@ -146,7 +146,7 @@ impl SimpleJsonSpecEncoder {
 }
 
 impl SpecEncoder for SimpleJsonSpecEncoder {
-    type AnyEncoder = JsonAnyEncoder;
+    type AnySpecEncoder = JsonAnySpecEncoder;
     type SomeCloser = JsonSomeCloser;
     type TupleEncoder = JsonTupleEncoder;
     type SeqEncoder = JsonSeqEncoder;
@@ -158,7 +158,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     type TupleVariantEncoder = JsonTupleVariantEncoder;
     type StructVariantEncoder = JsonStructVariantEncoder;
 
-    fn encode_prim(&mut self, any: Self::AnyEncoder, prim: Primitive) -> anyhow::Result<()> {
+    fn encode_prim(&mut self, any: Self::AnySpecEncoder, prim: Primitive) -> anyhow::Result<()> {
         match prim {
             Primitive::Unit => self.write_triv(any),
             Primitive::Bool(x) => self.write_prim(any, x),
@@ -190,11 +190,11 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         }
     }
 
-    fn encode_str(&mut self, any: Self::AnyEncoder, s: &str) -> anyhow::Result<()> {
+    fn encode_str(&mut self, any: Self::AnySpecEncoder, s: &str) -> anyhow::Result<()> {
         self.write_str_literal(any.ctx, s)
     }
 
-    fn encode_bytes(&mut self, any: Self::AnyEncoder, s: &[u8]) -> anyhow::Result<()> {
+    fn encode_bytes(&mut self, any: Self::AnySpecEncoder, s: &[u8]) -> anyhow::Result<()> {
         self.write(any.ctx, "\"")?;
         let len = base64::encoded_len(s.len(), false).ok_or(JsonEncoderError::NumericOverflow)?;
         let start = self.output.len();
@@ -204,7 +204,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         Ok(())
     }
 
-    fn encode_none(&mut self, any: Self::AnyEncoder) -> anyhow::Result<()> {
+    fn encode_none(&mut self, any: Self::AnySpecEncoder) -> anyhow::Result<()> {
         if any.must_be_string {
             return Err(JsonEncoderError::MustBeString.into());
         }
@@ -223,8 +223,8 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_some(
         &mut self,
-        any: Self::AnyEncoder,
-    ) -> anyhow::Result<(Self::AnyEncoder, Self::SomeCloser)> {
+        any: Self::AnySpecEncoder,
+    ) -> anyhow::Result<(Self::AnySpecEncoder, Self::SomeCloser)> {
         if any.cannot_be_null {
             if any.must_be_string {
                 return Err(JsonEncoderError::MustBeString.into());
@@ -234,7 +234,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
             self.write_str_literal(ctx, "Some")?;
             self.write_colon(ctx)?;
             Ok((
-                JsonAnyEncoder {
+                JsonAnySpecEncoder {
                     ctx: ctx,
                     must_be_string: false,
                     cannot_be_null: false,
@@ -246,7 +246,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
             ))
         } else {
             Ok((
-                JsonAnyEncoder {
+                JsonAnySpecEncoder {
                     ctx: any.ctx,
                     must_be_string: any.must_be_string,
                     cannot_be_null: true,
@@ -259,7 +259,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         }
     }
 
-    fn encode_unit_struct(&mut self, any: Self::AnyEncoder, _: &'static str) -> anyhow::Result<()> {
+    fn encode_unit_struct(&mut self, any: Self::AnySpecEncoder, _: &'static str) -> anyhow::Result<()> {
         if any.must_be_string {
             return Err(JsonEncoderError::MustBeString.into());
         }
@@ -269,7 +269,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_tuple_struct(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         _: &'static str,
         _: usize,
     ) -> anyhow::Result<Self::TupleStructEncoder> {
@@ -286,7 +286,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_struct(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         _: &'static str,
         _: &'static [&'static str],
     ) -> anyhow::Result<Self::StructEncoder> {
@@ -303,7 +303,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_unit_variant(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
         variant_index: usize,
@@ -323,7 +323,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_tuple_variant(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
         variant_index: usize,
@@ -346,7 +346,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_struct_variant(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         _name: &'static str,
         variants: &'static [&'static str],
         variant_index: usize,
@@ -369,7 +369,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_seq(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         _len: Option<usize>,
     ) -> anyhow::Result<Self::SeqEncoder> {
         if any.must_be_string {
@@ -385,7 +385,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_tuple(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         _len: usize,
     ) -> anyhow::Result<Self::TupleEncoder> {
         if any.must_be_string {
@@ -401,7 +401,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
 
     fn encode_map(
         &mut self,
-        any: Self::AnyEncoder,
+        any: Self::AnySpecEncoder,
         _len: Option<usize>,
     ) -> anyhow::Result<Self::MapEncoder> {
         if any.must_be_string {
@@ -425,13 +425,13 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     fn tuple_encode_element(
         &mut self,
         tuple: &mut Self::TupleEncoder,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let ctx = tuple.ctx.indent();
         if tuple.started {
             self.write_comma(ctx)?;
         }
         tuple.started = true;
-        Ok(JsonAnyEncoder {
+        Ok(JsonAnySpecEncoder {
             ctx,
             must_be_string: false,
             cannot_be_null: false,
@@ -446,13 +446,13 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     fn seq_encode_element(
         &mut self,
         seq: &mut Self::SeqEncoder,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let ctx = seq.ctx.indent();
         if seq.started {
             self.write_comma(ctx)?;
         }
         seq.started = true;
-        Ok(JsonAnyEncoder {
+        Ok(JsonAnySpecEncoder {
             ctx,
             must_be_string: false,
             cannot_be_null: false,
@@ -466,14 +466,14 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     fn map_encode_element(
         &mut self,
         map: &mut Self::MapEncoder,
-    ) -> anyhow::Result<(Self::AnyEncoder, Self::ValueEncoder)> {
+    ) -> anyhow::Result<(Self::AnySpecEncoder, Self::ValueEncoder)> {
         let ctx = map.ctx.indent();
         if map.started {
             self.write_comma(ctx)?;
         }
         map.started = true;
         Ok((
-            JsonAnyEncoder {
+            JsonAnySpecEncoder {
                 ctx,
                 must_be_string: true,
                 cannot_be_null: false,
@@ -490,10 +490,10 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     fn entry_encode_value(
         &mut self,
         value: Self::ValueEncoder,
-    ) -> anyhow::Result<(Self::AnyEncoder, Self::EntryCloser)> {
+    ) -> anyhow::Result<(Self::AnySpecEncoder, Self::EntryCloser)> {
         self.write_colon(value.ctx)?;
         Ok((
-            JsonAnyEncoder {
+            JsonAnySpecEncoder {
                 ctx: value.ctx,
                 must_be_string: false,
                 cannot_be_null: false,
@@ -509,13 +509,13 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     fn tuple_struct_encode_field(
         &mut self,
         tuple: &mut Self::TupleStructEncoder,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let ctx = tuple.ctx.indent();
         if tuple.started {
             self.write_comma(ctx)?;
         }
         tuple.started = true;
-        Ok(JsonAnyEncoder {
+        Ok(JsonAnySpecEncoder {
             ctx,
             must_be_string: false,
             cannot_be_null: false,
@@ -531,7 +531,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         &mut self,
         s: &mut Self::StructEncoder,
         key: &'static str,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let ctx = s.ctx.indent();
         if s.started {
             self.write_comma(ctx)?;
@@ -539,7 +539,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         s.started = true;
         self.write_str_literal(ctx, key)?;
         self.write_colon(ctx)?;
-        Ok(JsonAnyEncoder {
+        Ok(JsonAnySpecEncoder {
             ctx,
             must_be_string: false,
             cannot_be_null: false,
@@ -554,13 +554,13 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     fn tuple_variant_encode_field(
         &mut self,
         tuple: &mut Self::TupleVariantEncoder,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let ctx = tuple.ctx.indent().indent();
         if tuple.started {
             self.write_comma(ctx)?;
         }
         tuple.started = true;
-        Ok(JsonAnyEncoder {
+        Ok(JsonAnySpecEncoder {
             ctx,
             must_be_string: false,
             cannot_be_null: false,
@@ -577,7 +577,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         &mut self,
         s: &mut Self::StructVariantEncoder,
         key: &'static str,
-    ) -> anyhow::Result<Self::AnyEncoder> {
+    ) -> anyhow::Result<Self::AnySpecEncoder> {
         let ctx = s.ctx.indent().indent();
         if s.started {
             self.write_comma(ctx)?;
@@ -585,7 +585,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         s.started = true;
         self.write_str_literal(ctx, key)?;
         self.write_colon(ctx)?;
-        Ok(JsonAnyEncoder {
+        Ok(JsonAnySpecEncoder {
             ctx,
             must_be_string: false,
             cannot_be_null: false,
@@ -615,15 +615,15 @@ impl EncodeContext {
     }
 }
 
-pub struct JsonAnyEncoder {
+pub struct JsonAnySpecEncoder {
     ctx: EncodeContext,
     must_be_string: bool,
     cannot_be_null: bool,
 }
 
-impl JsonAnyEncoder {
+impl JsonAnySpecEncoder {
     pub fn new() -> Self {
-        JsonAnyEncoder {
+        JsonAnySpecEncoder {
             ctx: EncodeContext::new(),
             must_be_string: false,
             cannot_be_null: false,

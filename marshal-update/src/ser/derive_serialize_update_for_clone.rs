@@ -1,6 +1,6 @@
 use marshal::context::Context;
-use marshal::encode::AnyGenEncoder;
-use marshal::encode::GenEncoder;
+use marshal::encode::AnyEncoder;
+use marshal::encode::Encoder;
 use marshal::ser::Serialize;
 
 use crate::ser::SerializeStream;
@@ -16,11 +16,11 @@ macro_rules! derive_serialize_update_for_clone {
                     Ok(self.clone())
                 }
             }
-            impl<E: GenEncoder> SerializeUpdate<E> for $ty {
+            impl<E: Encoder> SerializeUpdate<E> for $ty {
                 fn serialize_update<'w,'en>(
                     &self,
                     stream: &mut Self::Stream,
-                    e: AnyGenEncoder<'w,'en,E>,
+                    e: AnyEncoder<'w,'en,E>,
                     ctx: Context,
                 ) -> anyhow::Result<()> {
                     let m = if stream != self {

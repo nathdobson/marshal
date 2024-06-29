@@ -200,7 +200,7 @@ where
     Enum(EnumDecoder<'p, 'de, P>),
 }
 
-pub trait GenDecoder: 'static {
+pub trait Decoder: 'static {
     type SpecDecoder<'de>: ?Sized + SpecDecoder<'de>;
 }
 
@@ -275,7 +275,7 @@ pub struct AnySpecDecoder<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
     any: D::AnyDecoder,
 }
 
-pub type AnyGenDecoder<'p, 'de, D> = AnySpecDecoder<'p, 'de, <D as GenDecoder>::SpecDecoder<'de>>;
+pub type AnyDecoder<'p, 'de, D> = AnySpecDecoder<'p, 'de, <D as Decoder>::SpecDecoder<'de>>;
 
 pub struct SeqSpecDecoder<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
     this: &'p mut D,

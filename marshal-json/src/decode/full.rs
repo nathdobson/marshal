@@ -1,25 +1,25 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::{AnySpecDecoder, GenDecoder};
+use marshal_core::decode::{AnySpecDecoder, Decoder};
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::PoisonDecoder;
 use marshal_core::derive_decoder_for_newtype;
 
-use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};
+use crate::decode::{JsonAnyDecoder, SimpleJsonSpecDecoder};
 
-pub struct JsonDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleJsonDecoder<'de>>>);
+pub struct JsonSpecDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleJsonSpecDecoder<'de>>>);
 
-derive_decoder_for_newtype!(JsonDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleJsonDecoder<'de>>>));
+derive_decoder_for_newtype!(JsonSpecDecoder<'de>(PoisonDecoder<DepthBudgetDecoder<SimpleJsonSpecDecoder<'de>>>));
 
 pub struct JsonDecoderBuilder<'de> {
-    decoder: JsonDecoder<'de>,
+    decoder: JsonSpecDecoder<'de>,
     depth_budget: usize,
 }
 
 impl<'de> JsonDecoderBuilder<'de> {
     pub fn new(input: &'de [u8]) -> Self {
         JsonDecoderBuilder {
-            decoder: JsonDecoder(PoisonDecoder::new(DepthBudgetDecoder::new(SimpleJsonDecoder::new(input)))),
+            decoder: JsonSpecDecoder(PoisonDecoder::new(DepthBudgetDecoder::new(SimpleJsonSpecDecoder::new(input)))),
             depth_budget: 100,
         }
     }
@@ -27,13 +27,13 @@ impl<'de> JsonDecoderBuilder<'de> {
         self.depth_budget = depth_budget;
         self
     }
-    pub fn build<'p>(&'p mut self) -> AnySpecDecoder<'p, 'de, JsonDecoder<'de>> {
+    pub fn build<'p>(&'p mut self) -> AnySpecDecoder<'p, 'de, JsonSpecDecoder<'de>> {
         let any = JsonAnyDecoder::default();
         let any = WithDepthBudget::new(self.depth_budget, any);
         let any = self.decoder.0.start(any);
         AnySpecDecoder::new(&mut self.decoder, any)
     }
-    pub fn deserialize<T: Deserialize<JsonGenDecoder>>(
+    pub fn deserialize<T: Deserialize<JsonDecoder>>(
         mut self,
         mut ctx: Context,
     ) -> anyhow::Result<T> {
@@ -45,7 +45,7 @@ impl<'de> JsonDecoderBuilder<'de> {
         self.decoder.0.end()?.end()?.end()?;
         Ok(())
     }
-    pub fn with<F: for<'p> FnOnce(AnySpecDecoder<'p, 'de, JsonDecoder<'de>>) -> anyhow::Result<T>, T>(
+    pub fn with<F: for<'p> FnOnce(AnySpecDecoder<'p, 'de, JsonSpecDecoder<'de>>) -> anyhow::Result<T>, T>(
         mut self,
         f: F,
     ) -> anyhow::Result<T> {
@@ -55,8 +55,8 @@ impl<'de> JsonDecoderBuilder<'de> {
     }
 }
 
-pub struct JsonGenDecoder;
+pub struct JsonDecoder;
 
-impl GenDecoder for JsonGenDecoder {
-    type SpecDecoder<'de> = JsonDecoder<'de>;
+impl Decoder for JsonDecoder {
+    type SpecDecoder<'de> = JsonSpecDecoder<'de>;
 }

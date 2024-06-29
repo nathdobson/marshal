@@ -1,4 +1,4 @@
-use marshal_core::encode::AnyEncoder;
+use marshal_core::encode::AnySpecEncoder;
 use marshal_core::Primitive;
 
 use crate::encode::SimpleJsonSpecEncoder;
@@ -6,7 +6,7 @@ use crate::encode::SimpleJsonSpecEncoder;
 #[track_caller]
 fn run_simple(
     expected: &str,
-    f: impl FnOnce(AnyEncoder<SimpleJsonSpecEncoder>) -> anyhow::Result<()>,
+    f: impl FnOnce(AnySpecEncoder<SimpleJsonSpecEncoder>) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let mut w = SimpleJsonSpecEncoder::new();
     f(w.start())?;

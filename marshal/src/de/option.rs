@@ -1,10 +1,10 @@
-use marshal_core::decode::{AnyGenDecoder, DecodeHint, DecoderView, GenDecoder};
+use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, Decoder};
 
 use crate::context::Context;
 use crate::de::Deserialize;
 
-impl<D:GenDecoder, T: Deserialize<D>> Deserialize<D> for Option<T> {
-    fn deserialize<'p,'de>(p: AnyGenDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
+impl<D:Decoder, T: Deserialize<D>> Deserialize<D> for Option<T> {
+    fn deserialize<'p,'de>(p: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Option)? {
             DecoderView::None => Ok(None),
             DecoderView::Some(mut p) => {

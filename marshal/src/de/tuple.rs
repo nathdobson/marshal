@@ -1,11 +1,11 @@
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{AnyGenDecoder, DecodeHint, DecoderView, GenDecoder};
+use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, Decoder};
 
 use crate::context::Context;
 use crate::de::{Deserialize, SchemaError};
 
-impl<D: GenDecoder> Deserialize<D> for () {
-    fn deserialize<'p, 'de>(p: AnyGenDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self> {
+impl<D: Decoder> Deserialize<D> for () {
+    fn deserialize<'p, 'de>(p: AnyDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Primitive(PrimitiveType::Unit))? {
             DecoderView::Primitive(Primitive::Unit) => Ok(()),
             unexpected => unexpected.mismatch("unit")?,
@@ -15,11 +15,11 @@ impl<D: GenDecoder> Deserialize<D> for () {
 macro_rules! derive_tuple {
     ($($T:ident),*) => {
         impl<
-            D: GenDecoder,
+            D: Decoder,
             $( $T: Deserialize<D>, )*
         > Deserialize<D> for ($($T,)*)
         {
-            fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
+            fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
                 match d.decode(DecodeHint::Tuple { len: 4 })? {
                     DecoderView::Seq(mut p) => {
                         let result=(

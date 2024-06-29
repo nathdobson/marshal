@@ -19,10 +19,10 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
         generic_params,
         generic_args,
     } = DeriveGenerics::new(generics, &quote! {::marshal::de::Deserialize<D>});
-    let gen_decoder_trait = quote!(::marshal::decode::GenDecoder);
+    let gen_decoder_trait = quote!(::marshal::decode::Decoder);
     let primitive_type = quote!(::marshal::Primitive);
 
-    let any_gen_decoder_type = quote!(::marshal::decode::AnyGenDecoder);
+    let any_gen_decoder_type = quote!(::marshal::decode::AnyDecoder);
 
     let deserialize_trait = quote!(::marshal::de::Deserialize);
     let result_type = quote!(::marshal::reexports::anyhow::Result);

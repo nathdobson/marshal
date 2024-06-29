@@ -21,11 +21,11 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
         generics,
         &quote! {::marshal_update::ser::SerializeUpdate<W>},
     );
-    let gen_encoder_trait = quote! { ::marshal::encode::GenEncoder };
+    let gen_encoder_trait = quote! { ::marshal::encode::Encoder };
     let serialize_update_trait = quote! { ::marshal_update::ser::SerializeUpdate };
     let context_type = quote! { ::marshal::context::Context };
     let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());
-    let any_gen_encoder_type = quote!(::marshal::encode::AnyGenEncoder);
+    let any_gen_encoder_type = quote!(::marshal::encode::AnyEncoder);
 
     let anyhow = quote!(::marshal::reexports::anyhow);
     let result_type = quote!(#anyhow::Result);

@@ -2,7 +2,7 @@ use std::sync;
 use std::sync::Arc;
 
 use marshal::context::Context;
-use marshal::encode::{AnyGenEncoder,  GenEncoder};
+use marshal::encode::{AnyEncoder,  Encoder};
 use marshal::reexports::marshal_pointer::DerefRaw;
 use marshal::ser::Serialize;
 
@@ -15,14 +15,14 @@ impl<T: ?Sized + Sync + Send> SerializeStream for Arc<T> {
     }
 }
 
-impl<T: ?Sized + Sync + Send, E: GenEncoder> SerializeUpdate<E> for Arc<T>
+impl<T: ?Sized + Sync + Send, E: Encoder> SerializeUpdate<E> for Arc<T>
 where
     Arc<T>: Serialize<E>,
 {
     fn serialize_update<'w, 'en>(
         &self,
         stream: &mut Self::Stream,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         ctx: Context,
     ) -> anyhow::Result<()> {
         let m = if stream.deref_raw() as *const () != self.deref_raw() as *const () {
@@ -42,14 +42,14 @@ impl<T: ?Sized + Sync + Send> SerializeStream for sync::Weak<T> {
     }
 }
 
-impl<T: ?Sized + Sync + Send, E: GenEncoder> SerializeUpdate<E> for sync::Weak<T>
+impl<T: ?Sized + Sync + Send, E: Encoder> SerializeUpdate<E> for sync::Weak<T>
 where
     sync::Weak<T>: Serialize<E>,
 {
     fn serialize_update<'w, 'en>(
         &self,
         stream: &mut Self::Stream,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         ctx: Context,
     ) -> anyhow::Result<()> {
         let m = if stream.deref_raw() as *const () != self.deref_raw() as *const () {

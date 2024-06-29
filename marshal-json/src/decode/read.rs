@@ -1,9 +1,9 @@
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::decode::error::JsonDecoderError;
-use crate::decode::SimpleJsonDecoder;
+use crate::decode::SimpleJsonSpecDecoder;
 
-impl<'de> SimpleJsonDecoder<'de> {
+impl<'de> SimpleJsonSpecDecoder<'de> {
     pub fn try_peek_char(&self) -> anyhow::Result<Option<u8>> {
         Ok(self.cursor.get(0).cloned())
     }

@@ -1,21 +1,21 @@
-// pub trait SerializeUpdateJson: Any + SerializeUpdateDyn<JsonGenEncoder> {}
+// pub trait SerializeUpdateJson: Any + SerializeUpdateDyn<JsonEncoder> {}
 //
-// impl<T: ?Sized + Any + SerializeUpdateDyn<JsonGenEncoder>> SerializeUpdateJson for T {}
+// impl<T: ?Sized + Any + SerializeUpdateDyn<JsonEncoder>> SerializeUpdateJson for T {}
 //
-// impl DynamicEncoder for JsonGenEncoder {
+// impl DynamicEncoder for JsonEncoder {
 //     type SerializeUpdateDyn = dyn Sync + Send + SerializeUpdateJson;
 // }
 
 // pub trait DeserializeUpdateJson:
-//     Sync + Send + Any + DeserializeUpdateDyn<JsonGenDecoder>
+//     Sync + Send + Any + DeserializeUpdateDyn<JsonDecoder>
 // {
 // }
 //
-// impl<T: ?Sized + Sync + Send + DeserializeUpdateDyn<JsonGenDecoder>>
+// impl<T: ?Sized + Sync + Send + DeserializeUpdateDyn<JsonDecoder>>
 //     DeserializeUpdateJson for T
 // {
 // }
 //
-// impl DynamicDecoder for JsonGenDecoder {
+// impl DynamicDecoder for JsonDecoder {
 //     type DeserializeUpdateDyn = dyn DeserializeUpdateJson;
 // }

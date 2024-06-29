@@ -5,7 +5,7 @@ use std::sync::Arc;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::de::rc::DeserializeArc;
-use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 use marshal_shared::de::deserialize_arc;
 
 use crate::de::DeserializeUpdate;
@@ -27,9 +27,9 @@ impl ForestDeserializerTable {
     }
 }
 
-impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for ForestRoot<T> {
+impl<D: Decoder, T: Deserialize<D>> Deserialize<D> for ForestRoot<T> {
     fn deserialize<'p, 'de>(
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<Self> {
         let forest = Forest::new();
@@ -40,10 +40,10 @@ impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for ForestRoot<T> {
     }
 }
 
-impl<D: GenDecoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T> {
+impl<D: Decoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T> {
     fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let (root, forest, deserializers) = self.view_mut_internal();
@@ -84,9 +84,9 @@ impl<D: GenDecoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot
     }
 }
 
-impl<D: GenDecoder, T: 'static + Sync + Send + DeserializeUpdate<D>> DeserializeArc<D> for Tree<T> {
+impl<D: Decoder, T: 'static + Sync + Send + DeserializeUpdate<D>> DeserializeArc<D> for Tree<T> {
     fn deserialize_arc<'p, 'de>(
-        p: AnyGenDecoder<'p, 'de, D>,
+        p: AnyDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<Arc<Self>> {
         let (id, arc) = deserialize_arc::<D, Tree<T>>(p, ctx.reborrow())?;
@@ -100,9 +100,9 @@ impl<D: GenDecoder, T: 'static + Sync + Send + DeserializeUpdate<D>> Deserialize
     }
 }
 
-impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for Tree<T> {
+impl<D: Decoder, T: Deserialize<D>> Deserialize<D> for Tree<T> {
     fn deserialize<'p, 'de>(
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<Self> {
         let tree = T::deserialize(d, ctx.reborrow())?;

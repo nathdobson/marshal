@@ -16,8 +16,8 @@ use num_derive::FromPrimitive;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 
-use crate::decode::full::BinGenDecoder;
-use crate::encode::full::BinGenEncoder;
+use crate::decode::full::BinDecoder;
+use crate::encode::full::BinEncoder;
 
 pub mod bin_object;
 pub mod decode;
@@ -71,5 +71,5 @@ pub enum TypeTag {
 }
 
 
-pub trait SerializeBin = Serialize<BinGenEncoder>;
-pub trait DeserializeBin = Deserialize<BinGenDecoder>;
+pub trait SerializeBin = Serialize<BinEncoder>;
+pub trait DeserializeBin = Deserialize<BinDecoder>;

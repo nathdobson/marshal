@@ -7,11 +7,11 @@ use marshal_derive::{Deserialize, Serialize};
 
 use crate::decode::full::JsonDecoderBuilder;
 use crate::encode::full::{JsonEncoderBuilder, JsonEncoder};
-use crate::JsonGenDecoder;
+use crate::JsonDecoder;
 
 #[track_caller]
 pub fn test_round_trip<
-    T: Debug + Eq + Serialize<JsonEncoder> + Deserialize<JsonGenDecoder>,
+    T: Debug + Eq + Serialize<JsonEncoder> + Deserialize<JsonDecoder>,
 >(
     input: T,
     expected: &str,

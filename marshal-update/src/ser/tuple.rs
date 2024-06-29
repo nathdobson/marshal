@@ -1,5 +1,5 @@
 use marshal::context::Context;
-use marshal::encode::{AnyGenEncoder, GenEncoder};
+use marshal::encode::{AnyEncoder, Encoder};
 
 use crate::ser::{SerializeStream, SerializeUpdate};
 
@@ -13,13 +13,13 @@ impl<T1: SerializeStream, T2: SerializeStream> SerializeStream for (T1, T2) {
     }
 }
 
-impl<E: GenEncoder, T1: SerializeUpdate<E>, T2: SerializeUpdate<E>> SerializeUpdate<E>
+impl<E: Encoder, T1: SerializeUpdate<E>, T2: SerializeUpdate<E>> SerializeUpdate<E>
     for (T1, T2)
 {
     fn serialize_update<'w, 'en>(
         &self,
         stream: &mut Self::Stream,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut e = e.encode_tuple(2)?;

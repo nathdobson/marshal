@@ -1,13 +1,13 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 
 use crate::de::DeserializeUpdate;
 
-impl<D: GenDecoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for Option<T> {
+impl<D: Decoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for Option<T> {
     fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(this) = self {

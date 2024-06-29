@@ -1,13 +1,13 @@
 use marshal_core::decode::{
-    AnyGenDecoder, DecodeHint, DecoderView, GenDecoder,
+    AnyDecoder, DecodeHint, DecoderView, Decoder,
 };
 
 use crate::context::Context;
 use crate::de::Deserialize;
 
-impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for Vec<T> {
+impl<D: Decoder, T: Deserialize<D>> Deserialize<D> for Vec<T> {
     default fn deserialize<'p, 'de>(
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<Self> {
         match d.decode(DecodeHint::Seq)? {
@@ -19,8 +19,8 @@ impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for Vec<T> {
     }
 }
 
-impl<D: GenDecoder> Deserialize<D> for Vec<u8> {
-    fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self> {
+impl<D: Decoder> Deserialize<D> for Vec<u8> {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self> {
         match d.decode(DecodeHint::Bytes)? {
             DecoderView::Bytes(x) => Ok(x.into_owned()),
             unexpected => unexpected.mismatch("bytes")?,

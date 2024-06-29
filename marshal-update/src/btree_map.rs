@@ -5,8 +5,8 @@ use std::mem;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
-use marshal::encode::{AnyGenEncoder,  GenEncoder};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
+use marshal::encode::{AnyEncoder,  Encoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
@@ -38,21 +38,21 @@ impl<K: Ord + Sync + Send + Clone, V: SerializeStream> SerializeStream for Updat
     }
 }
 
-impl<E: GenEncoder, K: Ord + Sync + Send + Serialize<E>, V: Serialize<E>> Serialize<E>
+impl<E: Encoder, K: Ord + Sync + Send + Serialize<E>, V: Serialize<E>> Serialize<E>
     for UpdateBTreeMap<K, V>
 {
-    fn serialize<'w, 'en>(&self, e: AnyGenEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
+    fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
         self.map.serialize(e, ctx)
     }
 }
 
-impl<E: GenEncoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate<E>>
+impl<E: Encoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate<E>>
     SerializeUpdate<E> for UpdateBTreeMap<K, V>
 {
     fn serialize_update<'w, 'en>(
         &self,
         stream: &mut Self::Stream,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let queue = mem::replace(&mut *stream.subscriber.recv(), BTreeSet::new());
@@ -84,10 +84,10 @@ impl<E: GenEncoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpd
     }
 }
 
-impl<D: GenDecoder, K: Ord + Deserialize<D>, V: Deserialize<D>> Deserialize<D>
+impl<D: Decoder, K: Ord + Deserialize<D>, V: Deserialize<D>> Deserialize<D>
     for UpdateBTreeMap<K, V>
 {
-    fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         Ok(Self::from(BTreeMap::deserialize(d, ctx)?))
     }
 }
@@ -101,12 +101,12 @@ impl<K, V> From<BTreeMap<K, V>> for UpdateBTreeMap<K, V> {
     }
 }
 
-impl<D: GenDecoder, K: Ord + Deserialize<D>, V: DeserializeUpdate<D>> DeserializeUpdate<D>
+impl<D: Decoder, K: Ord + Deserialize<D>, V: DeserializeUpdate<D>> DeserializeUpdate<D>
     for UpdateBTreeMap<K, V>
 {
     fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut d = d.decode(DecodeHint::Map)?.try_into_map()?;

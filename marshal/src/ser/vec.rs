@@ -1,12 +1,12 @@
-use marshal_core::encode::{AnyGenEncoder, GenEncoder};
+use marshal_core::encode::{AnyEncoder, Encoder};
 
 use crate::context::Context;
 use crate::ser::Serialize;
 
-impl<W: GenEncoder, T: Serialize<W>> Serialize<W> for Vec<T> {
+impl<W: Encoder, T: Serialize<W>> Serialize<W> for Vec<T> {
     default fn serialize<'w, 'en>(
         &self,
-        w: AnyGenEncoder<'w, 'en, W>,
+        w: AnyEncoder<'w, 'en, W>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut w = w.encode_seq(Some(self.len()))?;
@@ -18,10 +18,10 @@ impl<W: GenEncoder, T: Serialize<W>> Serialize<W> for Vec<T> {
     }
 }
 
-impl<W: GenEncoder> Serialize<W> for Vec<u8> {
+impl<W: Encoder> Serialize<W> for Vec<u8> {
     fn serialize<'w, 'en>(
         &self,
-        w: AnyGenEncoder<'w, 'en, W>,
+        w: AnyEncoder<'w, 'en, W>,
         _ctx: Context,
     ) -> anyhow::Result<()> {
         w.encode_bytes(self)

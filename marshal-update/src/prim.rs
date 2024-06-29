@@ -2,8 +2,8 @@ use std::ops::{Deref, DerefMut};
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder, GenDecoder};
-use marshal::encode::{AnyGenEncoder, GenEncoder};
+use marshal::decode::{AnyDecoder, Decoder};
+use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
@@ -45,22 +45,22 @@ pub struct PrimStream {
     version: Version,
 }
 
-impl<E: GenEncoder, T: ?Sized + Serialize<E>> Serialize<E> for Prim<T> {
-    fn serialize<'w, 'en>(&self, e: AnyGenEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
+impl<E: Encoder, T: ?Sized + Serialize<E>> Serialize<E> for Prim<T> {
+    fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
         self.inner.serialize(e, ctx)
     }
 }
 
-impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for Prim<T> {
-    fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
+impl<D: Decoder, T: Deserialize<D>> Deserialize<D> for Prim<T> {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         Ok(Prim::new(T::deserialize(d, ctx)?))
     }
 }
 
-impl<D: GenDecoder, T: Deserialize<D>> DeserializeUpdate<D> for Prim<T> {
+impl<D: Decoder, T: Deserialize<D>> DeserializeUpdate<D> for Prim<T> {
     fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyGenDecoder<'p, 'de, D>,
+        d: AnyDecoder<'p, 'de, D>,
         ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(x) = Option::<T>::deserialize(d, ctx)? {
@@ -80,11 +80,11 @@ impl<T: ?Sized> SerializeStream for Prim<T> {
     }
 }
 
-impl<E: GenEncoder, T: Serialize<E>> SerializeUpdate<E> for Prim<T> {
+impl<E: Encoder, T: Serialize<E>> SerializeUpdate<E> for Prim<T> {
     fn serialize_update(
         &self,
         stream: &mut Self::Stream,
-        e: AnyGenEncoder<E>,
+        e: AnyEncoder<E>,
         ctx: Context,
     ) -> anyhow::Result<()> {
         let m = if stream.version != self.version {

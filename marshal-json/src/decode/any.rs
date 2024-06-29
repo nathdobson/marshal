@@ -1,5 +1,5 @@
 use crate::decode::error::JsonDecoderError;
-use crate::decode::SimpleJsonDecoder;
+use crate::decode::SimpleJsonSpecDecoder;
 
 #[derive(Eq, Ord, PartialEq, PartialOrd, Copy, Clone, Debug, Hash)]
 pub enum PeekType {
@@ -11,7 +11,7 @@ pub enum PeekType {
     Bool,
 }
 
-impl<'de> SimpleJsonDecoder<'de> {
+impl<'de> SimpleJsonSpecDecoder<'de> {
     pub fn peek_type<'p>(&'p mut self) -> anyhow::Result<PeekType> {
         self.read_whitespace()?;
         let result = match self.peek_char()? {

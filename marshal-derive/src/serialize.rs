@@ -18,11 +18,11 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
         generic_params,
         generic_args,
     } = DeriveGenerics::new(generics, &quote! {::marshal::ser::Serialize<W>});
-    let gen_encoder_trait = quote! { ::marshal::encode::GenEncoder };
+    let gen_encoder_trait = quote! { ::marshal::encode::Encoder };
     let serialize_trait = quote! { ::marshal::ser::Serialize };
     let context_type = quote! { ::marshal::context::Context };
     let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());
-    let any_gen_encoder_type = quote!(::marshal::encode::AnyGenEncoder);
+    let any_gen_encoder_type = quote!(::marshal::encode::AnyEncoder);
 
     let anyhow = quote!(::marshal::reexports::anyhow);
     let result_type = quote!(#anyhow::Result);

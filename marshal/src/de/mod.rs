@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 
-use marshal_core::decode::{AnyGenDecoder, GenDecoder};
+use marshal_core::decode::{AnyDecoder, Decoder};
 
 use crate::context::Context;
 
@@ -14,8 +14,8 @@ mod string;
 mod tuple;
 mod vec;
 
-pub trait Deserialize<D: GenDecoder>: Sized {
-    fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self>;
+pub trait Deserialize<D: Decoder>: Sized {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self>;
 }
 
 #[derive(Debug)]

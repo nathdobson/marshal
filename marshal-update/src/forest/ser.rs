@@ -6,7 +6,7 @@ use std::sync::Arc;
 use by_address::ByAddress;
 
 use marshal::context::Context;
-use marshal::encode::{AnyGenEncoder,  GenEncoder};
+use marshal::encode::{AnyEncoder,  Encoder};
 use marshal::ser::rc::SerializeArc;
 use marshal::ser::Serialize;
 use marshal_pointer::arc_ref::ArcRef;
@@ -33,10 +33,10 @@ impl ForestSerializerTable {
     }
 }
 
-impl<E: GenEncoder, T: Serialize<E>> Serialize<E> for ForestRoot<T> {
+impl<E: Encoder, T: Serialize<E>> Serialize<E> for ForestRoot<T> {
     fn serialize<'w, 'en>(
         &self,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let forest = self.forest();
@@ -77,11 +77,11 @@ impl<T: SerializeStream> SerializeStream for ForestRoot<T> {
     }
 }
 
-impl<E: GenEncoder, T: SerializeUpdate<E>> SerializeUpdate<E> for ForestRoot<T> {
+impl<E: Encoder, T: SerializeUpdate<E>> SerializeUpdate<E> for ForestRoot<T> {
     fn serialize_update(
         &self,
         stream: &mut Self::Stream,
-        e: AnyGenEncoder<E>,
+        e: AnyEncoder<E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let forest = self.forest();
@@ -129,13 +129,13 @@ impl<E: GenEncoder, T: SerializeUpdate<E>> SerializeUpdate<E> for ForestRoot<T> 
 }
 
 impl<
-        E: GenEncoder,
+        E: Encoder,
         T: 'static + Sync + Send + Serialize<E> + SerializeStream + SerializeUpdate<E>,
     > SerializeArc<E> for Tree<T>
 {
     fn serialize_arc<'w, 'en>(
         this: &ArcRef<Self>,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let serializer_table = ctx.reborrow().get_mut::<ForestSerializerTable>()?;
@@ -154,10 +154,10 @@ impl<
     }
 }
 
-impl<E: GenEncoder, T: Serialize<E>> Serialize<E> for Tree<T> {
+impl<E: Encoder, T: Serialize<E>> Serialize<E> for Tree<T> {
     fn serialize<'w, 'en>(
         &self,
-        e: AnyGenEncoder<'w, 'en, E>,
+        e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let (forest, ctx) = ctx.get_const_reborrow::<Forest>()?;

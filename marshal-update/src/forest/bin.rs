@@ -9,10 +9,10 @@
 //     type SerializeUpdateDyn = dyn SerializeUpdateBin;
 // }
 
-// pub trait DeserializeUpdateBin: Sync + Send + Any + DeserializeUpdateDyn<BinGenDecoder> {}
+// pub trait DeserializeUpdateBin: Sync + Send + Any + DeserializeUpdateDyn<BinDecoder> {}
 //
-// impl<T: ?Sized + Sync + Send + DeserializeUpdateDyn<BinGenDecoder>> DeserializeUpdateBin for T {}
+// impl<T: ?Sized + Sync + Send + DeserializeUpdateDyn<BinDecoder>> DeserializeUpdateBin for T {}
 
-// impl DynamicDecoder for BinGenDecoder {
+// impl DynamicDecoder for BinDecoder {
 //     type DeserializeUpdateDyn = dyn DeserializeUpdateBin;
 // }
