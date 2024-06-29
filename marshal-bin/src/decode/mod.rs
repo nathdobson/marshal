@@ -1,16 +1,17 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
+use std::ops::Range;
 use std::sync::Arc;
 
 use by_address::ByAddress;
 use id_vec::{Id, IdVec};
 use lock_api::ArcMutexGuard;
-use num_traits::FromPrimitive;
-use parking_lot::{Mutex, RawMutex};
-
 use marshal_core::decode::{DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 use marshal_core::{Primitive, PrimitiveType};
+use num_traits::FromPrimitive;
+use parking_lot::{Mutex, RawMutex};
+use rc_slice2::ArcSlice;
 
 use crate::to_from_vu128::{Array, ToFromVu128};
 use crate::{TypeTag, VU128_MAX_PADDING};
@@ -57,8 +58,8 @@ impl BinDecoderSchema {
     }
 }
 
-pub struct SimpleBinDecoder<'de> {
-    content: &'de [u8],
+pub struct SimpleBinDecoder {
+    content: ArcSlice<[u8]>,
     schema: ArcMutexGuard<RawMutex, BinDecoderSchemaInner>,
 }
 
@@ -87,8 +88,8 @@ impl Display for BinDecoderError {
 
 impl std::error::Error for BinDecoderError {}
 
-impl<'de> SimpleBinDecoder<'de> {
-    pub fn new(data: &'de [u8], schema: &BinDecoderSchema) -> SimpleBinDecoder<'de> {
+impl SimpleBinDecoder {
+    pub fn new(data: ArcSlice<[u8]>, schema: &BinDecoderSchema) -> SimpleBinDecoder {
         SimpleBinDecoder {
             content: data,
             schema: schema.inner.try_lock_arc().unwrap(),
@@ -105,15 +106,23 @@ impl<'de> SimpleBinDecoder<'de> {
     }
 }
 
-impl<'de> SimpleBinDecoder<'de> {
-    fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
-        Ok(self.content.take(..count).ok_or(BinDecoderError::Eof)?)
+impl SimpleBinDecoder {
+    fn read_count(&mut self, count: usize) -> anyhow::Result<&[u8]> {
+        todo!();
+        // Ok(self.content.take(..count).ok_or(BinDecoderError::Eof)?)
+    }
+    fn read_count_range(&mut self, count: usize) -> anyhow::Result<Range<usize>> {
+        let start = ArcSlice::bounds_range(&self.content).start;
+        let result = start..start + count;
+        ArcSlice::advance(&mut self.content, count).ok_or(BinDecoderError::Eof)?;
+        Ok(result)
     }
     fn read_vu128<T: ToFromVu128 + Display>(&mut self) -> anyhow::Result<T> {
         let (value, count) = T::decode_vu128(T::Buffer::try_from_slice(
             &self.content[..T::Buffer::ARRAY_LEN],
         )?);
-        self.content.take(..count).ok_or(BinDecoderError::Eof)?;
+        // self.content.take(..count).ok_or(BinDecoderError::Eof)?;
+        todo!();
         Ok(value)
     }
     fn read_usize(&mut self) -> anyhow::Result<usize> {
@@ -123,11 +132,15 @@ impl<'de> SimpleBinDecoder<'de> {
         let tag_num = self.read_count(1)?[0];
         Ok(TypeTag::from_u8(tag_num).ok_or(BinDecoderError::BadTag(tag_num))?)
     }
-    fn read_bytes(&mut self) -> anyhow::Result<&'de [u8]> {
+    fn read_bytes(&mut self) -> anyhow::Result<&[u8]> {
         let len = self.read_usize()?;
         self.read_count(len)
     }
-    fn read_str(&mut self) -> anyhow::Result<&'de str> {
+    fn read_bytes_range(&mut self) -> anyhow::Result<Range<usize>> {
+        let len = self.read_usize()?;
+        self.read_count_range(len)
+    }
+    fn read_str(&mut self) -> anyhow::Result<&str> {
         Ok(std::str::from_utf8(self.read_bytes()?)?)
     }
     fn read_enum_def(&mut self) -> anyhow::Result<()> {
@@ -197,6 +210,15 @@ pub enum BinAnyDecoder {
     Read,
 }
 
+pub enum BinStringDecoder {
+    Id(Id<String>),
+    Range(Range<usize>),
+}
+
+pub struct BinBytesDecoder {
+    range: Range<usize>,
+}
+
 pub struct BinSeqDecoder {
     len: usize,
 }
@@ -221,8 +243,10 @@ pub struct BinDiscriminantDecoder {
     variant: EnumDefKey,
 }
 
-impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
+impl Decoder for SimpleBinDecoder {
     type AnyDecoder = BinAnyDecoder;
+    type StringDecoder = BinStringDecoder;
+    type BytesDecoder = BinBytesDecoder;
     type SeqDecoder = BinSeqDecoder;
     type MapDecoder = BinMapDecoder;
     type KeyDecoder = BinKeyDecoder;
@@ -237,14 +261,10 @@ impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
         &mut self,
         any: Self::AnyDecoder,
         hint: DecodeHint,
-    ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
+    ) -> anyhow::Result<SimpleDecoderView<Self>> {
         match any {
             BinAnyDecoder::U32(x) => return Ok(SimpleDecoderView::Primitive(Primitive::U32(x))),
-            BinAnyDecoder::Str(x) => {
-                return Ok(SimpleDecoderView::String(Cow::Owned(
-                    self.schema.strings[x].clone(),
-                )));
-            }
+            BinAnyDecoder::Str(x) => return Ok(SimpleDecoderView::String(BinStringDecoder::Id(x))),
             BinAnyDecoder::Read => {}
         }
         loop {
@@ -367,9 +387,17 @@ impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
                     }));
                 }
                 TypeTag::EnumDef => self.read_enum_def()?,
-                TypeTag::String => return Ok(SimpleDecoderView::String(self.read_str()?.into())),
+                TypeTag::String => {
+                    return Ok(SimpleDecoderView::String(BinStringDecoder::Range(
+                        self.read_bytes_range()?,
+                    )))
+                }
                 TypeTag::UnitStruct => return Ok(SimpleDecoderView::Primitive(Primitive::Unit)),
-                TypeTag::Bytes => return Ok(SimpleDecoderView::Bytes(self.read_bytes()?.into())),
+                TypeTag::Bytes => {
+                    return Ok(SimpleDecoderView::Bytes(BinBytesDecoder {
+                        range: self.read_bytes_range()?,
+                    }))
+                }
                 TypeTag::None => return Ok(SimpleDecoderView::None),
                 TypeTag::Some => return Ok(SimpleDecoderView::Some(())),
             };
@@ -390,6 +418,10 @@ impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
         } else {
             Ok(None)
         }
+    }
+
+    fn decode_seq_exact_size(&self, _seq: &Self::SeqDecoder) -> Option<usize> {
+        todo!()
     }
 
     fn decode_seq_end(&mut self, _seq: Self::SeqDecoder) -> anyhow::Result<()> {
@@ -423,6 +455,10 @@ impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
                 }
             }
         }
+    }
+
+    fn decode_map_exact_size(&self, _map: &Self::MapDecoder) -> Option<usize> {
+        todo!()
     }
 
     fn decode_map_end(&mut self, _map: Self::MapDecoder) -> anyhow::Result<()> {
@@ -461,7 +497,7 @@ impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
         &mut self,
         _: Self::VariantDecoder,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
+    ) -> anyhow::Result<(SimpleDecoderView<Self>, Self::EnumCloser)> {
         Ok((
             self.decode(
                 BinAnyDecoder::Read,
@@ -495,5 +531,13 @@ impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
 
     fn decode_some_end(&mut self, _: Self::SomeCloser) -> anyhow::Result<()> {
         Ok(())
+    }
+
+    fn decode_string_cow(&mut self, p: Self::StringDecoder) -> anyhow::Result<Cow<str>> {
+        todo!()
+    }
+
+    fn decode_bytes_cow(&mut self, p: Self::BytesDecoder) -> anyhow::Result<Cow<[u8]>> {
+        todo!()
     }
 }

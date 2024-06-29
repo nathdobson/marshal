@@ -1,7 +1,8 @@
+use std::borrow::Cow;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use crate::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
+use crate::decode::{DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 
 pub struct DepthBudgetDecoder<D> {
     inner: D,
@@ -29,18 +30,19 @@ impl<T> WithDepthBudget<T> {
     }
 }
 
-impl<'de, D: Decoder<'de>> DepthBudgetDecoder<D> {
+impl<'de, D: Decoder> DepthBudgetDecoder<D> {
     pub fn new(inner: D) -> Self {
         DepthBudgetDecoder { inner }
     }
-    fn wrap_view<'p>(
-        budget: usize,
-        view: SimpleDecoderView<'de, D>,
-    ) -> SimpleDecoderView<'de, Self> {
+    fn wrap_view<'p>(budget: usize, view: SimpleDecoderView<D>) -> SimpleDecoderView<Self> {
         match view {
             SimpleDecoderView::Primitive(x) => SimpleDecoderView::Primitive(x),
-            SimpleDecoderView::String(x) => SimpleDecoderView::String(x),
-            SimpleDecoderView::Bytes(x) => SimpleDecoderView::Bytes(x),
+            SimpleDecoderView::String(x) => {
+                SimpleDecoderView::String(WithDepthBudget::new(budget, x))
+            }
+            SimpleDecoderView::Bytes(x) => {
+                SimpleDecoderView::Bytes(WithDepthBudget::new(budget, x))
+            }
             SimpleDecoderView::None => SimpleDecoderView::None,
             SimpleDecoderView::Some(x) => SimpleDecoderView::Some(WithDepthBudget::new(budget, x)),
             SimpleDecoderView::Seq(x) => SimpleDecoderView::Seq(WithDepthBudget::new(budget, x)),
@@ -53,8 +55,10 @@ impl<'de, D: Decoder<'de>> DepthBudgetDecoder<D> {
     }
 }
 
-impl<'de, D: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<D> {
+impl<D: Decoder> Decoder for DepthBudgetDecoder<D> {
     type AnyDecoder = WithDepthBudget<D::AnyDecoder>;
+    type StringDecoder = WithDepthBudget<D::StringDecoder>;
+    type BytesDecoder = WithDepthBudget<D::BytesDecoder>;
     type SeqDecoder = WithDepthBudget<D::SeqDecoder>;
     type MapDecoder = WithDepthBudget<D::MapDecoder>;
     type KeyDecoder = WithDepthBudget<D::KeyDecoder>;
@@ -69,7 +73,7 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<D> {
         &mut self,
         any: Self::AnyDecoder,
         hint: DecodeHint,
-    ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
+    ) -> anyhow::Result<SimpleDecoderView<Self>> {
         Ok(Self::wrap_view(
             any.budget.checked_sub(1).ok_or(OverflowError)?,
             self.inner.decode(any.inner, hint)?,
@@ -91,6 +95,10 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<D> {
         }
     }
 
+    fn decode_seq_exact_size(&self, seq: &Self::SeqDecoder) -> Option<usize> {
+        self.inner.decode_seq_exact_size(&seq.inner)
+    }
+
     fn decode_seq_end(&mut self, seq: Self::SeqDecoder) -> anyhow::Result<()> {
         self.inner.decode_seq_end(seq.inner)
     }
@@ -104,6 +112,10 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<D> {
         } else {
             Ok(None)
         }
+    }
+
+    fn decode_map_exact_size(&self, map: &Self::MapDecoder) -> Option<usize> {
+        self.inner.decode_map_exact_size(&map.inner)
     }
 
     fn decode_map_end(&mut self, map: Self::MapDecoder) -> anyhow::Result<()> {
@@ -146,7 +158,7 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<D> {
         &mut self,
         variant: Self::VariantDecoder,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
+    ) -> anyhow::Result<(SimpleDecoderView<Self>, Self::EnumCloser)> {
         let (any, closer) = self.inner.decode_enum_variant(variant.inner, hint)?;
         Ok((
             Self::wrap_view(variant.budget, any),
@@ -171,5 +183,13 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<D> {
 
     fn decode_some_end(&mut self, closer: Self::SomeCloser) -> anyhow::Result<()> {
         self.inner.decode_some_end(closer.inner)
+    }
+
+    fn decode_string_cow(&mut self, p: Self::StringDecoder) -> anyhow::Result<Cow<str>> {
+        self.inner.decode_string_cow(p.inner)
+    }
+
+    fn decode_bytes_cow(&mut self, p: Self::BytesDecoder) -> anyhow::Result<Cow<[u8]>> {
+        self.inner.decode_bytes_cow(p.inner)
     }
 }

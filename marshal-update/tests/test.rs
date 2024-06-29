@@ -1,8 +1,5 @@
 #![deny(unused_must_use)]
 
-use std::sync;
-use std::sync::Arc;
-
 use marshal_derive::{Deserialize, Serialize};
 use marshal_update::hash_map::UpdateHashMap;
 use marshal_update::tester::Tester;
@@ -33,7 +30,7 @@ fn test_unit_struct() -> anyhow::Result<()> {
 fn test_tuple_struct() -> anyhow::Result<()> {
     #[derive(Serialize, Deserialize, DeserializeUpdate, SerializeStream, SerializeUpdate)]
     struct Foo(u8, u16);
-    let (mut tester) = Tester::new(
+    let mut tester = Tester::new(
         Foo(4, 8),
         r#"[
   4,
@@ -62,7 +59,7 @@ fn test_struct() -> anyhow::Result<()> {
         x: u8,
         y: u16,
     }
-    let (mut tester) = Tester::new(
+    let mut tester = Tester::new(
         Foo { x: 4, y: 8 },
         r#"{
   "x": 4,

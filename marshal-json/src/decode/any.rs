@@ -11,7 +11,7 @@ pub enum PeekType {
     Bool,
 }
 
-impl<'de> SimpleJsonDecoder<'de> {
+impl SimpleJsonDecoder {
     pub fn peek_type<'p>(&'p mut self) -> anyhow::Result<PeekType> {
         self.read_whitespace()?;
         let result = match self.peek_char()? {

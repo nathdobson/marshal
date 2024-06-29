@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 use itertools::Itertools;
-
+use marshal_core::decode::{DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
+use rc_slice2::ArcSlice;
 
 use crate::decode::any::PeekType;
 use crate::decode::error::JsonDecoderError;
@@ -19,8 +19,8 @@ mod string;
 #[cfg(test)]
 mod test;
 
-pub struct SimpleJsonDecoder<'de> {
-    cursor: &'de [u8],
+pub struct SimpleJsonDecoder {
+    cursor: ArcSlice<[u8]>,
 }
 
 #[derive(Default)]
@@ -49,8 +49,14 @@ pub struct JsonMapDecoder {
     started: bool,
 }
 
-impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
+pub struct JsonStringDecoder {}
+
+pub struct JsonBytesDecoder {}
+
+impl Decoder for SimpleJsonDecoder {
     type AnyDecoder = JsonAnyDecoder;
+    type StringDecoder = JsonStringDecoder;
+    type BytesDecoder = JsonBytesDecoder;
     type SeqDecoder = JsonSeqDecoder;
     type MapDecoder = JsonMapDecoder;
     type KeyDecoder = ();
@@ -65,7 +71,7 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
         &mut self,
         context: Self::AnyDecoder,
         hint: DecodeHint,
-    ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
+    ) -> anyhow::Result<SimpleDecoderView<Self>> {
         let found = self.peek_type()?;
         if context.must_be_string {
             if found != PeekType::String {
@@ -127,7 +133,7 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
                 Ok(SimpleDecoderView::Primitive(Primitive::Unit))
             }
             (DecodeHint::Bytes, PeekType::String) => {
-                Ok(SimpleDecoderView::Bytes(BASE64_STANDARD_NO_PAD.decode(self.read_string()?)?.into()))
+                Ok(SimpleDecoderView::Bytes(JsonBytesDecoder{}))
             }
             (DecodeHint::Primitive(PrimitiveType::Char), PeekType::String) => {
                 Ok(SimpleDecoderView::Primitive(Primitive::Char(
@@ -186,7 +192,7 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
                 | DecodeHint::Enum { .. },
                 PeekType::String,
             ) => {
-                Ok(SimpleDecoderView::String(Cow::Owned(self.read_string()?)))
+                Ok(SimpleDecoderView::String(JsonStringDecoder{}))
             }
             (
                 DecodeHint::Primitive(PrimitiveType::Unit)
@@ -318,6 +324,10 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
         Ok(Some(JsonAnyDecoder::default()))
     }
 
+    fn decode_seq_exact_size(&self, _seq: &Self::SeqDecoder) -> Option<usize> {
+        todo!()
+    }
+
     fn decode_seq_end(&mut self, _seq: Self::SeqDecoder) -> anyhow::Result<()> {
         Ok(())
     }
@@ -334,6 +344,10 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
         }
         map.started = true;
         Ok(Some(()))
+    }
+
+    fn decode_map_exact_size(&self, _map: &Self::MapDecoder) -> Option<usize> {
+        todo!()
     }
 
     fn decode_map_end(&mut self, _map: Self::MapDecoder) -> anyhow::Result<()> {
@@ -375,7 +389,7 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
         &mut self,
         _: Self::VariantDecoder,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
+    ) -> anyhow::Result<(SimpleDecoderView<Self>, Self::EnumCloser)> {
         self.read_exact(b':')?;
         let hint = match hint {
             DecodeVariantHint::UnitVariant => DecodeHint::Primitive(PrimitiveType::Unit),
@@ -433,10 +447,18 @@ impl<'de> Decoder<'de> for SimpleJsonDecoder<'de> {
             JsonSomeCloser::Struct => self.read_exact(b'}'),
         }
     }
+
+    fn decode_string_cow(&mut self, p: Self::StringDecoder) -> anyhow::Result<Cow<str>> {
+        Ok(Cow::Owned(self.read_string()?))
+    }
+
+    fn decode_bytes_cow(&mut self, p: Self::BytesDecoder) -> anyhow::Result<Cow<[u8]>> {
+        Ok(BASE64_STANDARD_NO_PAD.decode(self.read_string()?)?.into())
+    }
 }
 
-impl<'de> SimpleJsonDecoder<'de> {
-    pub fn new(input: &'de [u8]) -> Self {
+impl SimpleJsonDecoder {
+    pub fn new(input: ArcSlice<[u8]>) -> Self {
         SimpleJsonDecoder { cursor: input }
     }
 }

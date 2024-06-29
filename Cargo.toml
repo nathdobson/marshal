@@ -38,6 +38,7 @@ atomic_refcell = "0.1.13"
 slab = "0.4.9"
 tokenlock = "0.3.8"
 id-vec="0.5.7"
+rc-slice2 = "0.4.1"
 
 [profile.bench]
 debug = true

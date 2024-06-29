@@ -1,19 +1,19 @@
 use crate::decode::{Decoder, SimpleDecoderView};
 
 pub fn cast_simple_decoder_view<
-    'de,
-    T1: Decoder<'de>,
+    T1: Decoder,
     T2: Decoder<
-        'de,
         AnyDecoder = T1::AnyDecoder,
+        StringDecoder = T1::StringDecoder,
+        BytesDecoder = T1::BytesDecoder,
         SomeDecoder = T1::SomeDecoder,
         SeqDecoder = T1::SeqDecoder,
         MapDecoder = T1::MapDecoder,
         DiscriminantDecoder = T1::DiscriminantDecoder,
     >,
 >(
-    x: SimpleDecoderView<'de, T1>,
-) -> SimpleDecoderView<'de, T2> {
+    x: SimpleDecoderView<T1>,
+) -> SimpleDecoderView<T2> {
     match x {
         SimpleDecoderView::Primitive(x) => SimpleDecoderView::Primitive(x),
         SimpleDecoderView::String(x) => SimpleDecoderView::String(x),
@@ -28,29 +28,31 @@ pub fn cast_simple_decoder_view<
 
 #[macro_export]
 macro_rules! derive_decoder_for_newtype {
-    ($ty:ident <'de $(, $lt:lifetime )* > ($inner:ty)) =>{
+    ($ty:ident < $(, $lt:lifetime )* > ($inner:ty)) =>{
         const _ : () = {
             use $crate::decode::DecodeHint;
             use $crate::decode::DecodeVariantHint;
             use $crate::decode::Decoder;
             use $crate::decode::SimpleDecoderView;
             use $crate::decode::newtype::cast_simple_decoder_view;
-            impl<'de $(, $lt)*> Decoder<'de> for $ty <'de $(, $lt)*> {
-                type AnyDecoder = <$inner as Decoder<'de>>::AnyDecoder;
-                type SeqDecoder = <$inner as Decoder<'de>>::SeqDecoder;
-                type MapDecoder = <$inner as Decoder<'de>>::MapDecoder;
-                type KeyDecoder = <$inner as Decoder<'de>>::KeyDecoder;
-                type ValueDecoder = <$inner as Decoder<'de>>::ValueDecoder;
-                type DiscriminantDecoder = <$inner as Decoder<'de>>::DiscriminantDecoder;
-                type VariantDecoder = <$inner as Decoder<'de>>::VariantDecoder;
-                type EnumCloser = <$inner as Decoder<'de>>::EnumCloser;
-                type SomeDecoder = <$inner as Decoder<'de>>::SomeDecoder;
-                type SomeCloser = <$inner as Decoder<'de>>::SomeCloser;
+            impl< $(, $lt)*> Decoder for $ty < $(, $lt)*> {
+                type AnyDecoder = <$inner as Decoder>::AnyDecoder;
+                type StringDecoder = <$inner as Decoder>::StringDecoder;
+                type BytesDecoder = <$inner as Decoder>::BytesDecoder;
+                type SeqDecoder = <$inner as Decoder>::SeqDecoder;
+                type MapDecoder = <$inner as Decoder>::MapDecoder;
+                type KeyDecoder = <$inner as Decoder>::KeyDecoder;
+                type ValueDecoder = <$inner as Decoder>::ValueDecoder;
+                type DiscriminantDecoder = <$inner as Decoder>::DiscriminantDecoder;
+                type VariantDecoder = <$inner as Decoder>::VariantDecoder;
+                type EnumCloser = <$inner as Decoder>::EnumCloser;
+                type SomeDecoder = <$inner as Decoder>::SomeDecoder;
+                type SomeCloser = <$inner as Decoder>::SomeCloser;
                 fn decode(
                     &mut self,
                     any: Self::AnyDecoder,
                     hint: DecodeHint,
-                ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
+                ) -> anyhow::Result<SimpleDecoderView< Self>> {
                     Ok(cast_simple_decoder_view(self.0.decode(any, hint)?))
                 }
 
@@ -106,7 +108,7 @@ macro_rules! derive_decoder_for_newtype {
                     &mut self,
                     e: Self::VariantDecoder,
                     hint: DecodeVariantHint,
-                ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
+                ) -> anyhow::Result<(SimpleDecoderView< Self>, Self::EnumCloser)> {
                     let (view,closer)=self.0.decode_enum_variant(e,hint)?;
                     Ok((cast_simple_decoder_view(view),closer))
                 }
@@ -124,6 +126,14 @@ macro_rules! derive_decoder_for_newtype {
 
                 fn decode_some_end(&mut self, d: Self::SomeCloser) -> anyhow::Result<()> {
                     self.0.decode_some_end(d)
+                }
+
+                fn decode_string_cow(&mut self, d: Self::StringDecoder) -> anyhow::Result<::std::borrow::Cow<str>> {
+                    self.0.decode_string_cow(d)
+                }
+
+                fn decode_bytes_cow(&mut self, d: Self::BytesDecoder) -> anyhow::Result<::std::borrow::Cow<[u8]>> {
+                    self.0.decode_bytes_cow(d)
                 }
             }
         };

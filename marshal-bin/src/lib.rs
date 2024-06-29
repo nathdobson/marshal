@@ -19,16 +19,16 @@ use marshal::ser::Serialize;
 use crate::decode::full::BinDecoder;
 use crate::encode::full::BinEncoder;
 
+pub mod bin_object;
 pub mod decode;
 pub mod encode;
 #[cfg(test)]
 mod test;
 mod to_from_vu128;
 mod util;
-pub mod bin_object;
 
 #[doc(hidden)]
-pub mod reexports{
+pub mod reexports {
     pub use anyhow;
     pub use safe_once;
 
@@ -71,4 +71,4 @@ pub enum TypeTag {
 }
 
 pub trait SerializeBin = for<'s> Serialize<BinEncoder>;
-pub trait DeserializeBin<'de> = Deserialize<'de, BinDecoder<'de>>;
+pub trait DeserializeBin = Deserialize<BinDecoder>;

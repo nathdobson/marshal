@@ -3,13 +3,13 @@ use std::str::FromStr;
 use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
 
-struct SliceDecoder<'p, 'de> {
-    decoder: &'p mut SimpleJsonDecoder<'de>,
+struct SliceDecoder<'p> {
+    decoder: &'p mut SimpleJsonDecoder,
     index: usize,
 }
 
-impl<'p, 'de> SliceDecoder<'p, 'de> {
-    pub fn new(decoder: &'p mut SimpleJsonDecoder<'de>) -> Self {
+impl<'p> SliceDecoder<'p> {
+    pub fn new(decoder: &'p mut SimpleJsonDecoder) -> Self {
         SliceDecoder { decoder, index: 0 }
     }
     pub fn try_consume_char(
@@ -32,15 +32,15 @@ impl<'p, 'de> SliceDecoder<'p, 'de> {
         Ok(self.try_consume_char(|x| x.is_ascii_digit())?)
     }
 
-    pub fn end(self) -> anyhow::Result<&'de [u8]> {
-        self.decoder.read_count(self.index)
+    pub fn end(self) -> anyhow::Result<&'p [u8]> {
+        Ok(self.decoder.read_count(self.index)?)
     }
 }
 
-impl<'de> SimpleJsonDecoder<'de> {
+impl SimpleJsonDecoder {
     pub fn read_number<T: FromStr>(&mut self) -> anyhow::Result<T>
-        where
-            <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
+    where
+        <T as FromStr>::Err: 'static + Sync + Send + std::error::Error,
     {
         let mut slice = SliceDecoder::new(self);
         slice.try_consume_char(|x| x == b'-')?;

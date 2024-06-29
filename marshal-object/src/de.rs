@@ -5,26 +5,24 @@ use type_map::concurrent::TypeMap;
 
 use marshal::context::Context;
 use marshal::de::SchemaError;
-use marshal::decode::{
-    AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint,
-};
+use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView};
 
 use crate::{Object, OBJECT_REGISTRY};
 
-pub trait DeserializeVariantForDiscriminant<'de, D: Decoder<'de>>: Object {
+pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {
     fn deserialize_variant(
         discriminant: usize,
-        d: AnyDecoder<'_, 'de, D>,
+        d: AnyDecoder<'_, D>,
         ctx: Context,
     ) -> anyhow::Result<Self::Pointer<Self::Dyn>>;
 }
 
-pub fn deserialize_object<'p, 'de, O: Object, D: Decoder<'de>>(
-    d: AnyDecoder<'p, 'de, D>,
+pub fn deserialize_object<'p, O: Object, D: Decoder>(
+    d: AnyDecoder<'p, D>,
     ctx: Context,
 ) -> anyhow::Result<O::Pointer<O::Dyn>>
 where
-    O: DeserializeVariantForDiscriminant<'de, D>,
+    O: DeserializeVariantForDiscriminant<D>,
 {
     match d.decode(DecodeHint::Enum {
         name: O::object_descriptor().object_name(),
@@ -33,7 +31,7 @@ where
         DecoderView::Enum(mut d) => {
             let disc = match d.decode_discriminant()?.decode(DecodeHint::Identifier)? {
                 DecoderView::String(x) => O::object_descriptor()
-                    .variant_index_of(&*x)
+                    .variant_index_of(&*(x.decode_cow()?))
                     .ok_or(SchemaError::UnknownVariant)?,
                 DecoderView::Primitive(p) => p.try_into()?,
                 d => d.mismatch("discriminant")?,

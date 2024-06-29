@@ -14,16 +14,16 @@ use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 use crate::decode::full::JsonDecoder;
-use crate::DeserializeJson;
 use crate::encode::full::JsonEncoder;
+use crate::DeserializeJson;
 use crate::SerializeJson;
 
 pub trait SerializeDyn = SerializeJson;
 
 pub trait DeserializeVariantJson<O: Object>: 'static + Sync + Send {
-    fn deserialize_variant_json<'p, 'de>(
+    fn deserialize_variant_json<'p>(
         &self,
-        d: AnyDecoder<'p, 'de, JsonDecoder<'de>>,
+        d: AnyDecoder<'p, JsonDecoder>,
         ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn serialize_variant_json<'p>(
@@ -37,16 +37,16 @@ pub trait DeserializeVariantJson<O: Object>: 'static + Sync + Send {
 impl<O: Object, V: 'static> DeserializeVariantJson<O> for PhantomData<fn() -> V>
 where
     O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,
-    O::Pointer<V>: for<'de> Deserialize<'de, JsonDecoder<'de>>,
+    O::Pointer<V>: Deserialize<JsonDecoder>,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
     <O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
         DowncastRef<<O::Pointer<V> as AsFlatRef>::FlatRef>,
     <O::Pointer<V> as AsFlatRef>::FlatRef: SerializeJson,
 {
-    fn deserialize_variant_json<'p, 'de, 's>(
+    fn deserialize_variant_json<'p, 's>(
         &self,
-        d: AnyDecoder<'p, 'de, JsonDecoder<'de>>,
+        d: AnyDecoder<'p, JsonDecoder>,
         mut ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(O::Pointer::<V>::deserialize(d, ctx)?)
@@ -73,7 +73,7 @@ impl<O: Object> DeserializeProvider for FormatDeserializeProvider<O> {}
 
 impl<O: Object, V: 'static> DeserializeVariantProvider<V> for FormatDeserializeProvider<O>
 where
-    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>> + for<'de> DeserializeJson<'de>,
+    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>> + DeserializeJson,
     <O::Pointer<V> as AsFlatRef>::FlatRef: SerializeJson,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,

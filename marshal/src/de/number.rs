@@ -1,16 +1,13 @@
-use marshal_core::{Primitive, PrimitiveType};
 use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
+use marshal_core::{Primitive, PrimitiveType};
 
 use crate::context::Context;
 use crate::de::Deserialize;
 
 macro_rules! derive_number {
     ($t:ty, $v:ident) => {
-        impl<'de, P: Decoder<'de>> Deserialize<'de, P> for $t {
-            fn deserialize<'p>(
-                p: AnyDecoder<'p, 'de, P>,
-                _ctx: Context,
-            ) -> anyhow::Result<Self> {
+        impl<P: Decoder> Deserialize<P> for $t {
+            fn deserialize<'p>(p: AnyDecoder<'p, P>, _ctx: Context) -> anyhow::Result<Self> {
                 match p.decode(DecodeHint::Primitive(PrimitiveType::$v))? {
                     DecoderView::Primitive(Primitive::$v(x)) => Ok(x),
                     unexpected => unexpected.mismatch(std::stringify!($t))?,
@@ -39,8 +36,8 @@ derive_number!(char, Char);
 
 derive_number!(bool, Bool);
 
-impl<'de, P: Decoder<'de>> Deserialize<'de, P> for usize {
-    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, _ctx: Context) -> anyhow::Result<Self> {
+impl<P: Decoder> Deserialize<P> for usize {
+    fn deserialize<'p>(p: AnyDecoder<'p, P>, _ctx: Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Primitive(PrimitiveType::U64))? {
             DecoderView::Primitive(x) => Ok(x.try_into()?),
             unexpected => unexpected.mismatch(std::stringify!(usize))?,
@@ -48,8 +45,8 @@ impl<'de, P: Decoder<'de>> Deserialize<'de, P> for usize {
     }
 }
 
-impl<'de, P: Decoder<'de>> Deserialize<'de, P> for isize {
-    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, _ctx: Context) -> anyhow::Result<Self> {
+impl<P: Decoder> Deserialize<P> for isize {
+    fn deserialize<'p>(p: AnyDecoder<'p, P>, _ctx: Context) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Primitive(PrimitiveType::I64))? {
             DecoderView::Primitive(x) => Ok(x.try_into()?),
             unexpected => unexpected.mismatch(std::stringify!(isize))?,

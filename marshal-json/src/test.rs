@@ -9,9 +9,7 @@ use crate::decode::full::{JsonDecoder, JsonDecoderBuilder};
 use crate::encode::full::{JsonEncoder, JsonEncoderBuilder};
 
 #[track_caller]
-pub fn test_round_trip<
-    T: Debug + Eq + Serialize<JsonEncoder> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
->(
+pub fn test_round_trip<T: Debug + Eq + Serialize<JsonEncoder> + Deserialize<JsonDecoder>>(
     input: T,
     expected: &str,
 ) -> anyhow::Result<()> {

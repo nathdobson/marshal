@@ -1,20 +1,20 @@
 use crate::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, MapDecoder};
 
-pub struct StructDecoderHelper<'p, 'de, D: ?Sized + Decoder<'de>> {
+pub struct StructDecoderHelper<'p, D: ?Sized + Decoder> {
     fields: &'static [&'static str],
-    decoder: MapDecoder<'p, 'de, D>,
+    decoder: MapDecoder<'p, D>,
 }
 
-pub struct FieldDecoderHelper<'p, 'de, D: ?Sized + Decoder<'de>> {
-    decoder: EntryDecoder<'p, 'de, D>,
+pub struct FieldDecoderHelper<'p, D: ?Sized + Decoder> {
+    decoder: EntryDecoder<'p, D>,
 }
 
-impl<'p, 'de, D: ?Sized + Decoder<'de>> AnyDecoder<'p, 'de, D> {
+impl<'p, D: ?Sized + Decoder> AnyDecoder<'p, D> {
     pub fn decode_struct_helper(
         self,
         name: &'static str,
         fields: &'static [&'static str],
-    ) -> anyhow::Result<StructDecoderHelper<'p, 'de, D>> {
+    ) -> anyhow::Result<StructDecoderHelper<'p, D>> {
         let decoder = self
             .decode(DecodeHint::Struct { name, fields })?
             .try_into_map()?;
@@ -22,10 +22,8 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> AnyDecoder<'p, 'de, D> {
     }
 }
 
-impl<'p, 'de, D: ?Sized + Decoder<'de>> StructDecoderHelper<'p, 'de, D> {
-    pub fn next<'p2>(
-        &'p2 mut self,
-    ) -> anyhow::Result<Option<(usize, FieldDecoderHelper<'p2, 'de, D>)>> {
+impl<'p, D: ?Sized + Decoder> StructDecoderHelper<'p, D> {
+    pub fn next<'p2>(&'p2 mut self) -> anyhow::Result<Option<(usize, FieldDecoderHelper<'p2, D>)>> {
         loop {
             let d = self.decoder.decode_next()?;
             if let Some(mut d) = d {
@@ -40,6 +38,7 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> StructDecoderHelper<'p, 'de, D> {
                         n
                     }
                     DecoderView::String(s) => {
+                        let s = s.decode_cow()?;
                         if let Some(n) = self.fields.iter().position(|x| **x == s) {
                             n
                         } else {
@@ -63,8 +62,8 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> StructDecoderHelper<'p, 'de, D> {
     }
 }
 
-impl<'p, 'de, D: Decoder<'de>> FieldDecoderHelper<'p, 'de, D> {
-    pub fn decode_field<'p2>(&'p2 mut self) -> anyhow::Result<AnyDecoder<'p2, 'de, D>> {
+impl<'p, D: Decoder> FieldDecoderHelper<'p, D> {
+    pub fn decode_field<'p2>(&'p2 mut self) -> anyhow::Result<AnyDecoder<'p2, D>> {
         self.decoder.decode_value()
     }
     pub fn decode_end(self) -> anyhow::Result<()> {

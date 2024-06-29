@@ -1,6 +1,7 @@
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 
-use crate::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
+use crate::decode::{DecodeHint, DecodeVariantHint, Decoder, SimpleDecoderView};
 
 pub struct PoisonDecoder<D> {
     inner: D,
@@ -23,11 +24,11 @@ impl Display for PoisonError {
 }
 impl std::error::Error for PoisonError {}
 
-impl<'de, D: Decoder<'de>> PoisonDecoder<D> {
+impl<D: Decoder> PoisonDecoder<D> {
     pub fn new(inner: D) -> Self {
         PoisonDecoder { inner, depth: 0 }
     }
-    pub fn start<'p>(&'p mut self, inner: D::AnyDecoder) -> <Self as Decoder<'de>>::AnyDecoder {
+    pub fn start<'p>(&'p mut self, inner: D::AnyDecoder) -> <Self as Decoder>::AnyDecoder {
         self.push(inner)
     }
     pub fn end(self) -> anyhow::Result<D> {
@@ -59,11 +60,11 @@ impl<'de, D: Decoder<'de>> PoisonDecoder<D> {
             Err(PoisonError::UnexpectedDecodeState.into())
         }
     }
-    fn wrap_view(&mut self, view: SimpleDecoderView<'de, D>) -> SimpleDecoderView<'de, Self> {
+    fn wrap_view(&mut self, view: SimpleDecoderView<D>) -> SimpleDecoderView<Self> {
         match view {
             SimpleDecoderView::Primitive(x) => SimpleDecoderView::Primitive(x),
-            SimpleDecoderView::String(x) => SimpleDecoderView::String(x),
-            SimpleDecoderView::Bytes(x) => SimpleDecoderView::Bytes(x),
+            SimpleDecoderView::String(x) => SimpleDecoderView::String(self.push(x)),
+            SimpleDecoderView::Bytes(x) => SimpleDecoderView::Bytes(self.push(x)),
             SimpleDecoderView::None => SimpleDecoderView::None,
             SimpleDecoderView::Some(x) => SimpleDecoderView::Some(self.push(x)),
             SimpleDecoderView::Seq(x) => SimpleDecoderView::Seq(self.push(x)),
@@ -73,8 +74,10 @@ impl<'de, D: Decoder<'de>> PoisonDecoder<D> {
     }
 }
 
-impl<'de, D: Decoder<'de>> Decoder<'de> for PoisonDecoder<D> {
+impl<D: Decoder> Decoder for PoisonDecoder<D> {
     type AnyDecoder = PoisonWrapper<D::AnyDecoder>;
+    type StringDecoder = PoisonWrapper<D::StringDecoder>;
+    type BytesDecoder = PoisonWrapper<D::BytesDecoder>;
     type SeqDecoder = PoisonWrapper<D::SeqDecoder>;
     type MapDecoder = PoisonWrapper<D::MapDecoder>;
     type KeyDecoder = PoisonWrapper<D::KeyDecoder>;
@@ -89,7 +92,7 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for PoisonDecoder<D> {
         &mut self,
         any: Self::AnyDecoder,
         hint: DecodeHint,
-    ) -> anyhow::Result<SimpleDecoderView<'de, Self>> {
+    ) -> anyhow::Result<SimpleDecoderView<Self>> {
         let any = self.pop(any)?;
         let decoder = self.inner.decode(any, hint)?;
         Ok(self.wrap_view(decoder))
@@ -111,6 +114,10 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for PoisonDecoder<D> {
         }
     }
 
+    fn decode_seq_exact_size(&self, seq: &Self::SeqDecoder) -> Option<usize> {
+        self.inner.decode_seq_exact_size(&seq.inner)
+    }
+
     fn decode_seq_end(&mut self, seq: Self::SeqDecoder) -> anyhow::Result<()> {
         let seq = self.pop(seq)?;
         self.inner.decode_seq_end(seq)
@@ -123,6 +130,10 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for PoisonDecoder<D> {
         let map = self.peek(map)?;
         let decoder = self.inner.decode_map_next(map)?;
         Ok(decoder.map(|decoder| self.push(decoder)))
+    }
+
+    fn decode_map_exact_size(&self, map: &Self::MapDecoder) -> Option<usize> {
+        self.inner.decode_map_exact_size(&map.inner)
     }
 
     fn decode_map_end(&mut self, map: Self::MapDecoder) -> anyhow::Result<()> {
@@ -165,7 +176,7 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for PoisonDecoder<D> {
         &mut self,
         variant: Self::VariantDecoder,
         hint: DecodeVariantHint,
-    ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
+    ) -> anyhow::Result<(SimpleDecoderView<Self>, Self::EnumCloser)> {
         let variant = self.pop(variant)?;
         let (decoder, closer) = self.inner.decode_enum_variant(variant, hint)?;
         let closer = self.push(closer);
@@ -194,5 +205,17 @@ impl<'de, D: Decoder<'de>> Decoder<'de> for PoisonDecoder<D> {
         let closer = self.pop(closer)?;
         self.inner.decode_some_end(closer)?;
         Ok(())
+    }
+
+    fn decode_string_cow(&mut self, string: Self::StringDecoder) -> anyhow::Result<Cow<str>> {
+        let string = self.pop(string)?;
+        let string = self.inner.decode_string_cow(string)?;
+        Ok(string)
+    }
+
+    fn decode_bytes_cow(&mut self, bytes: Self::BytesDecoder) -> anyhow::Result<Cow<[u8]>> {
+        let bytes = self.pop(bytes)?;
+        let bytes = self.inner.decode_bytes_cow(bytes)?;
+        Ok(bytes)
     }
 }

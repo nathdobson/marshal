@@ -13,9 +13,7 @@ use crate::encode::BinEncoderSchema;
 use crate::VU128_MAX_PADDING;
 
 #[track_caller]
-fn test_round_trip<
-    T: Debug + Eq + Serialize<BinEncoder> + for<'de> Deserialize<'de, BinDecoder<'de>>,
->(
+fn test_round_trip<T: Debug + Eq + Serialize<BinEncoder> + Deserialize<BinDecoder>>(
     input: T,
     expected: &[u8],
 ) -> anyhow::Result<()> {
@@ -34,10 +32,7 @@ fn test_round_trip<
     Ok(())
 }
 
-fn test_transmute<
-    T1: Debug + Serialize<BinEncoder>,
-    T2: Debug + Eq + for<'de> Deserialize<'de, BinDecoder<'de>>,
->(
+fn test_transmute<T1: Debug + Serialize<BinEncoder>, T2: Debug + Eq + Deserialize<BinDecoder>>(
     input: T1,
     output: T2,
     expected: &[u8],

@@ -19,9 +19,9 @@ use crate::SerializeBin;
 pub trait SerializeDyn = SerializeBin;
 
 pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
-    fn bin_deserialize_variant<'p, 'de>(
+    fn bin_deserialize_variant<'p>(
         &self,
-        d: AnyDecoder<'p, 'de, BinDecoder<'de>>,
+        d: AnyDecoder<'p, BinDecoder>,
         ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn bin_serialize_variant<'p>(
@@ -34,7 +34,7 @@ pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
 
 impl<O: Object, V: 'static> DeserializeVariantBin<O> for PhantomData<fn() -> V>
 where
-    O::Pointer<V>: for<'de> Deserialize<'de, BinDecoder<'de>>,
+    O::Pointer<V>: Deserialize<BinDecoder>,
     O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
@@ -42,9 +42,9 @@ where
         DowncastRef<<O::Pointer<V> as AsFlatRef>::FlatRef>,
     <O::Pointer<V> as AsFlatRef>::FlatRef: SerializeBin,
 {
-    fn bin_deserialize_variant<'p, 'de>(
+    fn bin_deserialize_variant<'p>(
         &self,
-        d: AnyDecoder<'p, 'de, BinDecoder<'de>>,
+        d: AnyDecoder<'p, BinDecoder>,
         mut ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(<O::Pointer<V>>::deserialize(d, ctx)?)
@@ -72,8 +72,7 @@ impl<O: Object> DeserializeProvider for FormatDeserializeProvider<O> {}
 
 impl<O: Object, V: 'static> DeserializeVariantProvider<V> for FormatDeserializeProvider<O>
 where
-    O::Pointer<V>:
-        CoerceUnsized<O::Pointer<O::Dyn>> + for<'de> Deserialize<'de, BinDecoder<'de>>,
+    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>> + Deserialize<BinDecoder>,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
     <O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:

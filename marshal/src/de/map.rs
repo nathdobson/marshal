@@ -6,10 +6,10 @@ use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder};
 use crate::context::Context;
 use crate::de::Deserialize;
 
-impl<'de, P: Decoder<'de>, K: Hash + Eq + Deserialize<'de, P>, V: Deserialize<'de, P>>
-    Deserialize<'de, P> for HashMap<K, V>
+impl<P: Decoder, K: Hash + Eq + Deserialize<P>, V: Deserialize<P>> Deserialize<P>
+    for HashMap<K, V>
 {
-    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, mut ctx: Context) -> anyhow::Result<Self> {
+    fn deserialize<'p>(p: AnyDecoder<'p, P>, mut ctx: Context) -> anyhow::Result<Self> {
         p.decode(DecodeHint::Map)?
             .try_into_map()?
             .map_into_iter(
@@ -21,10 +21,8 @@ impl<'de, P: Decoder<'de>, K: Hash + Eq + Deserialize<'de, P>, V: Deserialize<'d
     }
 }
 
-impl<'de, P: Decoder<'de>, K: Ord + Deserialize<'de, P>, V: Deserialize<'de, P>> Deserialize<'de, P>
-    for BTreeMap<K, V>
-{
-    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, ctx: Context) -> anyhow::Result<Self> {
+impl<P: Decoder, K: Ord + Deserialize<P>, V: Deserialize<P>> Deserialize<P> for BTreeMap<K, V> {
+    fn deserialize<'p>(p: AnyDecoder<'p, P>, ctx: Context) -> anyhow::Result<Self> {
         p.decode(DecodeHint::Map)?
             .try_into_map()?
             .map_into_iter(

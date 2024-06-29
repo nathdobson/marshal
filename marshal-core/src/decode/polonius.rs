@@ -2,11 +2,10 @@
 
 use crate::decode::{Decoder, EntryDecoder, MapDecoder};
 
-impl<'p, 'de, D: ?Sized + Decoder<'de>> EntryDecoder<'p, 'de, D> {
+impl<'p, D: ?Sized + Decoder> EntryDecoder<'p, D> {
     pub fn polonius(
         self,
-    ) -> impl for<'p2, 'p3> FnOnce(&'p2 mut MapDecoder<'p3, 'de, D>) -> EntryDecoder<'p2, 'de, D>
-    {
+    ) -> impl for<'p2, 'p3> FnOnce(&'p2 mut MapDecoder<'p3, D>) -> EntryDecoder<'p2, D> {
         let key = self.key;
         let value = self.value;
         |decoder| EntryDecoder {

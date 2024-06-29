@@ -1,9 +1,10 @@
 use marshal_core::{Primitive, PrimitiveType};
+use rc_slice2::ArcSlice;
 
 use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
 
-impl<'de> SimpleJsonDecoder<'de> {
+impl SimpleJsonDecoder {
     pub fn try_peek_char(&self) -> anyhow::Result<Option<u8>> {
         Ok(self.cursor.get(0).cloned())
     }
@@ -13,23 +14,24 @@ impl<'de> SimpleJsonDecoder<'de> {
     pub fn try_peek_ahead(&self, n: usize) -> anyhow::Result<Option<u8>> {
         Ok(self.cursor.get(n).cloned())
     }
-    pub fn peek_count(&self, count: usize) -> anyhow::Result<&'de [u8]> {
+    pub fn peek_count(&self, count: usize) -> anyhow::Result<&[u8]> {
         Ok(self.cursor.get(..count).ok_or(JsonDecoderError::Eof)?)
     }
     pub fn try_read_char(&mut self) -> anyhow::Result<Option<u8>> {
-        if let Some(a) = self.cursor.take(..1) {
-            Ok(Some(a[0]))
-        } else {
-            Ok(None)
-        }
+        todo!();
+        // if let Some(a) = self.cursor.take(..1) {
+        //     Ok(Some(a[0]))
+        // } else {
+        //     Ok(None)
+        // }
     }
     pub fn read_char(&mut self) -> anyhow::Result<u8> {
         Ok(self.try_read_char()?.ok_or(JsonDecoderError::Eof)?)
     }
     pub fn try_read_match(&mut self, expected: impl FnOnce(u8) -> bool) -> anyhow::Result<bool> {
-        if let Some((a, b)) = self.cursor.split_at_checked(1) {
-            if expected(a[0]) {
-                self.cursor = b;
+        if let Some(head) = self.cursor.first() {
+            if expected(*head) {
+                ArcSlice::advance(&mut self.cursor, 1);
                 Ok(true)
             } else {
                 Ok(false)
@@ -38,16 +40,16 @@ impl<'de> SimpleJsonDecoder<'de> {
             Err(JsonDecoderError::Eof.into())
         }
     }
-    pub fn read_matches(&mut self, expected: impl Fn(u8) -> bool) -> anyhow::Result<&'de [u8]> {
+    pub fn read_matches(&mut self, expected: impl Fn(u8) -> bool) -> anyhow::Result<&[u8]> {
         let limit = self
             .cursor
             .iter()
             .position(|x| !expected(*x))
             .unwrap_or(self.cursor.len());
-        Ok(self.cursor.take(..limit).unwrap())
+        self.read_count(limit)
     }
-    pub fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
-        Ok(self.cursor.take(..count).ok_or(JsonDecoderError::Eof)?)
+    pub fn read_count(&mut self, count: usize) -> anyhow::Result<&[u8]> {
+        Ok(ArcSlice::advance(&mut self.cursor, count).ok_or(JsonDecoderError::Eof)?)
     }
     pub fn read_whitespace(&mut self) -> anyhow::Result<()> {
         self.read_matches(|x| matches!(x, b' ' | b'\n' | b'\r' | b'\t'))?;
@@ -72,7 +74,7 @@ impl<'de> SimpleJsonDecoder<'de> {
         Ok(())
     }
 
-    pub fn read_token(&mut self) -> anyhow::Result<&'de [u8]> {
+    pub fn read_token(&mut self) -> anyhow::Result<&[u8]> {
         self.read_whitespace()?;
         Ok(self.read_matches(|x| x.is_ascii_alphabetic())?)
     }
@@ -94,7 +96,7 @@ impl<'de> SimpleJsonDecoder<'de> {
 
     pub fn read_prim_from_str(&mut self, prim: PrimitiveType) -> anyhow::Result<Primitive> {
         self.read_exact(b'\"')?;
-        let result=match prim{
+        let result = match prim {
             PrimitiveType::Unit => Primitive::Unit,
             PrimitiveType::Bool => Primitive::Bool(self.read_bool()?),
             PrimitiveType::I8 => Primitive::I8(self.read_number()?),

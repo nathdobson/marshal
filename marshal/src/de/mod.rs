@@ -14,8 +14,8 @@ mod string;
 mod tuple;
 mod vec;
 
-pub trait Deserialize<'de, P: Decoder<'de>>: Sized {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, P>, ctx: Context) -> anyhow::Result<Self>;
+pub trait Deserialize<P: Decoder>: Sized {
+    fn deserialize<'p>(d: AnyDecoder<'p, P>, ctx: Context) -> anyhow::Result<Self>;
 }
 
 #[derive(Debug)]

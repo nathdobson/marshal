@@ -3,7 +3,7 @@ use std::char::decode_utf16;
 use crate::decode::error::JsonDecoderError;
 use crate::decode::SimpleJsonDecoder;
 
-impl<'de> SimpleJsonDecoder<'de> {
+impl SimpleJsonDecoder {
     pub fn read_hex_u16(&mut self) -> anyhow::Result<u16> {
         Ok(u16::from_str_radix(
             std::str::from_utf8(self.read_count(4)?)?,

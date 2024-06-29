@@ -554,6 +554,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "parking_lot 0.12.3",
+ "rc-slice2",
  "safe-once",
  "safe-once-map",
  "vu128",
@@ -591,6 +592,7 @@ dependencies = [
  "marshal-derive",
  "marshal-object",
  "marshal-pointer",
+ "rc-slice2",
  "safe-once",
  "serde_json",
  "utf8-width",
@@ -914,6 +916,12 @@ dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
 ]
+
+[[package]]
+name = "rc-slice2"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cd4ae12335edcf7a66b10c6c411414b16bed45665ce9c49d658d12c74866968"
 
 [[package]]
 name = "redox_syscall"
