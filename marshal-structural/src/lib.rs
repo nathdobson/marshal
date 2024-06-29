@@ -73,7 +73,7 @@ impl<const FIELD: &'static str, H, T: StructList> StructList for StructCons<FIEL
 trait SerializeStructList<W: GenEncoder>: StructList {
     fn serialize_struct_list<'w, 'en>(
         &self,
-        _: StructEncoder<'_, W::Encoder<'en>>,
+        _: StructEncoder<'_, W::SpecEncoder<'en>>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
@@ -81,7 +81,7 @@ trait SerializeStructList<W: GenEncoder>: StructList {
 impl<const STRUCT: &'static str, W: GenEncoder> SerializeStructList<W> for StructNil<STRUCT> {
     fn serialize_struct_list<'w, 'en>(
         &self,
-        e: StructEncoder<'w, W::Encoder<'en>>,
+        e: StructEncoder<'w, W::SpecEncoder<'en>>,
         _ctx: Context,
     ) -> anyhow::Result<()> {
         e.end()
@@ -93,7 +93,7 @@ impl<const FIELD: &'static str, W: GenEncoder, H: Serialize<W>, T: SerializeStru
 {
     fn serialize_struct_list<'w, 'en>(
         &self,
-        mut e: StructEncoder<'w, W::Encoder<'en>>,
+        mut e: StructEncoder<'w, W::SpecEncoder<'en>>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         self.head.serialize(e.encode_field()?, ctx.reborrow())?;

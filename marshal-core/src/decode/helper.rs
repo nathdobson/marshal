@@ -1,15 +1,15 @@
-use crate::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, MapDecoder};
+use crate::decode::{AnySpecDecoder, DecodeHint, SpecDecoder, DecoderView, EntryDecoder, MapDecoder};
 
-pub struct StructDecoderHelper<'p, 'de, D: ?Sized + Decoder<'de>> {
+pub struct StructDecoderHelper<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
     fields: &'static [&'static str],
     decoder: MapDecoder<'p, 'de, D>,
 }
 
-pub struct FieldDecoderHelper<'p, 'de, D: ?Sized + Decoder<'de>> {
+pub struct FieldDecoderHelper<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
     decoder: EntryDecoder<'p, 'de, D>,
 }
 
-impl<'p, 'de, D: ?Sized + Decoder<'de>> AnyDecoder<'p, 'de, D> {
+impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
     pub fn decode_struct_helper(
         self,
         name: &'static str,
@@ -22,7 +22,7 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> AnyDecoder<'p, 'de, D> {
     }
 }
 
-impl<'p, 'de, D: ?Sized + Decoder<'de>> StructDecoderHelper<'p, 'de, D> {
+impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> StructDecoderHelper<'p, 'de, D> {
     pub fn next<'p2>(
         &'p2 mut self,
     ) -> anyhow::Result<Option<(usize, FieldDecoderHelper<'p2, 'de, D>)>> {
@@ -63,8 +63,8 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> StructDecoderHelper<'p, 'de, D> {
     }
 }
 
-impl<'p, 'de, D: ?Sized + Decoder<'de>> FieldDecoderHelper<'p, 'de, D> {
-    pub fn decode_field<'p2>(&'p2 mut self) -> anyhow::Result<AnyDecoder<'p2, 'de, D>> {
+impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> FieldDecoderHelper<'p, 'de, D> {
+    pub fn decode_field<'p2>(&'p2 mut self) -> anyhow::Result<AnySpecDecoder<'p2, 'de, D>> {
         self.decoder.decode_value()
     }
     pub fn decode_end(self) -> anyhow::Result<()> {

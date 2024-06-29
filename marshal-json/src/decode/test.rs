@@ -3,7 +3,7 @@ use std::fs::read_dir;
 
 use marshal::context::OwnedContext;
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView};
+use marshal_core::decode::{AnySpecDecoder, DecodeHint, DecoderView};
 
 use crate::decode::{JsonAnyDecoder, SimpleJsonDecoder};
 use crate::decode::full::JsonDecoderBuilder;
@@ -13,7 +13,7 @@ use crate::value::JsonValue;
 fn test() -> anyhow::Result<()> {
     let input = b"[1,23]";
     let mut p = SimpleJsonDecoder::new(input);
-    let p = AnyDecoder::new(&mut p, JsonAnyDecoder::default());
+    let p = AnySpecDecoder::new(&mut p, JsonAnyDecoder::default());
     match p.decode(DecodeHint::Any)? {
         DecoderView::Seq(mut p) => {
             match p

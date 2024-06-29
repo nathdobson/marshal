@@ -1,5 +1,5 @@
 use marshal::context::Context;
-use marshal_core::decode::{AnyDecoder, GenDecoder};
+use marshal_core::decode::{AnySpecDecoder, GenDecoder};
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::PoisonDecoder;
 use marshal_core::derive_decoder_for_newtype;
@@ -25,12 +25,12 @@ impl<'de> BinDecoderBuilder<'de> {
             depth_budget: 100,
         }
     }
-    pub fn build<'p>(&'p mut self) -> AnyDecoder<'p, 'de, BinDecoder<'de,>> {
+    pub fn build<'p>(&'p mut self) -> AnySpecDecoder<'p, 'de, BinDecoder<'de,>> {
         let any = self.inner.0.start(WithDepthBudget::new(
             self.depth_budget,
             BinAnyDecoder::default(),
         ));
-        AnyDecoder::new(&mut self.inner, any)
+        AnySpecDecoder::new(&mut self.inner, any)
     }
     pub fn deserialize<T: DeserializeBin>(mut self, mut ctx: Context) -> anyhow::Result<T> {
         let result = T::deserialize(self.build(), ctx)?;
@@ -45,5 +45,5 @@ impl<'de> BinDecoderBuilder<'de> {
 pub struct BinGenDecoder;
 
 impl GenDecoder for BinGenDecoder {
-    type Decoder<'de> = BinDecoder<'de>;
+    type SpecDecoder<'de> = BinDecoder<'de>;
 }

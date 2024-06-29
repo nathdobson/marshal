@@ -3,24 +3,24 @@ use marshal_core::derive_encoder_for_newtype;
 use marshal_core::encode::{AnyEncoder, GenEncoder};
 use marshal_core::encode::poison::PoisonEncoder;
 
-use crate::encode::{BinEncoderSchema, SimpleBinEncoder};
+use crate::encode::{BinEncoderSchema, SimpleBinSpecEncoder};
 use crate::SerializeBin;
 
-pub struct BinEncoder<'s>(PoisonEncoder<SimpleBinEncoder<'s>>);
+pub struct BinSpecEncoder<'s>(PoisonEncoder<SimpleBinSpecEncoder<'s>>);
 
-derive_encoder_for_newtype!(BinEncoder<'s>(PoisonEncoder<SimpleBinEncoder<'s>>));
+derive_encoder_for_newtype!(BinSpecEncoder<'s>(PoisonEncoder<SimpleBinSpecEncoder<'s>>));
 
 pub struct BinEncoderBuilder<'s> {
-    inner: BinEncoder<'s>,
+    inner: BinSpecEncoder<'s>,
 }
 
 impl<'s> BinEncoderBuilder<'s> {
     pub fn new(schema: &'s mut BinEncoderSchema) -> Self {
         BinEncoderBuilder {
-            inner: BinEncoder(PoisonEncoder::new(SimpleBinEncoder::new(schema))),
+            inner: BinSpecEncoder(PoisonEncoder::new(SimpleBinSpecEncoder::new(schema))),
         }
     }
-    pub fn build<'w>(&'w mut self) -> AnyEncoder<'w, BinEncoder<'s>> {
+    pub fn build<'w>(&'w mut self) -> AnyEncoder<'w, BinSpecEncoder<'s>> {
         let any = self.inner.0.start(());
         AnyEncoder::new(&mut self.inner, any)
     }
@@ -40,5 +40,5 @@ impl<'s> BinEncoderBuilder<'s> {
 pub struct BinGenEncoder;
 
 impl GenEncoder for BinGenEncoder {
-    type Encoder<'en> = BinEncoder<'en>;
+    type SpecEncoder<'en> = BinSpecEncoder<'en>;
 }

@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
+use crate::decode::{DecodeHint, SpecDecoder, DecodeVariantHint, SimpleDecoderView};
 
 pub struct PoisonDecoder<D> {
     inner: D,
@@ -23,11 +23,11 @@ impl Display for PoisonError {
 }
 impl std::error::Error for PoisonError {}
 
-impl<'de, D: Decoder<'de>> PoisonDecoder<D> {
+impl<'de, D: SpecDecoder<'de>> PoisonDecoder<D> {
     pub fn new(inner: D) -> Self {
         PoisonDecoder { inner, depth: 0 }
     }
-    pub fn start<'p>(&'p mut self, inner: D::AnyDecoder) -> <Self as Decoder<'de>>::AnyDecoder {
+    pub fn start<'p>(&'p mut self, inner: D::AnyDecoder) -> <Self as SpecDecoder<'de>>::AnyDecoder {
         self.push(inner)
     }
     pub fn end(self) -> anyhow::Result<D> {
@@ -73,7 +73,7 @@ impl<'de, D: Decoder<'de>> PoisonDecoder<D> {
     }
 }
 
-impl<'de, D: Decoder<'de>> Decoder<'de> for PoisonDecoder<D> {
+impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
     type AnyDecoder = PoisonWrapper<D::AnyDecoder>;
     type SeqDecoder = PoisonWrapper<D::SeqDecoder>;
     type MapDecoder = PoisonWrapper<D::MapDecoder>;

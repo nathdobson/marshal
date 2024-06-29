@@ -2,20 +2,20 @@
 macro_rules! derive_encoder_for_newtype {
     ($ty:ident $(<$($lt:lifetime ),* >)? ($inner:ty)) =>{
         const _ : () = {
-            use $crate::encode::Encoder;
+            use $crate::encode::SpecEncoder;
             use $crate::Primitive;
-            impl $(<$( $lt),*>)? Encoder for $ty $(<$( $lt),*>)? {
-                type AnyEncoder = <$inner as Encoder>::AnyEncoder;
-                type SomeCloser = <$inner as Encoder>::SomeCloser;
-                type TupleEncoder = <$inner as Encoder>::TupleEncoder;
-                type SeqEncoder = <$inner as Encoder>::SeqEncoder;
-                type MapEncoder = <$inner as Encoder>::MapEncoder;
-                type ValueEncoder = <$inner as Encoder>::ValueEncoder;
-                type EntryCloser = <$inner as Encoder>::EntryCloser;
-                type TupleStructEncoder = <$inner as Encoder>::TupleStructEncoder;
-                type StructEncoder = <$inner as Encoder>::StructEncoder;
-                type TupleVariantEncoder = <$inner as Encoder>::TupleVariantEncoder;
-                type StructVariantEncoder = <$inner as Encoder>::StructVariantEncoder;
+            impl $(<$( $lt),*>)? SpecEncoder for $ty $(<$( $lt),*>)? {
+                type AnyEncoder = <$inner as SpecEncoder>::AnyEncoder;
+                type SomeCloser = <$inner as SpecEncoder>::SomeCloser;
+                type TupleEncoder = <$inner as SpecEncoder>::TupleEncoder;
+                type SeqEncoder = <$inner as SpecEncoder>::SeqEncoder;
+                type MapEncoder = <$inner as SpecEncoder>::MapEncoder;
+                type ValueEncoder = <$inner as SpecEncoder>::ValueEncoder;
+                type EntryCloser = <$inner as SpecEncoder>::EntryCloser;
+                type TupleStructEncoder = <$inner as SpecEncoder>::TupleStructEncoder;
+                type StructEncoder = <$inner as SpecEncoder>::StructEncoder;
+                type TupleVariantEncoder = <$inner as SpecEncoder>::TupleVariantEncoder;
+                type StructVariantEncoder = <$inner as SpecEncoder>::StructVariantEncoder;
 
                 fn encode_prim(&mut self, any: Self::AnyEncoder, prim: Primitive) -> anyhow::Result<()> {
                     self.0.encode_prim(any, prim)

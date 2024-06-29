@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::encode::Encoder;
+use crate::encode::SpecEncoder;
 use crate::Primitive;
 
 pub struct PoisonEncoder<E> {
@@ -19,11 +19,11 @@ impl Display for PoisonError {
 }
 impl std::error::Error for PoisonError {}
 
-impl<E: Encoder> PoisonEncoder<E> {
+impl<E: SpecEncoder> PoisonEncoder<E> {
     pub fn new(inner: E) -> Self {
         PoisonEncoder { inner, depth: 0 }
     }
-    pub fn start(&mut self, inner: E::AnyEncoder) -> <Self as Encoder>::AnyEncoder {
+    pub fn start(&mut self, inner: E::AnyEncoder) -> <Self as SpecEncoder>::AnyEncoder {
         self.push(inner)
     }
     pub fn end(self) -> anyhow::Result<E> {
@@ -62,7 +62,7 @@ pub struct PoisonWrapper<T> {
     inner: T,
 }
 
-impl<E: Encoder> Encoder for PoisonEncoder<E> {
+impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     type AnyEncoder = PoisonWrapper<E::AnyEncoder>;
     type SomeCloser = PoisonWrapper<E::SomeCloser>;
     type TupleEncoder = PoisonWrapper<E::TupleEncoder>;

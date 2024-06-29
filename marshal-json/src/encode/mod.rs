@@ -6,14 +6,14 @@ use std::io::Write;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
 
-use marshal_core::encode::{AnyEncoder, Encoder};
+use marshal_core::encode::{AnyEncoder, SpecEncoder};
 use marshal_core::Primitive;
 
 pub mod full;
 #[cfg(test)]
 mod test;
 
-pub struct SimpleJsonEncoder {
+pub struct SimpleJsonSpecEncoder {
     output: Vec<u8>,
     current_indentation: Option<usize>,
 }
@@ -33,14 +33,14 @@ impl Display for JsonEncoderError {
 
 impl Error for JsonEncoderError {}
 
-impl SimpleJsonEncoder {
+impl SimpleJsonSpecEncoder {
     pub fn new() -> Self {
-        SimpleJsonEncoder {
+        SimpleJsonSpecEncoder {
             output: vec![],
             current_indentation: Some(0),
         }
     }
-    pub fn start(&mut self) -> AnyEncoder<SimpleJsonEncoder> {
+    pub fn start(&mut self) -> AnyEncoder<SimpleJsonSpecEncoder> {
         AnyEncoder::new(
             self,
             JsonAnyEncoder {
@@ -145,7 +145,7 @@ impl SimpleJsonEncoder {
     }
 }
 
-impl Encoder for SimpleJsonEncoder {
+impl SpecEncoder for SimpleJsonSpecEncoder {
     type AnyEncoder = JsonAnyEncoder;
     type SomeCloser = JsonSomeCloser;
     type TupleEncoder = JsonTupleEncoder;

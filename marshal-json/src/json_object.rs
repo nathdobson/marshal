@@ -4,7 +4,7 @@ use std::ops::CoerceUnsized;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
-use marshal_core::decode::AnyDecoder;
+use marshal_core::decode::AnySpecDecoder;
 use marshal_core::encode::AnyEncoder;
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
@@ -15,7 +15,7 @@ use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 use crate::decode::full::{JsonDecoder, JsonGenDecoder};
 use crate::DeserializeJson;
-use crate::encode::full::{JsonEncoder, JsonGenEncoder};
+use crate::encode::full::{JsonSpecEncoder, JsonEncoder};
 use crate::SerializeJson;
 
 pub trait SerializeDyn = SerializeJson;
@@ -23,13 +23,13 @@ pub trait SerializeDyn = SerializeJson;
 pub trait DeserializeVariantJson<O: Object>: 'static + Sync + Send {
     fn deserialize_variant_json<'p, 'de>(
         &self,
-        d: AnyDecoder<'p, 'de, JsonDecoder<'de>>,
+        d: AnySpecDecoder<'p, 'de, JsonDecoder<'de>>,
         ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn serialize_variant_json<'p>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: AnyEncoder<'p, JsonEncoder>,
+        e: AnyEncoder<'p, JsonSpecEncoder>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
@@ -46,7 +46,7 @@ where
 {
     fn deserialize_variant_json<'p, 'de, 's>(
         &self,
-        d: AnyDecoder<'p, 'de, JsonDecoder<'de>>,
+        d: AnySpecDecoder<'p, 'de, JsonDecoder<'de>>,
         mut ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(O::Pointer::<V>::deserialize(d, ctx)?)
@@ -54,14 +54,14 @@ where
     fn serialize_variant_json<'p>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: AnyEncoder<'p, JsonEncoder>,
+        e: AnyEncoder<'p, JsonSpecEncoder>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let upcast = this as &<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef;
         let downcast = upcast
             .downcast_ref()
             .expect("failed to downcast for serializer");
-        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<JsonGenEncoder>>::serialize(
+        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<JsonEncoder>>::serialize(
             downcast, e, ctx,
         )
     }
@@ -97,17 +97,17 @@ macro_rules! json_object {
             impl $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<$crate::decode::full::JsonGenDecoder> for $carrier {
                 fn deserialize_variant<'p, 'de>(
                     disc: usize,
-                    d: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,$crate::decode::full::JsonDecoder<'de>>,
+                    d: $crate::reexports::marshal::decode::AnySpecDecoder<'p,'de,$crate::decode::full::JsonDecoder<'de>>,
                     mut ctx: $crate::reexports::marshal::context::Context,
                 ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::reexports::marshal_object::Object>::Pointer<<$carrier as $crate::reexports::marshal_object::Object>::Dyn>> {
                     DESERIALIZERS[disc].deserialize_variant_json(d, ctx)
                 }
             }
-            impl $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::JsonGenEncoder> for $carrier {
+            impl $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::JsonEncoder> for $carrier {
                 fn serialize_variant<'w,'en>(
                     this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc:usize,
-                    e: $crate::reexports::marshal::encode::AnyGenEncoder<'w,'en,$crate::encode::full::JsonGenEncoder>,
+                    e: $crate::reexports::marshal::encode::AnyGenEncoder<'w,'en,$crate::encode::full::JsonEncoder>,
                     mut ctx: $crate::reexports::marshal::context::Context
                 ) -> $crate::reexports::anyhow::Result<()> {
                     DESERIALIZERS[disc].serialize_variant_json(this, e, ctx)

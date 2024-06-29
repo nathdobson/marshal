@@ -4,7 +4,7 @@ use std::ops::CoerceUnsized;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
-use marshal_core::decode::AnyDecoder;
+use marshal_core::decode::AnySpecDecoder;
 use marshal_core::encode::AnyEncoder;
 use marshal_object::de::{
     DeserializeProvider, DeserializeVariant, DeserializeVariantProvider, DeserializeVariantSet,
@@ -13,7 +13,7 @@ use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 use crate::decode::full::{BinDecoder, BinGenDecoder};
-use crate::encode::full::{BinEncoder, BinGenEncoder};
+use crate::encode::full::{BinSpecEncoder, BinGenEncoder};
 use crate::SerializeBin;
 
 pub trait SerializeDyn = SerializeBin;
@@ -21,13 +21,13 @@ pub trait SerializeDyn = SerializeBin;
 pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
     fn bin_deserialize_variant<'p, 'de>(
         &self,
-        d: AnyDecoder<'p, 'de, BinDecoder<'de>>,
+        d: AnySpecDecoder<'p, 'de, BinDecoder<'de>>,
         ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn bin_serialize_variant<'p, 's>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: AnyEncoder<'p, BinEncoder<'s>>,
+        e: AnyEncoder<'p, BinSpecEncoder<'s>>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
@@ -44,7 +44,7 @@ where
 {
     fn bin_deserialize_variant<'p, 'de>(
         &self,
-        d: AnyDecoder<'p, 'de, BinDecoder<'de>>,
+        d: AnySpecDecoder<'p, 'de, BinDecoder<'de>>,
         mut ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(<O::Pointer<V>>::deserialize(d, ctx)?)
@@ -53,7 +53,7 @@ where
     fn bin_serialize_variant<'p, 's>(
         &self,
         this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-        e: AnyEncoder<'p, BinEncoder<'s>>,
+        e: AnyEncoder<'p, BinSpecEncoder<'s>>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let upcast = this as &<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef;
@@ -96,7 +96,7 @@ macro_rules! bin_object {
             impl $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<$crate::decode::full::BinGenDecoder> for $carrier {
                 fn deserialize_variant<'p, 'de>(
                     disc: usize,
-                    d: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, $crate::decode::full::BinDecoder<'de>>,
+                    d: $crate::reexports::marshal::decode::AnySpecDecoder<'p, 'de, $crate::decode::full::BinDecoder<'de>>,
                     mut ctx: $crate::reexports::marshal::context::Context,
                 ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::reexports::marshal_object::Object>::Pointer<<$carrier as $crate::reexports::marshal_object::Object>::Dyn>> {
                     DESERIALIZERS[disc].bin_deserialize_variant(d, ctx)

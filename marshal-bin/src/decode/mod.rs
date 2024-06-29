@@ -6,7 +6,7 @@ use num_traits::FromPrimitive;
 use safe_once_map::cell::OnceCellMap;
 
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
+use marshal_core::decode::{DecodeHint, SpecDecoder, DecodeVariantHint, SimpleDecoderView};
 
 use crate::{TypeTag, VU128_MAX_PADDING};
 use crate::to_from_vu128::{Array, ToFromVu128};
@@ -197,7 +197,7 @@ pub struct BinDiscriminantDecoder<'de> {
     variant: &'de EnumDefKey,
 }
 
-impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
+impl<'de> SpecDecoder<'de> for SimpleBinDecoder<'de> {
     type AnyDecoder = BinAnyDecoder<'de>;
     type SeqDecoder = BinSeqDecoder;
     type MapDecoder = BinMapDecoder<'de>;

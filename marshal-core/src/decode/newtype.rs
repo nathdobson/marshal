@@ -1,9 +1,9 @@
-use crate::decode::{Decoder, SimpleDecoderView};
+use crate::decode::{SpecDecoder, SimpleDecoderView};
 
 pub fn cast_simple_decoder_view<
     'de,
-    T1: Decoder<'de>,
-    T2: Decoder<
+    T1: SpecDecoder<'de>,
+    T2: SpecDecoder<
         'de,
         AnyDecoder = T1::AnyDecoder,
         SomeDecoder = T1::SomeDecoder,
@@ -32,20 +32,20 @@ macro_rules! derive_decoder_for_newtype {
         const _ : () = {
             use $crate::decode::DecodeHint;
             use $crate::decode::DecodeVariantHint;
-            use $crate::decode::Decoder;
+            use $crate::decode::SpecDecoder;
             use $crate::decode::SimpleDecoderView;
             use $crate::decode::newtype::cast_simple_decoder_view;
-            impl<'de $(, $lt)*> Decoder<'de> for $ty <'de $(, $lt)*> {
-                type AnyDecoder = <$inner as Decoder<'de>>::AnyDecoder;
-                type SeqDecoder = <$inner as Decoder<'de>>::SeqDecoder;
-                type MapDecoder = <$inner as Decoder<'de>>::MapDecoder;
-                type KeyDecoder = <$inner as Decoder<'de>>::KeyDecoder;
-                type ValueDecoder = <$inner as Decoder<'de>>::ValueDecoder;
-                type DiscriminantDecoder = <$inner as Decoder<'de>>::DiscriminantDecoder;
-                type VariantDecoder = <$inner as Decoder<'de>>::VariantDecoder;
-                type EnumCloser = <$inner as Decoder<'de>>::EnumCloser;
-                type SomeDecoder = <$inner as Decoder<'de>>::SomeDecoder;
-                type SomeCloser = <$inner as Decoder<'de>>::SomeCloser;
+            impl<'de $(, $lt)*> SpecDecoder<'de> for $ty <'de $(, $lt)*> {
+                type AnyDecoder = <$inner as SpecDecoder<'de>>::AnyDecoder;
+                type SeqDecoder = <$inner as SpecDecoder<'de>>::SeqDecoder;
+                type MapDecoder = <$inner as SpecDecoder<'de>>::MapDecoder;
+                type KeyDecoder = <$inner as SpecDecoder<'de>>::KeyDecoder;
+                type ValueDecoder = <$inner as SpecDecoder<'de>>::ValueDecoder;
+                type DiscriminantDecoder = <$inner as SpecDecoder<'de>>::DiscriminantDecoder;
+                type VariantDecoder = <$inner as SpecDecoder<'de>>::VariantDecoder;
+                type EnumCloser = <$inner as SpecDecoder<'de>>::EnumCloser;
+                type SomeDecoder = <$inner as SpecDecoder<'de>>::SomeDecoder;
+                type SomeCloser = <$inner as SpecDecoder<'de>>::SomeCloser;
                 fn decode(
                     &mut self,
                     any: Self::AnyDecoder,

@@ -1,6 +1,6 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::{AnyDecoder, GenDecoder};
+use marshal_core::decode::{AnySpecDecoder, GenDecoder};
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::PoisonDecoder;
 use marshal_core::derive_decoder_for_newtype;
@@ -27,11 +27,11 @@ impl<'de> JsonDecoderBuilder<'de> {
         self.depth_budget = depth_budget;
         self
     }
-    pub fn build<'p>(&'p mut self) -> AnyDecoder<'p, 'de, JsonDecoder<'de>> {
+    pub fn build<'p>(&'p mut self) -> AnySpecDecoder<'p, 'de, JsonDecoder<'de>> {
         let any = JsonAnyDecoder::default();
         let any = WithDepthBudget::new(self.depth_budget, any);
         let any = self.decoder.0.start(any);
-        AnyDecoder::new(&mut self.decoder, any)
+        AnySpecDecoder::new(&mut self.decoder, any)
     }
     pub fn deserialize<T: Deserialize<JsonGenDecoder>>(
         mut self,
@@ -45,7 +45,7 @@ impl<'de> JsonDecoderBuilder<'de> {
         self.decoder.0.end()?.end()?.end()?;
         Ok(())
     }
-    pub fn with<F: for<'p> FnOnce(AnyDecoder<'p, 'de, JsonDecoder<'de>>) -> anyhow::Result<T>, T>(
+    pub fn with<F: for<'p> FnOnce(AnySpecDecoder<'p, 'de, JsonDecoder<'de>>) -> anyhow::Result<T>, T>(
         mut self,
         f: F,
     ) -> anyhow::Result<T> {
@@ -58,5 +58,5 @@ impl<'de> JsonDecoderBuilder<'de> {
 pub struct JsonGenDecoder;
 
 impl GenDecoder for JsonGenDecoder {
-    type Decoder<'de> = JsonDecoder<'de>;
+    type SpecDecoder<'de> = JsonDecoder<'de>;
 }

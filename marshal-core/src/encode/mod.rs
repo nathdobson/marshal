@@ -6,10 +6,10 @@ pub mod newtype;
 pub mod poison;
 
 pub trait GenEncoder: 'static {
-    type Encoder<'en>: Encoder;
+    type SpecEncoder<'en>: SpecEncoder;
 }
 
-pub trait Encoder {
+pub trait SpecEncoder {
     type AnyEncoder;
     type SomeCloser;
     type TupleEncoder;
@@ -138,20 +138,20 @@ pub trait Encoder {
     fn struct_variant_end(&mut self, map: Self::StructVariantEncoder) -> anyhow::Result<()>;
 }
 
-pub type AnyGenEncoder<'w, 'en, T> = AnyEncoder<'w, <T as GenEncoder>::Encoder<'en>>;
+pub type AnyGenEncoder<'w, 'en, T> = AnyEncoder<'w, <T as GenEncoder>::SpecEncoder<'en>>;
 
-pub struct AnyEncoder<'w, T: Encoder> {
+pub struct AnyEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     inner: T::AnyEncoder,
 }
 
-impl<'w, T: Encoder> AnyEncoder<'w, T> {
+impl<'w, T: SpecEncoder> AnyEncoder<'w, T> {
     pub fn new(encoder: &'w mut T, inner: T::AnyEncoder) -> Self {
         AnyEncoder { encoder, inner }
     }
 }
 
-impl<'w, T: Encoder> AnyEncoder<'w, T> {
+impl<'w, T: SpecEncoder> AnyEncoder<'w, T> {
     pub fn encode_prim(mut self, prim: Primitive) -> anyhow::Result<()> {
         self.encoder.encode_prim(self.inner, prim)
     }
@@ -278,13 +278,13 @@ impl<'w, T: Encoder> AnyEncoder<'w, T> {
     }
 }
 
-pub struct SomeEncoder<'w, T: Encoder> {
+pub struct SomeEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     some_encoder: Option<T::AnyEncoder>,
     some_closer: Option<T::SomeCloser>,
 }
 
-impl<'w, T: Encoder> SomeEncoder<'w, T> {
+impl<'w, T: SpecEncoder> SomeEncoder<'w, T> {
     pub fn encode_some(&mut self) -> anyhow::Result<AnyEncoder<'_, T>> {
         Ok(AnyEncoder {
             encoder: self.encoder,
@@ -297,12 +297,12 @@ impl<'w, T: Encoder> SomeEncoder<'w, T> {
     }
 }
 
-pub struct TupleEncoder<'w, T: Encoder> {
+pub struct TupleEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     inner: T::TupleEncoder,
 }
 
-impl<'w, T: Encoder> TupleEncoder<'w, T> {
+impl<'w, T: SpecEncoder> TupleEncoder<'w, T> {
     pub fn encode_element(&mut self) -> anyhow::Result<AnyEncoder<'_, T>> {
         let inner = self.encoder.tuple_encode_element(&mut self.inner)?;
         Ok(AnyEncoder {
@@ -316,12 +316,12 @@ impl<'w, T: Encoder> TupleEncoder<'w, T> {
     }
 }
 
-pub struct SeqEncoder<'w, T: Encoder> {
+pub struct SeqEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     inner: T::SeqEncoder,
 }
 
-impl<'w, T: Encoder> SeqEncoder<'w, T> {
+impl<'w, T: SpecEncoder> SeqEncoder<'w, T> {
     pub fn encode_element(&mut self) -> anyhow::Result<AnyEncoder<'_, T>> {
         let inner = self.encoder.seq_encode_element(&mut self.inner)?;
         Ok(AnyEncoder {
@@ -335,12 +335,12 @@ impl<'w, T: Encoder> SeqEncoder<'w, T> {
     }
 }
 
-pub struct MapEncoder<'w, T: Encoder> {
+pub struct MapEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     inner: T::MapEncoder,
 }
 
-impl<'w, T: Encoder> MapEncoder<'w, T> {
+impl<'w, T: SpecEncoder> MapEncoder<'w, T> {
     pub fn encode_entry(&mut self) -> anyhow::Result<EntryEncoder<'_, T>> {
         let (key, value) = self.encoder.map_encode_element(&mut self.inner)?;
         Ok(EntryEncoder {
@@ -356,14 +356,14 @@ impl<'w, T: Encoder> MapEncoder<'w, T> {
     }
 }
 
-pub struct EntryEncoder<'w, T: Encoder> {
+pub struct EntryEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     key: Option<T::AnyEncoder>,
     value: Option<T::ValueEncoder>,
     closer: Option<T::EntryCloser>,
 }
 
-impl<'w, T: Encoder> EntryEncoder<'w, T> {
+impl<'w, T: SpecEncoder> EntryEncoder<'w, T> {
     pub fn encode_key(&mut self) -> anyhow::Result<AnyEncoder<'_, T>> {
         Ok(AnyEncoder {
             encoder: self.encoder,
@@ -387,12 +387,12 @@ impl<'w, T: Encoder> EntryEncoder<'w, T> {
     }
 }
 
-pub struct TupleStructEncoder<'w, T: Encoder> {
+pub struct TupleStructEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     inner: T::TupleStructEncoder,
 }
 
-impl<'w, T: Encoder> TupleStructEncoder<'w, T> {
+impl<'w, T: SpecEncoder> TupleStructEncoder<'w, T> {
     pub fn encode_field(&mut self) -> anyhow::Result<AnyEncoder<'_, T>> {
         let inner = self.encoder.tuple_struct_encode_field(&mut self.inner)?;
         Ok(AnyEncoder {
@@ -406,13 +406,13 @@ impl<'w, T: Encoder> TupleStructEncoder<'w, T> {
     }
 }
 
-pub struct StructEncoder<'w, T: Encoder> {
+pub struct StructEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     fields: slice::Iter<'static, &'static str>,
     inner: T::StructEncoder,
 }
 
-impl<'w, T: Encoder> StructEncoder<'w, T> {
+impl<'w, T: SpecEncoder> StructEncoder<'w, T> {
     pub fn encode_field(&mut self) -> anyhow::Result<AnyEncoder<'_, T>> {
         let inner = self
             .encoder
@@ -428,12 +428,12 @@ impl<'w, T: Encoder> StructEncoder<'w, T> {
     }
 }
 
-pub struct TupleVariantEncoder<'w, T: Encoder> {
+pub struct TupleVariantEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     inner: T::TupleVariantEncoder,
 }
 
-impl<'w, T: Encoder> TupleVariantEncoder<'w, T> {
+impl<'w, T: SpecEncoder> TupleVariantEncoder<'w, T> {
     pub fn encode_field(&mut self) -> anyhow::Result<AnyEncoder<'_, T>> {
         let inner = self.encoder.tuple_variant_encode_field(&mut self.inner)?;
         Ok(AnyEncoder {
@@ -447,13 +447,13 @@ impl<'w, T: Encoder> TupleVariantEncoder<'w, T> {
     }
 }
 
-pub struct StructVariantEncoder<'w, T: Encoder> {
+pub struct StructVariantEncoder<'w, T: SpecEncoder> {
     encoder: &'w mut T,
     inner: T::StructVariantEncoder,
     fields: &'static [&'static str],
 }
 
-impl<'w, T: Encoder> StructVariantEncoder<'w, T> {
+impl<'w, T: SpecEncoder> StructVariantEncoder<'w, T> {
     pub fn encode_field(&mut self) -> anyhow::Result<AnyEncoder<'_, T>> {
         let inner = self
             .encoder

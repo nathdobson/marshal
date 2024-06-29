@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use crate::decode::{DecodeHint, Decoder, DecodeVariantHint, SimpleDecoderView};
+use crate::decode::{DecodeHint, SpecDecoder, DecodeVariantHint, SimpleDecoderView};
 
 pub struct DepthBudgetDecoder<D> {
     inner: D,
@@ -29,7 +29,7 @@ impl<T> WithDepthBudget<T> {
     }
 }
 
-impl<'de, D: Decoder<'de>> DepthBudgetDecoder<D> {
+impl<'de, D: SpecDecoder<'de>> DepthBudgetDecoder<D> {
     pub fn new(inner: D) -> Self {
         DepthBudgetDecoder { inner }
     }
@@ -53,7 +53,7 @@ impl<'de, D: Decoder<'de>> DepthBudgetDecoder<D> {
     }
 }
 
-impl<'de, D: Decoder<'de>> Decoder<'de> for DepthBudgetDecoder<D> {
+impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
     type AnyDecoder = WithDepthBudget<D::AnyDecoder>;
     type SeqDecoder = WithDepthBudget<D::SeqDecoder>;
     type MapDecoder = WithDepthBudget<D::MapDecoder>;

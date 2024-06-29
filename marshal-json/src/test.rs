@@ -6,12 +6,12 @@ use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
 
 use crate::decode::full::JsonDecoderBuilder;
-use crate::encode::full::{JsonEncoderBuilder, JsonGenEncoder};
+use crate::encode::full::{JsonEncoderBuilder, JsonEncoder};
 use crate::JsonGenDecoder;
 
 #[track_caller]
 pub fn test_round_trip<
-    T: Debug + Eq + Serialize<JsonGenEncoder> + Deserialize<JsonGenDecoder>,
+    T: Debug + Eq + Serialize<JsonEncoder> + Deserialize<JsonGenDecoder>,
 >(
     input: T,
     expected: &str,

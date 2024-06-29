@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 use by_address::ByAddress;
 
-use marshal_core::encode::Encoder;
+use marshal_core::encode::SpecEncoder;
 use marshal_core::Primitive;
 
 use crate::{TypeTag, VU128_MAX_PADDING};
@@ -38,14 +38,14 @@ impl Display for BinEncoderError {
 
 impl std::error::Error for BinEncoderError {}
 
-pub struct SimpleBinEncoder<'s> {
+pub struct SimpleBinSpecEncoder<'s> {
     output: Vec<u8>,
     schema: &'s mut BinEncoderSchema,
 }
 
-impl<'s> SimpleBinEncoder<'s> {
-    pub fn new(schema: &mut BinEncoderSchema) -> SimpleBinEncoder {
-        SimpleBinEncoder {
+impl<'s> SimpleBinSpecEncoder<'s> {
+    pub fn new(schema: &mut BinEncoderSchema) -> SimpleBinSpecEncoder {
+        SimpleBinSpecEncoder {
             output: vec![],
             schema,
         }
@@ -105,7 +105,7 @@ impl<'s> SimpleBinEncoder<'s> {
     }
 }
 
-impl<'s> Encoder for SimpleBinEncoder<'s> {
+impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
     type AnyEncoder = ();
     type SomeCloser = ();
     type TupleEncoder = ();

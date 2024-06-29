@@ -1,14 +1,14 @@
 use marshal_core::encode::AnyEncoder;
 use marshal_core::Primitive;
 
-use crate::encode::SimpleJsonEncoder;
+use crate::encode::SimpleJsonSpecEncoder;
 
 #[track_caller]
 fn run_simple(
     expected: &str,
-    f: impl FnOnce(AnyEncoder<SimpleJsonEncoder>) -> anyhow::Result<()>,
+    f: impl FnOnce(AnyEncoder<SimpleJsonSpecEncoder>) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let mut w = SimpleJsonEncoder::new();
+    let mut w = SimpleJsonSpecEncoder::new();
     f(w.start())?;
     let actual = w.end()?;
     let expected = expected.trim_start();
@@ -22,7 +22,7 @@ fn run_simple(
 
 #[test]
 fn test_empty_string() -> anyhow::Result<()> {
-    let mut w = SimpleJsonEncoder::new();
+    let mut w = SimpleJsonSpecEncoder::new();
     w.start().encode_str("")?;
     assert_eq!(w.end()?, "\"\"");
     Ok(())
@@ -30,7 +30,7 @@ fn test_empty_string() -> anyhow::Result<()> {
 
 #[test]
 fn test_ascii() -> anyhow::Result<()> {
-    let mut w = SimpleJsonEncoder::new();
+    let mut w = SimpleJsonSpecEncoder::new();
     w.start().encode_str("abc")?;
     assert_eq!(w.end()?, "\"abc\"");
     Ok(())
@@ -38,7 +38,7 @@ fn test_ascii() -> anyhow::Result<()> {
 
 #[test]
 fn test_escape() -> anyhow::Result<()> {
-    let mut w = SimpleJsonEncoder::new();
+    let mut w = SimpleJsonSpecEncoder::new();
     w.start()
         .encode_str("\" \\ \n \r \u{0000} ' \u{000b} \t \u{000c} \u{0008}")?;
     assert_eq!(w.end()?, r#""\" \\ \n \r \u0000 ' \u000b \t \f \b""#);
@@ -47,7 +47,7 @@ fn test_escape() -> anyhow::Result<()> {
 
 #[test]
 fn test_surrogate() -> anyhow::Result<()> {
-    let mut w = SimpleJsonEncoder::new();
+    let mut w = SimpleJsonSpecEncoder::new();
     w.start().encode_str("🫎")?;
     assert_eq!(w.end()?, r#""🫎""#);
     Ok(())
