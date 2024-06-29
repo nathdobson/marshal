@@ -11,18 +11,18 @@
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 
-use crate::decode::full::JsonDecoder;
+use crate::decode::full::JsonGenDecoder;
 use crate::encode::full::JsonEncoder;
 
 pub mod decode;
 pub mod encode;
+pub mod json_object;
 #[cfg(test)]
 mod test;
 pub mod value;
-pub mod json_object;
 
 #[doc(hidden)]
-pub mod reexports{
+pub mod reexports {
     pub use anyhow;
     pub use safe_once;
 
@@ -32,4 +32,4 @@ pub mod reexports{
 }
 
 pub trait SerializeJson = Serialize<JsonEncoder>;
-pub trait DeserializeJson<'de> = Deserialize<'de, JsonDecoder<'de>>;
+pub trait DeserializeJson = Deserialize<JsonGenDecoder>;

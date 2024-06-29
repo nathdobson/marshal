@@ -5,12 +5,13 @@ use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
 
-use crate::decode::full::{JsonDecoder, JsonDecoderBuilder};
+use crate::decode::full::JsonDecoderBuilder;
 use crate::encode::full::{JsonEncoder, JsonEncoderBuilder};
+use crate::JsonGenDecoder;
 
 #[track_caller]
 pub fn test_round_trip<
-    T: Debug + Eq + Serialize<JsonEncoder> + for<'de> Deserialize<'de, JsonDecoder<'de>>,
+    T: Debug + Eq + Serialize<JsonEncoder> + Deserialize<JsonGenDecoder>,
 >(
     input: T,
     expected: &str,

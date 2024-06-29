@@ -94,7 +94,7 @@ mod x {
 }
 
 #[track_caller]
-pub fn json_round_trip<T: Debug + SerializeJson + for<'de> DeserializeJson<'de>>(
+pub fn json_round_trip<T: Debug + SerializeJson + DeserializeJson>(
     input: &T,
     expected: &str,
 ) -> anyhow::Result<T> {
@@ -112,7 +112,7 @@ pub fn json_round_trip<T: Debug + SerializeJson + for<'de> DeserializeJson<'de>>
 }
 
 #[track_caller]
-pub fn bin_round_trip<T: Debug + SerializeBin + for<'de> DeserializeBin<'de>>(
+pub fn bin_round_trip<T: Debug + SerializeBin + DeserializeBin>(
     input: &T,
     expected: &[&[u8]],
 ) -> anyhow::Result<T> {

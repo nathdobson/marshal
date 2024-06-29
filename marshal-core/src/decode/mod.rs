@@ -6,9 +6,9 @@ use std::marker::PhantomData;
 use crate::{Primitive, PrimitiveType};
 
 pub mod depth_budget;
+mod helper;
 pub mod newtype;
 pub mod poison;
-mod helper;
 mod polonius;
 
 // pub mod depth_budget;
@@ -53,7 +53,7 @@ pub enum DecodeVariantHint {
 }
 
 pub struct SeqIter<'p, 'de, D: ?Sized + Decoder<'de> + 'p, F> {
-    seq: SeqDecoder<'p, 'de, D>,
+    seq: SeqSpecDecoder<'p, 'de, D>,
     map: F,
     phantom: PhantomData<(&'p D, &'de ())>,
 }
@@ -195,9 +195,13 @@ where
     Bytes(Cow<'de, [u8]>),
     None,
     Some(SomeDecoder<'p, 'de, P>),
-    Seq(SeqDecoder<'p, 'de, P>),
+    Seq(SeqSpecDecoder<'p, 'de, P>),
     Map(MapDecoder<'p, 'de, P>),
     Enum(EnumDecoder<'p, 'de, P>),
+}
+
+pub trait GenDecoder {
+    type Decoder<'de>: ?Sized + Decoder<'de>;
 }
 
 pub trait Decoder<'de> {
@@ -271,7 +275,9 @@ pub struct AnyDecoder<'p, 'de, D: ?Sized + Decoder<'de>> {
     any: D::AnyDecoder,
 }
 
-pub struct SeqDecoder<'p, 'de, D: ?Sized + Decoder<'de>> {
+pub type AnyGenDecoder<'p, 'de, D> = AnyDecoder<'p, 'de, <D as GenDecoder>::Decoder<'de>>;
+
+pub struct SeqSpecDecoder<'p, 'de, D: ?Sized + Decoder<'de>> {
     this: &'p mut D,
     seq: Option<D::SeqDecoder>,
 }
@@ -309,9 +315,7 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> AnyDecoder<'p, 'de, D> {
     }
 }
 
-
-
-impl<'p, 'de, D: ?Sized + Decoder<'de>> SeqDecoder<'p, 'de, D> {
+impl<'p, 'de, D: ?Sized + Decoder<'de>> SeqSpecDecoder<'p, 'de, D> {
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<AnyDecoder<'p2, 'de, D>>> {
         if let Some(any) = self.this.decode_seq_next(self.seq.as_mut().unwrap())? {
             Ok(Some(AnyDecoder {
@@ -483,7 +487,7 @@ impl<'p, 'de, T: ?Sized + Decoder<'de>> AnyDecoder<'p, 'de, T> {
 }
 
 impl<'p, 'de, D: ?Sized + Decoder<'de>> DecoderView<'p, 'de, D> {
-    pub fn try_into_seq(self) -> anyhow::Result<SeqDecoder<'p, 'de, D>> {
+    pub fn try_into_seq(self) -> anyhow::Result<SeqSpecDecoder<'p, 'de, D>> {
         match self {
             DecoderView::Seq(x) => Ok(x),
             unexpected => unexpected.mismatch("seq")?,
@@ -579,7 +583,7 @@ impl<'de, D: ?Sized + Decoder<'de>> SimpleDecoderView<'de, D> {
                 some_decoder: Some(some),
                 some_closer: None,
             }),
-            SimpleDecoderView::Seq(seq) => DecoderView::Seq(SeqDecoder {
+            SimpleDecoderView::Seq(seq) => DecoderView::Seq(SeqSpecDecoder {
                 this,
                 seq: Some(seq),
             }),

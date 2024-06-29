@@ -18,11 +18,11 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
     let DeriveGenerics {
         generic_params,
         generic_args,
-    } = DeriveGenerics::new(generics, &quote! {::marshal::de::DeserializeUpdate<'de,P>});
-    let decoder_trait = quote!(::marshal::decode::Decoder);
+    } = DeriveGenerics::new(generics, &quote! {::marshal::de::DeserializeUpdate<D>});
+    let gen_decoder_trait = quote!(::marshal::decode::GenDecoder);
     let primitive_type = quote!(::marshal::Primitive);
 
-    let any_decoder_type = quote!(::marshal::decode::AnyDecoder);
+    let any_gen_decoder_type = quote!(::marshal::decode::AnyGenDecoder);
 
     let deserialize_update_trait = quote!(::marshal_update::de::DeserializeUpdate);
     let result_type = quote!(::marshal::reexports::anyhow::Result);
@@ -34,19 +34,19 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
     let option_type = quote! {::std::option::Option};
     let schema_error = quote! {::marshal::de::SchemaError};
 
-    let imp = quote! { impl<'de, #(#generic_params,)* P:#decoder_trait<'de>> #deserialize_update_trait<'de, P> for #type_ident <#(#generic_args),*> };
+    let imp = quote! { impl<#(#generic_params,)* D:#gen_decoder_trait> #deserialize_update_trait<D> for #type_ident <#(#generic_args),*> };
 
     match data {
         Data::Struct(data) => match ParsedFields::new(&data.fields) {
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
-                field_types: _,
+                field_types,
                 field_literals,
                 field_indices,
             }) => Ok(quote! {
                 #imp {
                     #[allow(unreachable_code)]
-                    fn deserialize_update(&mut self, decoder: #any_decoder_type<'_,'de,P>, mut ctx: #context_type) -> #result_type<()>{
+                    fn deserialize_update<'p, 'de>(&mut self, decoder: #any_gen_decoder_type<'p,'de,D>, mut ctx: #context_type) -> #result_type<()>{
                         let hint = #decode_hint_type::Struct{
                             fields: &[
                                 #(
@@ -74,7 +74,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
                                             #(
                                                 #field_indices => {
                                                     let value = entry.decode_value()?;
-                                                    self.#field_idents.deserialize_update(value, ctx.reborrow())?;
+                                                    <#field_types as #deserialize_update_trait<D>>::deserialize_update(&mut self.#field_idents, value, ctx.reborrow())?;
                                                 }
                                             )*
                                             _ => {
@@ -95,15 +95,15 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
             }),
             ParsedFields::Unnamed(ParsedFieldsUnnamed {
                 field_count,
-                field_types: _,
+                field_types,
                 field_index_idents,
                 field_named_idents: _,
             }) => Ok(quote! {
                 #imp {
-                    fn deserialize_update(&mut self, decoder: #any_decoder_type<'_,'de,P>, mut ctx: #context_type) -> #result_type<()>{
+                    fn deserialize_update<'p,'de>(&mut self, decoder: #any_gen_decoder_type<'p,'de,D>, mut ctx: #context_type) -> #result_type<()>{
                         let mut decoder=decoder.decode( #decode_hint_type::TupleStruct{name:#type_name, len:#field_count})?.try_into_seq()?;
                         #(
-                            self.#field_index_idents.deserialize_update(
+                            <#field_types as #deserialize_update_trait<D>>::deserialize_update(&mut self.#field_index_idents,
                                 decoder.decode_next()?
                                     .ok_or(#schema_error::TupleTooShort)?,
                                 ctx.reborrow()
@@ -116,7 +116,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
             }),
             ParsedFields::Unit => Ok(quote! {
                 #imp {
-                    fn deserialize_update<'p>(&mut self, decoder: #any_decoder_type<'p,'de,P>, mut ctx: #context_type) -> #result_type<()>{
+                    fn deserialize_update<'p,'de>(&mut self, decoder: #any_gen_decoder_type<'p,'de,D>, mut ctx: #context_type) -> #result_type<()>{
                         match decoder.decode( #decode_hint_type::UnitStruct{name:#type_name})?{
                             #decoder_view_type::Primitive(#primitive_type::Unit) => {},
                             v => v.mismatch("unit")?,
@@ -178,7 +178,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
                                                     #(
                                                         #field_indices => {
                                                             let value = entry.decode_value()?;
-                                                            #field_idents = Some(<#field_types as #deserialize_update_trait<'de, P>>::deserialize(value, ctx.reborrow())?);
+                                                            #field_idents = Some(<#field_types as #deserialize_update_trait<D>>::deserialize(value, ctx.reborrow())?);
                                                         }
                                                     )*
                                                     _ => entry.decode_value()?.ignore()?,
@@ -218,7 +218,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
                                         let result=#type_ident::#variant_ident(
                                             #(
                                                 {
-                                                    let x = <#field_types as #deserialize_update_trait<'de, P> >::deserialize(
+                                                    let x = <#field_types as #deserialize_update_trait<D> >::deserialize(
                                                         decoder.decode_next()?
                                                             .ok_or(#schema_error::TupleTooShort)?,
                                                         ctx.reborrow()
@@ -247,7 +247,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
             }
             Ok(quote! {
                 #imp {
-                    fn deserialize(decoder: #any_decoder_type<'_,'de,P>, ctx: #context_type) -> #result_type<Self>{
+                    fn deserialize<'p,'de>(decoder: #any_gen_decoder_type<'p,'de,D>, ctx: #context_type) -> #result_type<Self>{
                         let hint = #decode_hint_type::Enum {
                             variants: &[
                                 #(

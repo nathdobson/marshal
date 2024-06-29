@@ -1,15 +1,15 @@
 use marshal::context::Context;
 use marshal::de::SchemaError;
-use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
+use marshal::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
 
 use crate::de::DeserializeUpdate;
 
-impl<'de, D: Decoder<'de>, T1: DeserializeUpdate<'de, D>, T2: DeserializeUpdate<'de, D>>
-    DeserializeUpdate<'de, D> for (T1, T2)
+impl<D: GenDecoder, T1: DeserializeUpdate<D>, T2: DeserializeUpdate<D>>
+    DeserializeUpdate<D> for (T1, T2)
 {
-    fn deserialize_update<'p>(
+    fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyDecoder<'p, 'de, D>,
+        d: AnyGenDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut d = d.decode(DecodeHint::Tuple { len: 2 })?.try_into_seq()?;

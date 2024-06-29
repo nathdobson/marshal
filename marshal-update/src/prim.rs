@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, Decoder};
+use marshal::decode::{AnyGenDecoder, GenDecoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 
@@ -51,16 +51,16 @@ impl<E: Encoder, T: ?Sized + Serialize<E>> Serialize<E> for Prim<T> {
     }
 }
 
-impl<'de, D: Decoder<'de>, T: Deserialize<'de, D>> Deserialize<'de, D> for Prim<T> {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
+impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for Prim<T> {
+    fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         Ok(Prim::new(T::deserialize(d, ctx)?))
     }
 }
 
-impl<'de, D: Decoder<'de>, T: Deserialize<'de, D>> DeserializeUpdate<'de, D> for Prim<T> {
-    fn deserialize_update<'p>(
+impl<D: GenDecoder, T: Deserialize<D>> DeserializeUpdate<D> for Prim<T> {
+    fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyDecoder<'p, 'de, D>,
+        d: AnyGenDecoder<'p, 'de, D>,
         ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(x) = Option::<T>::deserialize(d, ctx)? {

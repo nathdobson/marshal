@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use marshal_json::decode::full::JsonDecoder;
+use marshal_json::decode::full::JsonGenDecoder;
 use marshal_json::encode::full::JsonEncoder;
 
 use crate::forest::de::DynamicDecoder;
@@ -16,15 +16,15 @@ impl DynamicEncoder for JsonEncoder {
 }
 
 pub trait DeserializeUpdateJson:
-    Sync + Send + Any + for<'de> DeserializeUpdateDyn<'de, JsonDecoder<'de>>
+    Sync + Send + Any + DeserializeUpdateDyn<JsonGenDecoder>
 {
 }
 
-impl<T: ?Sized + Sync + Send + for<'de> DeserializeUpdateDyn<'de, JsonDecoder<'de>>>
+impl<T: ?Sized + Sync + Send + DeserializeUpdateDyn<JsonGenDecoder>>
     DeserializeUpdateJson for T
 {
 }
 
-impl<'de> DynamicDecoder for JsonDecoder<'de> {
+impl DynamicDecoder for JsonGenDecoder {
     type DeserializeUpdateDyn = dyn DeserializeUpdateJson;
 }

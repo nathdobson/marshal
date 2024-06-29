@@ -5,7 +5,7 @@ use std::hash::Hash;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
+use marshal::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 
@@ -86,10 +86,10 @@ impl<E: Encoder, K: Eq + Hash + Sync + Send + Clone + Serialize<E>, V: Serialize
     }
 }
 
-impl<'de, D: Decoder<'de>, K: Eq + Hash + Deserialize<'de, D>, V: Deserialize<'de, D>>
-    Deserialize<'de, D> for UpdateHashMap<K, V>
+impl<D: GenDecoder, K: Eq + Hash + Deserialize<D>, V: Deserialize<D>> Deserialize<D>
+    for UpdateHashMap<K, V>
 {
-    fn deserialize<'p>(d: AnyDecoder<'p, 'de, D>,  ctx: Context) -> anyhow::Result<Self> {
+    fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         Ok(Self::from(HashMap::deserialize(d, ctx)?))
     }
 }
@@ -103,12 +103,12 @@ impl<K, V> From<HashMap<K, V>> for UpdateHashMap<K, V> {
     }
 }
 
-impl<'de, D: Decoder<'de>, K: Eq + Hash + Deserialize<'de, D>, V: DeserializeUpdate<'de, D>>
-    DeserializeUpdate<'de, D> for UpdateHashMap<K, V>
+impl<D: GenDecoder, K: Eq + Hash + Deserialize<D>, V: DeserializeUpdate<D>> DeserializeUpdate<D>
+    for UpdateHashMap<K, V>
 {
-    fn deserialize_update<'p>(
+    fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyDecoder<'p, 'de, D>,
+        d: AnyGenDecoder<'p, 'de, D>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let mut d = d.decode(DecodeHint::Map)?.try_into_map()?;
@@ -118,7 +118,8 @@ impl<'de, D: Decoder<'de>, K: Eq + Hash + Deserialize<'de, D>, V: DeserializeUpd
             if let Some(mut v) = v.decode(DecodeHint::Option)?.try_into_option()? {
                 match self.map.entry(key) {
                     Entry::Occupied(mut o) => {
-                        o.get_mut().deserialize_update(v.decode_some()?, ctx.reborrow())?;
+                        o.get_mut()
+                            .deserialize_update(v.decode_some()?, ctx.reborrow())?;
                     }
                     Entry::Vacant(vac) => {
                         vac.insert(V::deserialize(v.decode_some()?, ctx.reborrow())?);

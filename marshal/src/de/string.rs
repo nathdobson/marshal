@@ -1,11 +1,11 @@
-use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder};
+use marshal_core::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
 
 use crate::context::Context;
 use crate::de::Deserialize;
 
-impl<'de, P: Decoder<'de>> Deserialize<'de, P> for String {
-    fn deserialize(p: AnyDecoder<'_, 'de, P>, _ctx: Context) -> anyhow::Result<Self> {
-        Ok(p.decode(DecodeHint::String)?
+impl<D: GenDecoder> Deserialize<D> for String {
+    fn deserialize<'p, 'de>(d: AnyGenDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self> {
+        Ok(d.decode(DecodeHint::String)?
             .try_into_string()?
             .into_owned())
     }

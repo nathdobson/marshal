@@ -6,6 +6,7 @@ use marshal_update::forest::forest::Forest;
 use marshal_update::forest::forest::ForestRoot;
 use marshal_update::forest::forest::Tree;
 use marshal_update::tester::Tester;
+
 #[test]
 fn test_forest() -> anyhow::Result<()> {
     let forest = Forest::new();

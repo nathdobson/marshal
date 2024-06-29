@@ -12,16 +12,16 @@ use marshal_object::de::{
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
-use crate::decode::full::BinDecoder;
+use crate::decode::full::{BinDecoder, BinGenDecoder};
 use crate::encode::full::BinEncoder;
 use crate::SerializeBin;
 
 pub trait SerializeDyn = SerializeBin;
 
 pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
-    fn bin_deserialize_variant<'p, 'de, 's>(
+    fn bin_deserialize_variant<'p, 'de>(
         &self,
-        d: AnyDecoder<'p, 'de, BinDecoder<'de, 's>>,
+        d: AnyDecoder<'p, 'de, BinDecoder<'de>>,
         ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>>;
     fn bin_serialize_variant<'p, 's>(
@@ -34,7 +34,7 @@ pub trait DeserializeVariantBin<O: Object>: 'static + Sync + Send {
 
 impl<O: Object, V: 'static> DeserializeVariantBin<O> for PhantomData<fn() -> V>
 where
-    O::Pointer<V>: for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
+    O::Pointer<V>: Deserialize<BinGenDecoder>,
     O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
@@ -42,9 +42,9 @@ where
         DowncastRef<<O::Pointer<V> as AsFlatRef>::FlatRef>,
     <O::Pointer<V> as AsFlatRef>::FlatRef: SerializeBin,
 {
-    fn bin_deserialize_variant<'p, 'de, 's>(
+    fn bin_deserialize_variant<'p, 'de>(
         &self,
-        d: AnyDecoder<'p, 'de, BinDecoder<'de, 's>>,
+        d: AnyDecoder<'p, 'de, BinDecoder<'de>>,
         mut ctx: Context,
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(<O::Pointer<V>>::deserialize(d, ctx)?)
@@ -72,8 +72,7 @@ impl<O: Object> DeserializeProvider for FormatDeserializeProvider<O> {}
 
 impl<O: Object, V: 'static> DeserializeVariantProvider<V> for FormatDeserializeProvider<O>
 where
-    O::Pointer<V>:
-        CoerceUnsized<O::Pointer<O::Dyn>> + for<'de, 's> Deserialize<'de, BinDecoder<'de, 's>>,
+    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>> + Deserialize<BinGenDecoder>,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
     <O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
@@ -94,10 +93,10 @@ macro_rules! bin_object {
             static DESERIALIZERS: $crate::reexports::safe_once::sync::LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::bin_object::DeserializeVariantBin<$carrier>>>> =
                     $crate::reexports::safe_once::sync::LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
 
-            impl<'de,'s> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::BinDecoder<'de,'s>> for $carrier {
-                fn deserialize_variant<'p>(
+            impl $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<$crate::decode::full::BinGenDecoder> for $carrier {
+                fn deserialize_variant<'p, 'de>(
                     disc: usize,
-                    d: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, $crate::decode::full::BinDecoder<'de,'s>>,
+                    d: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, $crate::decode::full::BinDecoder<'de>>,
                     mut ctx: $crate::reexports::marshal::context::Context,
                 ) -> $crate::reexports::anyhow::Result<<$carrier as $crate::reexports::marshal_object::Object>::Pointer<<$carrier as $crate::reexports::marshal_object::Object>::Dyn>> {
                     DESERIALIZERS[disc].bin_deserialize_variant(d, ctx)

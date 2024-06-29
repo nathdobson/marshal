@@ -5,26 +5,24 @@ use type_map::concurrent::TypeMap;
 
 use marshal::context::Context;
 use marshal::de::SchemaError;
-use marshal::decode::{
-    AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint,
-};
+use marshal::decode::{AnyGenDecoder, DecodeHint,  DecoderView, DecodeVariantHint, GenDecoder};
 
 use crate::{Object, OBJECT_REGISTRY};
 
-pub trait DeserializeVariantForDiscriminant<'de, D: Decoder<'de>>: Object {
-    fn deserialize_variant(
+pub trait DeserializeVariantForDiscriminant<D: GenDecoder>: Object {
+    fn deserialize_variant<'p, 'de>(
         discriminant: usize,
-        d: AnyDecoder<'_, 'de, D>,
+        d: AnyGenDecoder<'p, 'de, D>,
         ctx: Context,
     ) -> anyhow::Result<Self::Pointer<Self::Dyn>>;
 }
 
-pub fn deserialize_object<'p, 'de, O: Object, D: Decoder<'de>>(
-    d: AnyDecoder<'p, 'de, D>,
+pub fn deserialize_object<'p, 'de, O: Object, D: GenDecoder>(
+    d: AnyGenDecoder<'p, 'de, D>,
     ctx: Context,
 ) -> anyhow::Result<O::Pointer<O::Dyn>>
 where
-    O: DeserializeVariantForDiscriminant<'de, D>,
+    O: DeserializeVariantForDiscriminant<D>,
 {
     match d.decode(DecodeHint::Enum {
         name: O::object_descriptor().object_name(),

@@ -63,7 +63,7 @@ impl<'p, 'de, D: ?Sized + Decoder<'de>> StructDecoderHelper<'p, 'de, D> {
     }
 }
 
-impl<'p, 'de, D: Decoder<'de>> FieldDecoderHelper<'p, 'de, D> {
+impl<'p, 'de, D: ?Sized + Decoder<'de>> FieldDecoderHelper<'p, 'de, D> {
     pub fn decode_field<'p2>(&'p2 mut self) -> anyhow::Result<AnyDecoder<'p2, 'de, D>> {
         self.decoder.decode_value()
     }

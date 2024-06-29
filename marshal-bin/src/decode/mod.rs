@@ -43,9 +43,9 @@ impl BinDecoderSchema {
     }
 }
 
-pub struct SimpleBinDecoder<'de, 's> {
+pub struct SimpleBinDecoder<'de> {
     content: &'de [u8],
-    schema: &'s BinDecoderSchema,
+    schema: &'de BinDecoderSchema,
 }
 
 #[derive(Debug)]
@@ -73,8 +73,8 @@ impl Display for BinDecoderError {
 
 impl std::error::Error for BinDecoderError {}
 
-impl<'de, 's> SimpleBinDecoder<'de, 's> {
-    pub fn new(data: &'de [u8], schema: &'s mut BinDecoderSchema) -> SimpleBinDecoder<'de, 's> {
+impl<'de> SimpleBinDecoder<'de> {
+    pub fn new(data: &'de [u8], schema: &'de mut BinDecoderSchema) -> SimpleBinDecoder<'de> {
         SimpleBinDecoder {
             content: data,
             schema,
@@ -91,7 +91,7 @@ impl<'de, 's> SimpleBinDecoder<'de, 's> {
     }
 }
 
-impl<'de, 's> SimpleBinDecoder<'de, 's> {
+impl<'de> SimpleBinDecoder<'de> {
     fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
         Ok(self.content.take(..count).ok_or(BinDecoderError::Eof)?)
     }
@@ -129,7 +129,7 @@ impl<'de, 's> SimpleBinDecoder<'de, 's> {
         self.schema.enum_defs.push(def);
         Ok(())
     }
-    fn read_enum_def_ref(&mut self) -> anyhow::Result<&'s EnumDefForeign> {
+    fn read_enum_def_ref(&mut self) -> anyhow::Result<&'de EnumDefForeign> {
         let index = self.read_usize()?;
         Ok(self
             .schema
@@ -170,9 +170,9 @@ impl<'s> Default for BinAnyDecoder<'s> {
     }
 }
 
-pub enum BinAnyDecoder<'s> {
+pub enum BinAnyDecoder<'de> {
     U32(u32),
-    Str(&'s str),
+    Str(&'de str),
     Read,
 }
 
@@ -180,30 +180,30 @@ pub struct BinSeqDecoder {
     len: usize,
 }
 
-pub struct BinMapDecoder<'s>(BinMapDecoderInner<'s>);
+pub struct BinMapDecoder<'de>(BinMapDecoderInner<'de>);
 
-enum BinMapDecoderInner<'s> {
-    WithSchema(&'s [EnumDefKey]),
+enum BinMapDecoderInner<'de> {
+    WithSchema(&'de [EnumDefKey]),
     WithLength(usize),
 }
 
-pub enum BinKeyDecoder<'s> {
-    Foreign(&'s str),
+pub enum BinKeyDecoder<'de> {
+    Foreign(&'de str),
     Native(usize),
     Read,
 }
 
-pub struct BinDiscriminantDecoder<'s> {
-    variant: &'s EnumDefKey,
+pub struct BinDiscriminantDecoder<'de> {
+    variant: &'de EnumDefKey,
 }
 
-impl<'de, 's> Decoder<'de> for SimpleBinDecoder<'de, 's> {
-    type AnyDecoder = BinAnyDecoder<'s>;
+impl<'de> Decoder<'de> for SimpleBinDecoder<'de> {
+    type AnyDecoder = BinAnyDecoder<'de>;
     type SeqDecoder = BinSeqDecoder;
-    type MapDecoder = BinMapDecoder<'s>;
-    type KeyDecoder = BinKeyDecoder<'s>;
+    type MapDecoder = BinMapDecoder<'de>;
+    type KeyDecoder = BinKeyDecoder<'de>;
     type ValueDecoder = ();
-    type DiscriminantDecoder = BinDiscriminantDecoder<'s>;
+    type DiscriminantDecoder = BinDiscriminantDecoder<'de>;
     type VariantDecoder = ();
     type EnumCloser = ();
     type SomeDecoder = ();

@@ -1,10 +1,10 @@
-use marshal_core::decode::{AnyDecoder, Decoder};
+use marshal_core::decode::{AnyGenDecoder, GenDecoder};
 
 use crate::context::Context;
 use crate::de::{Deserialize, SchemaError};
 
-impl<'de, P: Decoder<'de>> Deserialize<'de, P> for ! {
-    fn deserialize<'p>(_: AnyDecoder<'p, 'de, P>, _ctx: Context) -> anyhow::Result<Self> {
+impl<D: GenDecoder> Deserialize<D> for ! {
+    fn deserialize<'p, 'de>(_: AnyGenDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self> {
         Err(SchemaError::UninhabitedType.into())
     }
 }

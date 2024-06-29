@@ -13,7 +13,7 @@ use marshal_object::de::{
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
-use crate::decode::full::JsonDecoder;
+use crate::decode::full::{JsonDecoder, JsonGenDecoder};
 use crate::DeserializeJson;
 use crate::encode::full::JsonEncoder;
 use crate::SerializeJson;
@@ -37,7 +37,7 @@ pub trait DeserializeVariantJson<O: Object>: 'static + Sync + Send {
 impl<O: Object, V: 'static> DeserializeVariantJson<O> for PhantomData<fn() -> V>
 where
     O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,
-    O::Pointer<V>: for<'de> Deserialize<'de, JsonDecoder<'de>>,
+    O::Pointer<V>: Deserialize<JsonGenDecoder>,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
     <O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
@@ -73,7 +73,7 @@ impl<O: Object> DeserializeProvider for FormatDeserializeProvider<O> {}
 
 impl<O: Object, V: 'static> DeserializeVariantProvider<V> for FormatDeserializeProvider<O>
 where
-    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>> + for<'de> DeserializeJson<'de>,
+    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>> + DeserializeJson,
     <O::Pointer<V> as AsFlatRef>::FlatRef: SerializeJson,
     <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
         Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
@@ -94,8 +94,8 @@ macro_rules! json_object {
         const _: () = {
             static DESERIALIZERS: $crate::reexports::safe_once::sync::LazyLock<$crate::reexports::marshal_object::de::DeserializeVariantTable<$carrier, ::std::boxed::Box<dyn $crate::json_object::DeserializeVariantJson<$carrier>>>> =
                     $crate::reexports::safe_once::sync::LazyLock::new($crate::reexports::marshal_object::de::DeserializeVariantTable::new);
-            impl<'de> $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<'de, $crate::decode::full::JsonDecoder<'de>> for $carrier {
-                fn deserialize_variant<'p>(
+            impl $crate::reexports::marshal_object::de::DeserializeVariantForDiscriminant<$crate::decode::full::JsonGenDecoder> for $carrier {
+                fn deserialize_variant<'p, 'de>(
                     disc: usize,
                     d: $crate::reexports::marshal::decode::AnyDecoder<'p,'de,$crate::decode::full::JsonDecoder<'de>>,
                     mut ctx: $crate::reexports::marshal::context::Context,

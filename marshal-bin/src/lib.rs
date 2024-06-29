@@ -16,19 +16,19 @@ use num_derive::FromPrimitive;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 
-use crate::decode::full::BinDecoder;
+use crate::decode::full::BinGenDecoder;
 use crate::encode::full::BinEncoder;
 
+pub mod bin_object;
 pub mod decode;
 pub mod encode;
 #[cfg(test)]
 mod test;
 mod to_from_vu128;
 mod util;
-pub mod bin_object;
 
 #[doc(hidden)]
-pub mod reexports{
+pub mod reexports {
     pub use anyhow;
     pub use safe_once;
 
@@ -70,5 +70,6 @@ pub enum TypeTag {
     Some = 26,
 }
 
+
 pub trait SerializeBin = for<'s> Serialize<BinEncoder<'s>>;
-pub trait DeserializeBin<'de> = for<'s> Deserialize<'de, BinDecoder<'de, 's>>;
+pub trait DeserializeBin = Deserialize<BinGenDecoder>;

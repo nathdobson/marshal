@@ -1,6 +1,6 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::AnyDecoder;
+use marshal_core::decode::{AnyDecoder, GenDecoder};
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::PoisonDecoder;
 use marshal_core::derive_decoder_for_newtype;
@@ -33,7 +33,7 @@ impl<'de> JsonDecoderBuilder<'de> {
         let any = self.decoder.0.start(any);
         AnyDecoder::new(&mut self.decoder, any)
     }
-    pub fn deserialize<T: Deserialize<'de, JsonDecoder<'de>>>(
+    pub fn deserialize<T: Deserialize<JsonGenDecoder>>(
         mut self,
         mut ctx: Context,
     ) -> anyhow::Result<T> {
@@ -53,4 +53,10 @@ impl<'de> JsonDecoderBuilder<'de> {
         self.end()?;
         Ok(result)
     }
+}
+
+pub struct JsonGenDecoder;
+
+impl GenDecoder for JsonGenDecoder {
+    type Decoder<'de> = JsonDecoder<'de>;
 }

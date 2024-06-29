@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::{
-    AnyDecoder, DecodeHint, Decoder, DecoderView,
-};
+use marshal_core::decode::{AnyGenDecoder, DecodeHint,  DecoderView, GenDecoder};
 use marshal_core::Primitive;
 
 pub enum JsonValue {
@@ -16,8 +14,11 @@ pub enum JsonValue {
     Object(HashMap<String, JsonValue>),
 }
 
-impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
-    fn deserialize<'p>(p: AnyDecoder<'p, 'de, P>, mut ctx: Context) -> anyhow::Result<Self> {
+impl<D: GenDecoder> Deserialize<D> for JsonValue {
+    fn deserialize<'p, 'de>(
+        p: AnyGenDecoder<'p, 'de, D>,
+        mut ctx: Context,
+    ) -> anyhow::Result<Self> {
         match p.decode(DecodeHint::Any)? {
             DecoderView::Primitive(Primitive::Bool(x)) => Ok(JsonValue::Bool(x)),
             DecoderView::Primitive(Primitive::F64(x)) => Ok(JsonValue::Number(x)),
@@ -26,7 +27,10 @@ impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
             DecoderView::Seq(mut p) => {
                 let mut vec = vec![];
                 while let Some(next) = p.decode_next()? {
-                    vec.push(<JsonValue as Deserialize<'de, P>>::deserialize(next, ctx.reborrow())?);
+                    vec.push(<JsonValue as Deserialize<D>>::deserialize(
+                        next,
+                        ctx.reborrow(),
+                    )?);
                 }
                 Ok(JsonValue::Array(vec))
             }
@@ -38,7 +42,7 @@ impl<'de, P: Decoder<'de>> Deserialize<'de, P> for JsonValue {
                         .decode(DecodeHint::String)?
                         .try_into_string()?
                         .into_owned();
-                    let value = <JsonValue as Deserialize<'de, P>>::deserialize(
+                    let value = <JsonValue as Deserialize<D>>::deserialize(
                         entry.decode_value()?,
                         ctx.reborrow(),
                     )?;

@@ -15,8 +15,8 @@ use marshal_shared::ser::SharedSerializeContext;
 
 use crate::forest::error::TreeError;
 use crate::forest::forest::{Forest, ForestRoot, Tree};
-use crate::ser::set_channel::SetSubscriber;
 use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
+use crate::ser::set_channel::SetSubscriber;
 
 pub trait DynamicEncoder {
     type SerializeUpdateDyn: 'static + Sync + Send + ?Sized;

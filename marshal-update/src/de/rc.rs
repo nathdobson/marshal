@@ -3,18 +3,18 @@ use std::sync::Arc;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, Decoder};
+use marshal::decode::{AnyGenDecoder, GenDecoder};
 
 use crate::de::DeserializeUpdate;
 
-impl<'de, D: Decoder<'de>, T: ?Sized> DeserializeUpdate<'de, D> for Arc<T>
+impl<D: GenDecoder, T: ?Sized> DeserializeUpdate<D> for Arc<T>
 where
-    Arc<T>: Deserialize<'de, D>,
+    Arc<T>: Deserialize<D>,
 {
-    fn deserialize_update<'p>(
+    fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyDecoder<'p, 'de, D>,
-         ctx: Context,
+        d: AnyGenDecoder<'p, 'de, D>,
+        ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(update) = Option::<Arc<T>>::deserialize(d, ctx)? {
             *self = update;
@@ -23,14 +23,14 @@ where
     }
 }
 
-impl<'de, D: Decoder<'de>, T: ?Sized> DeserializeUpdate<'de, D> for sync::Weak<T>
+impl<D: GenDecoder, T: ?Sized> DeserializeUpdate<D> for sync::Weak<T>
 where
-    sync::Weak<T>: Deserialize<'de, D>,
+    sync::Weak<T>: Deserialize<D>,
 {
-    fn deserialize_update<'p>(
+    fn deserialize_update<'p, 'de>(
         &mut self,
-        d: AnyDecoder<'p, 'de, D>,
-         ctx: Context,
+        d: AnyGenDecoder<'p, 'de, D>,
+        ctx: Context,
     ) -> anyhow::Result<()> {
         if let Some(update) = Option::<sync::Weak<T>>::deserialize(d, ctx)? {
             *self = update;

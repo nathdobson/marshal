@@ -1,19 +1,19 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, Decoder};
+use marshal::decode::{AnyGenDecoder, GenDecoder};
 
 use crate::de::DeserializeUpdate;
 
 macro_rules! derive_deserialize_update_for_option {
     ($($ty:ty;)*) => {
         $(
-            impl<'de, D: Decoder<'de>> DeserializeUpdate<'de, D> for $ty {
-                fn deserialize_update<'p>(
+            impl<D: GenDecoder> DeserializeUpdate<D> for $ty {
+                fn deserialize_update<'p, 'de>(
                     &mut self,
-                    d: AnyDecoder<'p, 'de, D>,
+                    d: AnyGenDecoder<'p, 'de, D>,
                     ctx: Context,
                 ) -> anyhow::Result<()> {
-                    if let Some(update) = Option::<Self>::deserialize(d, ctx)? {
+                    if let Some(update) = <Option::<Self> as Deserialize<D>>::deserialize(d, ctx)? {
                         *self = update;
                     }
                     Ok(())
