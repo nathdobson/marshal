@@ -1,15 +1,15 @@
 use std::rc;
 
 use marshal::context::Context;
-use marshal::encode::{AnyEncoder, Encoder};
+use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 use marshal::ser::Serialize;
 use marshal_pointer::AsFlatRef;
 
 use crate::{AsDiscriminant, Object};
 
-pub fn serialize_object<O: Object, E: Encoder>(
+pub fn serialize_object<'w, 'en, O: Object, E: GenEncoder>(
     value: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
-    e: AnyEncoder<'_, E>,
+    e: AnyGenEncoder<'w, 'en, E>,
     ctx: Context,
 ) -> anyhow::Result<()>
 where
@@ -27,9 +27,9 @@ where
     Ok(())
 }
 
-pub fn serialize_rc_weak_object<O: Object, E: Encoder>(
+pub fn serialize_rc_weak_object<'w, 'en, O: Object, E: GenEncoder>(
     value: &rc::Weak<O::Dyn>,
-    e: AnyEncoder<'_, E>,
+    e: AnyGenEncoder<'w, 'en, E>,
     ctx: Context,
 ) -> anyhow::Result<()>
 where
@@ -52,11 +52,11 @@ where
     Ok(())
 }
 
-pub trait SerializeVariantForDiscriminant<E: Encoder>: Object {
-    fn serialize_variant(
+pub trait SerializeVariantForDiscriminant<E: GenEncoder>: Object {
+    fn serialize_variant<'w, 'en>(
         this: &<Self::Pointer<Self::Dyn> as AsFlatRef>::FlatRef,
         disc: usize,
-        e: AnyEncoder<'_, E>,
+        e: AnyGenEncoder<'w, 'en, E>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
@@ -107,4 +107,3 @@ pub trait SerializeVariantForDiscriminant<E: Encoder>: Object {
 //         }
 //     }
 // }
-

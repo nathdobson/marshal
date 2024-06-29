@@ -12,10 +12,8 @@ use std::mem::{align_of, size_of};
 use marshal::context::Context;
 use marshal::de::{Deserialize, SchemaError};
 use marshal::ser::Serialize;
-use marshal_core::decode::{
-     AnyGenDecoder, DecodeHint, DecoderView, GenDecoder,
-};
-use marshal_core::encode::{AnyEncoder, Encoder, StructEncoder};
+use marshal_core::decode::{AnyGenDecoder, DecodeHint, DecoderView, GenDecoder};
+use marshal_core::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder, StructEncoder};
 
 #[cfg(test)]
 mod test;
@@ -72,22 +70,30 @@ impl<const FIELD: &'static str, H, T: StructList> StructList for StructCons<FIEL
     };
 }
 
-trait SerializeStructList<W: Encoder>: StructList {
-    fn serialize_struct_list(&self, _: StructEncoder<'_, W>, ctx: Context) -> anyhow::Result<()>;
+trait SerializeStructList<W: GenEncoder>: StructList {
+    fn serialize_struct_list<'w, 'en>(
+        &self,
+        _: StructEncoder<'_, W::Encoder<'en>>,
+        ctx: Context,
+    ) -> anyhow::Result<()>;
 }
 
-impl<const STRUCT: &'static str, W: Encoder> SerializeStructList<W> for StructNil<STRUCT> {
-    fn serialize_struct_list(&self, e: StructEncoder<'_, W>, _ctx: Context) -> anyhow::Result<()> {
+impl<const STRUCT: &'static str, W: GenEncoder> SerializeStructList<W> for StructNil<STRUCT> {
+    fn serialize_struct_list<'w, 'en>(
+        &self,
+        e: StructEncoder<'w, W::Encoder<'en>>,
+        _ctx: Context,
+    ) -> anyhow::Result<()> {
         e.end()
     }
 }
 
-impl<const FIELD: &'static str, W: Encoder, H: Serialize<W>, T: SerializeStructList<W>>
+impl<const FIELD: &'static str, W: GenEncoder, H: Serialize<W>, T: SerializeStructList<W>>
     SerializeStructList<W> for StructCons<FIELD, H, T>
 {
-    fn serialize_struct_list(
+    fn serialize_struct_list<'w, 'en>(
         &self,
-        mut e: StructEncoder<'_, W>,
+        mut e: StructEncoder<'w, W::Encoder<'en>>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         self.head.serialize(e.encode_field()?, ctx.reborrow())?;
@@ -95,22 +101,22 @@ impl<const FIELD: &'static str, W: Encoder, H: Serialize<W>, T: SerializeStructL
     }
 }
 
-impl<const STRUCT: &'static str, W: Encoder> Serialize<W> for StructNil<STRUCT>
+impl<const STRUCT: &'static str, W: GenEncoder> Serialize<W> for StructNil<STRUCT>
 where
     Self: SerializeStructList<W>,
 {
-    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: Context) -> anyhow::Result<()> {
+    fn serialize<'w, 'en>(&self, w: AnyGenEncoder<'w, 'en, W>, ctx: Context) -> anyhow::Result<()> {
         let w = w.encode_struct(Self::STRUCT, Self::FIELDS)?;
         self.serialize_struct_list(w, ctx)?;
         Ok(())
     }
 }
 
-impl<const FIELD: &'static str, W: Encoder, H, T> Serialize<W> for StructCons<FIELD, H, T>
+impl<const FIELD: &'static str, W: GenEncoder, H, T> Serialize<W> for StructCons<FIELD, H, T>
 where
     Self: SerializeStructList<W>,
 {
-    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: Context) -> anyhow::Result<()> {
+    fn serialize<'w, 'en>(&self, w: AnyGenEncoder<'w, 'en, W>, ctx: Context) -> anyhow::Result<()> {
         let w = w.encode_struct(Self::STRUCT, Self::FIELDS)?;
         self.serialize_struct_list(w, ctx)?;
         Ok(())

@@ -1,3 +1,4 @@
+#![feature(trait_upcasting)]
 #![feature(unsize)]
 #![feature(coerce_unsized)]
 #![deny(unused_must_use)]

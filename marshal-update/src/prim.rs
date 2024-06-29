@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyGenDecoder, GenDecoder};
-use marshal::encode::{AnyEncoder, Encoder};
+use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
@@ -45,8 +45,8 @@ pub struct PrimStream {
     version: Version,
 }
 
-impl<E: Encoder, T: ?Sized + Serialize<E>> Serialize<E> for Prim<T> {
-    fn serialize(&self, e: AnyEncoder<'_, E>, ctx: Context) -> anyhow::Result<()> {
+impl<E: GenEncoder, T: ?Sized + Serialize<E>> Serialize<E> for Prim<T> {
+    fn serialize<'w, 'en>(&self, e: AnyGenEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
         self.inner.serialize(e, ctx)
     }
 }
@@ -80,11 +80,11 @@ impl<T: ?Sized> SerializeStream for Prim<T> {
     }
 }
 
-impl<E: Encoder, T: Serialize<E>> SerializeUpdate<E> for Prim<T> {
+impl<E: GenEncoder, T: Serialize<E>> SerializeUpdate<E> for Prim<T> {
     fn serialize_update(
         &self,
         stream: &mut Self::Stream,
-        e: AnyEncoder<E>,
+        e: AnyGenEncoder<E>,
         ctx: Context,
     ) -> anyhow::Result<()> {
         let m = if stream.version != self.version {

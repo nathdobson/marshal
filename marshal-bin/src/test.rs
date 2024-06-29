@@ -10,11 +10,11 @@ use crate::{BinGenDecoder, VU128_MAX_PADDING};
 use crate::decode::BinDecoderSchema;
 use crate::decode::full::BinDecoderBuilder;
 use crate::encode::BinEncoderSchema;
-use crate::encode::full::{BinEncoder, BinEncoderBuilder};
+use crate::encode::full::{BinEncoder, BinEncoderBuilder, BinGenEncoder};
 
 #[track_caller]
 fn test_round_trip<
-    T: Debug + Eq + for<'s> Serialize<BinEncoder<'s>> + Deserialize<BinGenDecoder>,
+    T: Debug + Eq + for<'s> Serialize<BinGenEncoder> + Deserialize<BinGenDecoder>,
 >(
     input: T,
     expected: &[u8],
@@ -35,7 +35,7 @@ fn test_round_trip<
 }
 
 fn test_transmute<
-    T1: Debug + for<'s> Serialize<BinEncoder<'s>>,
+    T1: Debug + for<'s> Serialize<BinGenEncoder>,
     T2: Debug + Eq + Deserialize<BinGenDecoder>,
 >(
     input: T1,

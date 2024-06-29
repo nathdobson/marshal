@@ -17,7 +17,7 @@ use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 
 use crate::decode::full::BinGenDecoder;
-use crate::encode::full::BinEncoder;
+use crate::encode::full::{BinEncoder, BinGenEncoder};
 
 pub mod bin_object;
 pub mod decode;
@@ -71,5 +71,5 @@ pub enum TypeTag {
 }
 
 
-pub trait SerializeBin = for<'s> Serialize<BinEncoder<'s>>;
+pub trait SerializeBin = Serialize<BinGenEncoder>;
 pub trait DeserializeBin = Deserialize<BinGenDecoder>;

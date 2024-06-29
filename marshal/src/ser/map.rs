@@ -1,13 +1,17 @@
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 
-use marshal_core::encode::{AnyEncoder, Encoder};
+use marshal_core::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 
 use crate::context::Context;
 use crate::ser::Serialize;
 
-impl<W: Encoder, K: Eq + Hash + Serialize<W>, V: Serialize<W>> Serialize<W> for HashMap<K, V> {
-    fn serialize(&self, w: AnyEncoder<'_, W>, mut ctx: Context) -> anyhow::Result<()> {
+impl<W: GenEncoder, K: Eq + Hash + Serialize<W>, V: Serialize<W>> Serialize<W> for HashMap<K, V> {
+    fn serialize<'w, 'en>(
+        &self,
+        w: AnyGenEncoder<'w, 'en, W>,
+        mut ctx: Context,
+    ) -> anyhow::Result<()> {
         let mut w = w.encode_map(Some(self.len()))?;
         for (k, v) in self.iter() {
             let mut w = w.encode_entry()?;
@@ -20,8 +24,12 @@ impl<W: Encoder, K: Eq + Hash + Serialize<W>, V: Serialize<W>> Serialize<W> for 
     }
 }
 
-impl<W: Encoder, K: Ord + Serialize<W>, V: Serialize<W>> Serialize<W> for BTreeMap<K, V> {
-    fn serialize(&self, w: AnyEncoder<'_, W>, mut ctx: Context) -> anyhow::Result<()> {
+impl<W: GenEncoder, K: Ord + Serialize<W>, V: Serialize<W>> Serialize<W> for BTreeMap<K, V> {
+    fn serialize<'w, 'en>(
+        &self,
+        w: AnyGenEncoder<'w, 'en, W>,
+        mut ctx: Context,
+    ) -> anyhow::Result<()> {
         let mut w = w.encode_map(Some(self.len()))?;
         for (k, v) in self.iter() {
             let mut w = w.encode_entry()?;

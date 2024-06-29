@@ -4,15 +4,15 @@ use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
-use marshal::encode::{AnyEncoder, Encoder};
+use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
+use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 use marshal::ser::Serialize;
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 use crate::de::DeserializeUpdate;
-use crate::ser::{SerializeStream, SerializeUpdate};
 use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct ObjectMap<C: Object> {
     map: HashMap<TypeId, C::Pointer<C::Dyn>>,
@@ -66,11 +66,15 @@ impl<C: Object> ObjectMap<C> {
     }
 }
 
-impl<E: Encoder, C: Object> Serialize<E> for ObjectMap<C>
+impl<E: GenEncoder, C: Object> Serialize<E> for ObjectMap<C>
 where
     C::Pointer<C::Dyn>: Serialize<E>,
 {
-    fn serialize(&self, e: AnyEncoder<'_, E>, mut ctx: Context) -> anyhow::Result<()> {
+    fn serialize<'w, 'en>(
+        &self,
+        e: AnyGenEncoder<'w, 'en, E>,
+        mut ctx: Context,
+    ) -> anyhow::Result<()> {
         let mut e = e.encode_seq(Some(self.map.len()))?;
         for x in self.map.values() {
             x.serialize(e.encode_element()?, ctx.reborrow())?;
@@ -90,14 +94,14 @@ impl<C: Object> SerializeStream for ObjectMap<C> {
     }
 }
 
-impl<E: Encoder, C: Object> SerializeUpdate<E> for ObjectMap<C>
+impl<E: GenEncoder, C: Object> SerializeUpdate<E> for ObjectMap<C>
 where
     C::Pointer<C::Dyn>: Serialize<E>,
 {
     fn serialize_update(
         &self,
         stream: &mut Self::Stream,
-        e: AnyEncoder<E>,
+        e: AnyGenEncoder<E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let ref mut ids = *stream.subscriber.recv();

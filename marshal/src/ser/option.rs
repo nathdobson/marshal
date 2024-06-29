@@ -1,10 +1,10 @@
-use marshal_core::encode::{AnyEncoder, Encoder};
+use marshal_core::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 
 use crate::context::Context;
 use crate::ser::Serialize;
 
-impl<W: Encoder, T: Serialize<W>> Serialize<W> for Option<T> {
-    fn serialize(&self, w: AnyEncoder<'_, W>, ctx: Context) -> anyhow::Result<()> {
+impl<W: GenEncoder, T: Serialize<W>> Serialize<W> for Option<T> {
+    fn serialize<'w, 'en>(&self, w: AnyGenEncoder<'w, 'en, W>, ctx: Context) -> anyhow::Result<()> {
         match self {
             None => w.encode_none(),
             Some(x) => {

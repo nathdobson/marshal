@@ -1,17 +1,17 @@
-use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
-use marshal::encode::{AnyEncoder, Encoder};
+use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
+use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
-use crate::ser::{SerializeStream, SerializeUpdate};
 use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct UpdateHashMap<K, V> {
     map: HashMap<K, V>,
@@ -40,21 +40,21 @@ impl<K: Eq + Hash + Sync + Send + Clone, V: SerializeStream> SerializeStream
     }
 }
 
-impl<E: Encoder, K: Eq + Hash + Sync + Send + Serialize<E>, V: Serialize<E>> Serialize<E>
+impl<E: GenEncoder, K: Eq + Hash + Sync + Send + Serialize<E>, V: Serialize<E>> Serialize<E>
     for UpdateHashMap<K, V>
 {
-    fn serialize(&self, e: AnyEncoder<'_, E>, ctx: Context) -> anyhow::Result<()> {
+    fn serialize<'w, 'en>(&self, e: AnyGenEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
         self.map.serialize(e, ctx)
     }
 }
 
-impl<E: Encoder, K: Eq + Hash + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate<E>>
+impl<E: GenEncoder, K: Eq + Hash + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate<E>>
     SerializeUpdate<E> for UpdateHashMap<K, V>
 {
-    fn serialize_update(
+    fn serialize_update<'w, 'en>(
         &self,
         stream: &mut Self::Stream,
-        e: AnyEncoder<E>,
+        e: AnyGenEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let ref mut queue = *stream.subscriber.recv();

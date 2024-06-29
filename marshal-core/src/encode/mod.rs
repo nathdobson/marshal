@@ -2,8 +2,12 @@ use std::slice;
 
 use crate::Primitive;
 
-pub mod poison;
 pub mod newtype;
+pub mod poison;
+
+pub trait GenEncoder: 'static {
+    type Encoder<'en>: Encoder;
+}
 
 pub trait Encoder {
     type AnyEncoder;
@@ -133,6 +137,8 @@ pub trait Encoder {
     ) -> anyhow::Result<Self::AnyEncoder>;
     fn struct_variant_end(&mut self, map: Self::StructVariantEncoder) -> anyhow::Result<()>;
 }
+
+pub type AnyGenEncoder<'w, 'en, T> = AnyEncoder<'w, <T as GenEncoder>::Encoder<'en>>;
 
 pub struct AnyEncoder<'w, T: Encoder> {
     encoder: &'w mut T,

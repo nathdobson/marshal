@@ -1,4 +1,4 @@
-use marshal_core::encode::{AnyEncoder, Encoder};
+use marshal_core::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 
 use crate::context::Context;
 
@@ -13,10 +13,10 @@ mod string;
 mod tuple;
 mod vec;
 
-pub trait Serialize<W: Encoder> {
-    fn serialize(&self, e: AnyEncoder<'_, W>, ctx: Context) -> anyhow::Result<()>;
+pub trait Serialize<W: GenEncoder> {
+    fn serialize<'w, 'en>(&self, e: AnyGenEncoder<'w, 'en, W>, ctx: Context) -> anyhow::Result<()>;
 }
 
-fn is_object_safe<W: Encoder, T: Serialize<W>>(x: &T) -> &dyn Serialize<W> {
+fn is_object_safe<W: GenEncoder, T: Serialize<W>>(x: &T) -> &dyn Serialize<W> {
     x
 }

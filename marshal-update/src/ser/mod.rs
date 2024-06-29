@@ -2,7 +2,7 @@ use std::any::Any;
 
 use marshal::context::Context;
 use marshal::decode::{AnyGenDecoder, GenDecoder};
-use marshal::encode::{AnyEncoder, Encoder};
+use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
@@ -18,41 +18,41 @@ pub trait SerializeStream {
     fn start_stream(&self, ctx: Context) -> anyhow::Result<Self::Stream>;
 }
 
-pub trait SerializeUpdate<E: Encoder>: Serialize<E> + SerializeStream {
+pub trait SerializeUpdate<E: GenEncoder>: Serialize<E> + SerializeStream {
     fn serialize_update(
         &self,
         stream: &mut Self::Stream,
-        e: AnyEncoder<E>,
+        e: AnyGenEncoder<E>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
 
-pub trait SerializeStreamDyn {
+pub trait SerializeStreamDyn: Any {
     fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + Any>>;
 }
 
-pub trait SerializeUpdateDyn<E: Encoder>: 'static + Serialize<E> + SerializeStreamDyn {
-    fn serialize_update_dyn(
+pub trait SerializeUpdateDyn<E: GenEncoder>: 'static + Serialize<E> + SerializeStreamDyn {
+    fn serialize_update_dyn<'w, 'en>(
         &self,
         stream: &mut Box<dyn Sync + Send + Any>,
-        e: AnyEncoder<E>,
+        e: AnyGenEncoder<'w, 'en, E>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
 
-impl<T: SerializeStream<Stream: 'static>> SerializeStreamDyn for T {
+impl<T: SerializeStream<Stream: 'static> + Any> SerializeStreamDyn for T {
     fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + Any>> {
         Ok(Box::new(self.start_stream(ctx)?))
     }
 }
 
-impl<E: Encoder, T: 'static + SerializeUpdate<E> + SerializeStream<Stream: 'static>>
+impl<E: GenEncoder, T: 'static + SerializeUpdate<E> + SerializeStream<Stream: 'static>>
     SerializeUpdateDyn<E> for T
 {
-    fn serialize_update_dyn(
+    fn serialize_update_dyn<'w, 'en>(
         &self,
         stream: &mut Box<dyn Sync + Send + Any>,
-        e: AnyEncoder<E>,
+        e: AnyGenEncoder<'w, 'en, E>,
         ctx: Context,
     ) -> anyhow::Result<()> {
         Ok(self.serialize_update((**stream).downcast_mut().unwrap(), e, ctx)?)

@@ -1,7 +1,7 @@
 use marshal::context::Context;
 use marshal_core::derive_encoder_for_newtype;
-use marshal_core::encode::AnyEncoder;
 use marshal_core::encode::poison::PoisonEncoder;
+use marshal_core::encode::{AnyEncoder, GenEncoder};
 
 use crate::encode::{BinEncoderSchema, SimpleBinEncoder};
 use crate::SerializeBin;
@@ -11,7 +11,7 @@ pub struct BinEncoder<'s>(PoisonEncoder<SimpleBinEncoder<'s>>);
 derive_encoder_for_newtype!(BinEncoder<'s>(PoisonEncoder<SimpleBinEncoder<'s>>));
 
 pub struct BinEncoderBuilder<'s> {
-    inner: BinEncoder<'s>
+    inner: BinEncoder<'s>,
 }
 
 impl<'s> BinEncoderBuilder<'s> {
@@ -35,4 +35,10 @@ impl<'s> BinEncoderBuilder<'s> {
     pub fn end(self) -> anyhow::Result<Vec<u8>> {
         self.inner.0.end()?.end()
     }
+}
+
+pub struct BinGenEncoder;
+
+impl GenEncoder for BinGenEncoder {
+    type Encoder<'en> = BinEncoder<'en>;
 }

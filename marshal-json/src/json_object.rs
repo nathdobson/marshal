@@ -14,8 +14,8 @@ use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 use crate::decode::full::{JsonDecoder, JsonGenDecoder};
+use crate::encode::full::{JsonEncoder, JsonGenEncoder};
 use crate::DeserializeJson;
-use crate::encode::full::JsonEncoder;
 use crate::SerializeJson;
 
 pub trait SerializeDyn = SerializeJson;
@@ -61,7 +61,7 @@ where
         let downcast = upcast
             .downcast_ref()
             .expect("failed to downcast for serializer");
-        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<JsonEncoder>>::serialize(
+        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<JsonGenEncoder>>::serialize(
             downcast, e, ctx,
         )
     }
@@ -103,11 +103,11 @@ macro_rules! json_object {
                     DESERIALIZERS[disc].deserialize_variant_json(d, ctx)
                 }
             }
-            impl $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::JsonEncoder> for $carrier {
-                fn serialize_variant(
+            impl $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::JsonGenEncoder> for $carrier {
+                fn serialize_variant<'w,'en>(
                     this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc:usize,
-                    e: $crate::reexports::marshal::encode::AnyEncoder<'_,$crate::encode::full::JsonEncoder>,
+                    e: $crate::reexports::marshal::encode::AnyGenEncoder<'w,'en,$crate::encode::full::JsonGenEncoder>,
                     mut ctx: $crate::reexports::marshal::context::Context
                 ) -> $crate::reexports::anyhow::Result<()> {
                     DESERIALIZERS[disc].serialize_variant_json(this, e, ctx)

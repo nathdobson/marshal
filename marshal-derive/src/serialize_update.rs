@@ -21,40 +21,44 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
         generics,
         &quote! {::marshal_update::ser::SerializeUpdate<W>},
     );
-    let encoder_trait = quote! { ::marshal::encode::Encoder };
+    let gen_encoder_trait = quote! { ::marshal::encode::GenEncoder };
     let serialize_update_trait = quote! { ::marshal_update::ser::SerializeUpdate };
     let context_type = quote! { ::marshal::context::Context };
     let type_name = LitStr::new(&format!("{}", type_ident), type_ident.span());
-    let any_encoder_type = quote!(::marshal::encode::AnyEncoder);
+    let any_gen_encoder_type = quote!(::marshal::encode::AnyGenEncoder);
 
     let anyhow = quote!(::marshal::reexports::anyhow);
     let result_type = quote!(#anyhow::Result);
 
-    let imp = quote!(impl<#(#generic_params,)* W: #encoder_trait> #serialize_update_trait<W> for #type_ident <#(#generic_args),*>);
+    let imp = quote!(impl<#(#generic_params,)* W: #gen_encoder_trait> #serialize_update_trait<W> for #type_ident <#(#generic_args),*>);
     match data {
         Data::Struct(data) => match ParsedFields::new(&data.fields) {
             ParsedFields::Unit => Ok(quote! {
                 #imp {
-                    fn serialize_update(&self, stream: &mut Self::Stream, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
+                    fn serialize_update<'w, 'en>(&self, stream: &mut Self::Stream, encoder: #any_gen_encoder_type<'w, 'en, W>, mut ctx: #context_type) -> #result_type<()> {
                         encoder.encode_unit_struct(#type_name)
                     }
                 }
             }),
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
-                field_types: _,
+                field_types,
                 field_literals,
                 field_indices: _,
             }) => Ok(quote! {
                 #imp {
-                    fn serialize_update(&self, stream:&mut Self::Stream, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
+                    fn serialize_update<'w,'en>(&self, stream:&mut Self::Stream, encoder: #any_gen_encoder_type<'w,'en, W>, mut ctx: #context_type) -> #result_type<()> {
                         let mut encoder = encoder.encode_struct( #type_name, &[
                                 #(
                                     #field_literals
                                 ),*
                             ])?;
                         #(
-                            self.#field_idents.serialize_update(&mut stream.#field_idents, encoder.encode_field()?,ctx.reborrow())?;
+                            <#field_types as #serialize_update_trait<W>>::serialize_update(
+                                &self.#field_idents,
+                                &mut stream.#field_idents,
+                                encoder.encode_field()?,ctx.reborrow()
+                            )?;
                         )*
                         encoder.end()?;
                         ::std::result::Result::Ok(())
@@ -63,15 +67,19 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
             }),
             ParsedFields::Unnamed(ParsedFieldsUnnamed {
                 field_count,
-                field_types: _,
+                field_types,
                 field_index_idents,
                 field_named_idents: _,
             }) => Ok(quote! {
                 #imp {
-                    fn serialize_update(&self, stream:&mut Self::Stream, encoder: #any_encoder_type<'_, W>, mut ctx: #context_type) -> #result_type<()> {
+                    fn serialize_update<'w,'en>(&self, stream:&mut Self::Stream, encoder: #any_gen_encoder_type<'w,'en, W>, mut ctx: #context_type) -> #result_type<()> {
                         let mut encoder = encoder.encode_tuple_struct( #type_name, #field_count)?;
                         #(
-                            self.#field_index_idents.serialize_update(&mut stream.#field_index_idents, encoder.encode_field()?, ctx.reborrow())?;
+                            <#field_types as #serialize_update_trait<W>>::serialize_update(
+                                &self.#field_index_idents,
+                                &mut stream.#field_index_idents,
+                                encoder.encode_field()?, ctx.reborrow()
+                            )?;
                         )*
                         encoder.end()?;
                         #result_type::Ok(())
@@ -139,7 +147,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
             }
             Ok(quote! {
                 #imp {
-                    fn serialize(&self, encoder: #any_encoder_type<'_,W>, mut ctx: #context_type) -> #result_type<()> {
+                    fn serialize(&self, encoder: #any_gen_encoder_type<'_,W>, mut ctx: #context_type) -> #result_type<()> {
                         match self{
                             #(
                                 #matches

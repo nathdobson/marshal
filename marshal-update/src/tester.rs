@@ -3,7 +3,7 @@ use std::sync;
 
 use marshal::context::OwnedContext;
 use marshal_json::decode::full::{JsonDecoderBuilder, JsonGenDecoder};
-use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder};
+use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder, JsonGenEncoder};
 use marshal_shared::de::SharedArcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
 
@@ -21,7 +21,7 @@ pub struct Tester<T: SerializeStream> {
 
 impl<
         T: SerializeStream
-            + SerializeUpdate<JsonEncoder>
+            + SerializeUpdate<JsonGenEncoder>
             + DeserializeUpdate<JsonGenDecoder>,
     > Tester<T>
 {

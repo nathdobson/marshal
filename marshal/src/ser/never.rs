@@ -1,10 +1,10 @@
-use marshal_core::encode::{AnyEncoder, Encoder};
+use marshal_core::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 
 use crate::context::Context;
 use crate::ser::Serialize;
 
-impl<W: Encoder> Serialize<W> for ! {
-    fn serialize(&self, _: AnyEncoder<'_, W>, _ctx: Context) -> anyhow::Result<()> {
+impl<W: GenEncoder> Serialize<W> for ! {
+    fn serialize<'w, 'en>(&self, _: AnyGenEncoder<'w, 'en, W>, _ctx: Context) -> anyhow::Result<()> {
         *self
     }
 }

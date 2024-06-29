@@ -1,8 +1,8 @@
 use marshal::context::Context;
 use marshal::ser::Serialize;
 use marshal_core::derive_encoder_for_newtype;
-use marshal_core::encode::AnyEncoder;
 use marshal_core::encode::poison::PoisonEncoder;
+use marshal_core::encode::{AnyEncoder, GenEncoder};
 
 use crate::encode::{JsonAnyEncoder, SimpleJsonEncoder};
 
@@ -34,7 +34,7 @@ impl JsonEncoderBuilder {
         f(self.build())?;
         self.end()
     }
-    pub fn serialize<T: ?Sized + Serialize<JsonEncoder>>(
+    pub fn serialize<T: ?Sized + Serialize<JsonGenEncoder>>(
         mut self,
         value: &T,
         mut ctx: Context,
@@ -42,4 +42,10 @@ impl JsonEncoderBuilder {
         value.serialize(self.build(), ctx)?;
         self.end()
     }
+}
+
+pub struct JsonGenEncoder;
+
+impl GenEncoder for JsonGenEncoder {
+    type Encoder<'en> = JsonEncoder;
 }

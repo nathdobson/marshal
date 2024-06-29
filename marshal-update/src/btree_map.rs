@@ -1,17 +1,17 @@
-use std::collections::{BTreeMap, BTreeSet};
 use std::collections::btree_map::Entry;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Debug, Formatter};
 use std::mem;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyGenDecoder, DecodeHint,  GenDecoder};
-use marshal::encode::{AnyEncoder, Encoder};
+use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
+use marshal::encode::{AnyEncoder, AnyGenEncoder, Encoder, GenEncoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
-use crate::ser::{SerializeStream, SerializeUpdate};
 use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct UpdateBTreeMap<K, V> {
     map: BTreeMap<K, V>,
@@ -38,21 +38,21 @@ impl<K: Ord + Sync + Send + Clone, V: SerializeStream> SerializeStream for Updat
     }
 }
 
-impl<E: Encoder, K: Ord + Sync + Send + Serialize<E>, V: Serialize<E>> Serialize<E>
+impl<E: GenEncoder, K: Ord + Sync + Send + Serialize<E>, V: Serialize<E>> Serialize<E>
     for UpdateBTreeMap<K, V>
 {
-    fn serialize(&self, e: AnyEncoder<'_, E>, ctx: Context) -> anyhow::Result<()> {
+    fn serialize<'w, 'en>(&self, e: AnyGenEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
         self.map.serialize(e, ctx)
     }
 }
 
-impl<E: Encoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate<E>>
+impl<E: GenEncoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate<E>>
     SerializeUpdate<E> for UpdateBTreeMap<K, V>
 {
-    fn serialize_update(
+    fn serialize_update<'w, 'en>(
         &self,
         stream: &mut Self::Stream,
-        e: AnyEncoder<E>,
+        e: AnyGenEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let queue = mem::replace(&mut *stream.subscriber.recv(), BTreeSet::new());

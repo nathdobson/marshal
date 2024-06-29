@@ -13,7 +13,7 @@ use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
 use crate::decode::full::{BinDecoder, BinGenDecoder};
-use crate::encode::full::BinEncoder;
+use crate::encode::full::{BinEncoder, BinGenEncoder};
 use crate::SerializeBin;
 
 pub trait SerializeDyn = SerializeBin;
@@ -60,7 +60,7 @@ where
         let downcast = upcast
             .downcast_ref()
             .expect("failed to downcast for serializer");
-        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<BinEncoder<'s>>>::serialize(
+        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<BinGenEncoder>>::serialize(
             downcast, e, ctx,
         )
     }
@@ -102,11 +102,11 @@ macro_rules! bin_object {
                     DESERIALIZERS[disc].bin_deserialize_variant(d, ctx)
                 }
             }
-            impl<'s> $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::BinEncoder<'s>> for $carrier {
-                fn serialize_variant(
+            impl $crate::reexports::marshal_object::ser::SerializeVariantForDiscriminant<$crate::encode::full::BinGenEncoder> for $carrier {
+                fn serialize_variant<'w,'en>(
                     this: &<Self::Pointer<Self::Dyn> as $crate::reexports::marshal_pointer::AsFlatRef>::FlatRef,
                     disc: usize,
-                    e: $crate::reexports::marshal::encode::AnyEncoder<'_,$crate::encode::full::BinEncoder<'s>>,
+                    e: $crate::reexports::marshal::encode::AnyGenEncoder<'w,'en,$crate::encode::full::BinGenEncoder>,
                     mut ctx: $crate::reexports::marshal::context::Context
                 ) -> $crate::reexports::anyhow::Result<()> {
                     DESERIALIZERS[disc].bin_serialize_variant(this, e, ctx)

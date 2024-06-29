@@ -48,7 +48,7 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
             }) => Ok(quote! {
                 struct #stream_ident{
                     #(
-                        #field_idents: #field_types,
+                        #field_idents: <#field_types as #serialize_stream_trait>::Stream,
                     )*
                 }
                 #imp {

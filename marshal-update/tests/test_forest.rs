@@ -1,11 +1,11 @@
 #![deny(unused_must_use)]
 
-use std::sync::Arc;
 use marshal_derive::{Deserialize, DeserializeUpdate, Serialize, SerializeStream, SerializeUpdate};
 use marshal_update::forest::forest::Forest;
 use marshal_update::forest::forest::ForestRoot;
 use marshal_update::forest::forest::Tree;
 use marshal_update::tester::Tester;
+use std::sync::Arc;
 
 #[test]
 fn test_forest() -> anyhow::Result<()> {
@@ -91,12 +91,9 @@ fn test_forest_insert() -> anyhow::Result<()> {
     Ok(())
 }
 
-
-
 #[test]
 fn test_forest_list() -> anyhow::Result<()> {
-    #[derive(Deserialize,  DeserializeUpdate)]
-    // #[derive(Serialize,SerializeUpdate, SerializeStream)]
+    #[derive(Deserialize, DeserializeUpdate, Serialize, SerializeUpdate, SerializeStream)]
     struct List {
         a: Arc<Tree<u8>>,
         b: Option<Arc<Tree<List>>>,
