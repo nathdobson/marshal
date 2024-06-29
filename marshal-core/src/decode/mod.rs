@@ -200,7 +200,7 @@ where
     Enum(EnumDecoder<'p, 'de, P>),
 }
 
-pub trait GenDecoder {
+pub trait GenDecoder: 'static {
     type Decoder<'de>: ?Sized + Decoder<'de>;
 }
 

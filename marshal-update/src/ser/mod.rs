@@ -1,7 +1,7 @@
 use std::any::Any;
 
 use marshal::context::Context;
-use marshal::decode::{AnyGenDecoder,  GenDecoder};
+use marshal::decode::{AnyGenDecoder, GenDecoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 
@@ -59,7 +59,7 @@ impl<E: Encoder, T: 'static + SerializeUpdate<E> + SerializeStream<Stream: 'stat
     }
 }
 
-pub trait DeserializeUpdateDyn<D: GenDecoder>: 'static {
+pub trait DeserializeUpdateDyn<D: GenDecoder>: 'static + Any {
     fn deserialize_update_dyn<'p, 'de>(
         &mut self,
         d: AnyGenDecoder<'p, 'de, D>,
@@ -67,7 +67,7 @@ pub trait DeserializeUpdateDyn<D: GenDecoder>: 'static {
     ) -> anyhow::Result<()>;
 }
 
-impl<D: GenDecoder, T: 'static + DeserializeUpdate<D>> DeserializeUpdateDyn<D> for T {
+impl<D: GenDecoder, T: 'static + Any + DeserializeUpdate<D>> DeserializeUpdateDyn<D> for T {
     fn deserialize_update_dyn<'p, 'de>(
         &mut self,
         d: AnyGenDecoder<'p, 'de, D>,

@@ -4,8 +4,8 @@ use std::marker::Unsize;
 use std::sync::Arc;
 
 use marshal::context::Context;
-use marshal::de::Deserialize;
 use marshal::de::rc::DeserializeArc;
+use marshal::de::Deserialize;
 use marshal::decode::{AnyGenDecoder, DecodeHint, GenDecoder};
 use marshal_shared::de::deserialize_arc;
 
@@ -41,10 +41,7 @@ impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for ForestRoot<T> {
     }
 }
 
-impl<D: GenDecoder + DynamicDecoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T>
-where
-    D::DeserializeUpdateDyn: DeserializeUpdateDyn<D>,
-{
+impl<D: GenDecoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T> {
     fn deserialize_update<'p, 'de>(
         &mut self,
         d: AnyGenDecoder<'p, 'de, D>,
@@ -65,13 +62,13 @@ where
                             d.decode_key()?,
                             ctx.reborrow(),
                         )?;
-                        let des: Arc<Tree<D::DeserializeUpdateDyn>> = (**ctx
+                        let des: Arc<Tree<dyn Sync + Send + DeserializeUpdateDyn<D>>> = (**ctx
                             .reborrow()
                             .get_mut::<ForestDeserializerTable>()?
                             .deserializers
                             .get(&key)
                             .ok_or(TreeError::MissingId)?)
-                        .downcast_ref::<Arc<Tree<D::DeserializeUpdateDyn>>>()
+                        .downcast_ref::<Arc<Tree<dyn Sync + Send + DeserializeUpdateDyn<D>>>>()
                         .unwrap()
                         .clone();
                         forest
@@ -88,11 +85,7 @@ where
     }
 }
 
-impl<D: GenDecoder + DynamicDecoder, T: 'static + Sync + Send + DeserializeUpdate<D>>
-    DeserializeArc<D> for Tree<T>
-where
-    T: Unsize<D::DeserializeUpdateDyn>,
-{
+impl<D: GenDecoder, T: 'static + Sync + Send + DeserializeUpdate<D>> DeserializeArc<D> for Tree<T> {
     fn deserialize_arc<'p, 'de>(
         p: AnyGenDecoder<'p, 'de, D>,
         mut ctx: Context,
@@ -102,7 +95,7 @@ where
             .deserializers
             .insert(
                 id,
-                Box::new(arc.clone() as Arc<Tree<D::DeserializeUpdateDyn>>),
+                Box::new(arc.clone() as Arc<Tree<dyn Sync + Send + DeserializeUpdateDyn<D>>>),
             );
         Ok(arc)
     }
@@ -120,7 +113,7 @@ impl<D: GenDecoder, T: Deserialize<D>> Deserialize<D> for Tree<T> {
             .add_raw(tree))
     }
 }
-
-pub trait DynamicDecoder {
-    type DeserializeUpdateDyn: 'static + ?Sized + Sync + Send + Any + Unsize<dyn Sync + Send + Any>;
-}
+//
+// pub trait DynamicDecoder {
+//     type DeserializeUpdateDyn: 'static + ?Sized + Sync + Send + Any + Unsize<dyn Sync + Send + Any>;
+// }
