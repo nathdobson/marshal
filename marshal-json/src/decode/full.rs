@@ -1,8 +1,8 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal_core::decode::{AnySpecDecoder, Decoder};
 use marshal_core::decode::depth_budget::{DepthBudgetDecoder, WithDepthBudget};
 use marshal_core::decode::poison::PoisonDecoder;
+use marshal_core::decode::{AnySpecDecoder, Decoder};
 use marshal_core::derive_decoder_for_newtype;
 
 use crate::decode::{JsonAnyDecoder, SimpleJsonSpecDecoder};
@@ -19,7 +19,9 @@ pub struct JsonDecoderBuilder<'de> {
 impl<'de> JsonDecoderBuilder<'de> {
     pub fn new(input: &'de [u8]) -> Self {
         JsonDecoderBuilder {
-            decoder: JsonSpecDecoder(PoisonDecoder::new(DepthBudgetDecoder::new(SimpleJsonSpecDecoder::new(input)))),
+            decoder: JsonSpecDecoder(PoisonDecoder::new(DepthBudgetDecoder::new(
+                SimpleJsonSpecDecoder::new(input),
+            ))),
             depth_budget: 100,
         }
     }
@@ -45,7 +47,10 @@ impl<'de> JsonDecoderBuilder<'de> {
         self.decoder.0.end()?.end()?.end()?;
         Ok(())
     }
-    pub fn with<F: for<'p> FnOnce(AnySpecDecoder<'p, 'de, JsonSpecDecoder<'de>>) -> anyhow::Result<T>, T>(
+    pub fn with<
+        F: for<'p> FnOnce(AnySpecDecoder<'p, 'de, JsonSpecDecoder<'de>>) -> anyhow::Result<T>,
+        T,
+    >(
         mut self,
         f: F,
     ) -> anyhow::Result<T> {

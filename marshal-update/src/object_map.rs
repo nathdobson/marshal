@@ -1,18 +1,19 @@
 use std::any::TypeId;
 use std::collections::{HashMap, HashSet};
+use std::marker::Unsize;
 use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
-use marshal::encode::{AnyEncoder,  Encoder};
+use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 use marshal_object::Object;
 use marshal_pointer::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 use crate::de::DeserializeUpdate;
-use crate::ser::{SerializeStream, SerializeUpdate};
 use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct ObjectMap<C: Object> {
     map: HashMap<TypeId, C::Pointer<C::Dyn>>,
@@ -43,16 +44,19 @@ impl<C: Object> ObjectMap<C> {
         let flat_ref: &<C::Pointer<T> as AsFlatRef>::FlatRef = any_flat_ref.downcast_ref().unwrap();
         Some(flat_ref)
     }
-    pub fn get_or_default<T: 'static>(&mut self) -> &T
+    pub fn get_or_default<T: 'static>(&mut self) -> &<C::Pointer<T> as AsFlatRef>::FlatRef
     where
         C::Pointer<T>: Default,
         C::Pointer<T>: CoerceUnsized<C::Pointer<C::Dyn>>,
-        <C::Pointer<C::Dyn> as AsFlatRef>::FlatRef: DowncastRef<T>,
+        <C::Pointer<C::Dyn> as AsFlatRef>::FlatRef:
+            Unsize<<C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
+        <C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef: DowncastRef<<C::Pointer<T> as AsFlatRef>::FlatRef>,
     {
-        self.map
+        (self
+            .map
             .entry(TypeId::of::<T>())
             .or_insert_with(|| C::Pointer::<T>::default())
-            .as_flat_ref()
+            .as_flat_ref() as &<C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef)
             .downcast_ref()
             .unwrap()
     }
