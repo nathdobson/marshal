@@ -1,19 +1,25 @@
 #![deny(unused_must_use)]
-
 #![feature(arbitrary_self_types)]
 
 use std::fmt::Debug;
-
+use marshal_bin::decode::full::BinDecoder;
+use marshal_bin::encode::full::BinEncoder;
 // use marshal_bin::bin_object;
 use marshal_derive::{Deserialize, Serialize};
-use marshal_json::json_object;
-use marshal_object::{AsDiscriminant, derive_box_object, derive_variant};
+use marshal_json::decode::full::JsonDecoder;
+use marshal_json::encode::full::JsonEncoder;
+use marshal_object::{derive_box_object, derive_variant, AsDiscriminant};
 use marshal_pointer::RawAny;
 use marshal_update::object_map::ObjectMap;
 use marshal_update::tester::Tester;
 
 pub struct BoxFoo;
-derive_box_object!(BoxFoo, Foo, bin_object, json_object);
+derive_box_object!(
+    BoxFoo,
+    Foo,
+    (BinEncoder, JsonEncoder),
+    (BinDecoder, JsonDecoder)
+);
 pub trait Foo: 'static + Debug + RawAny + AsDiscriminant<BoxFoo> {}
 
 derive_variant!(BoxFoo, A);
@@ -45,7 +51,8 @@ fn test() -> anyhow::Result<()> {
     assert_eq!(tester.output().get::<A>().unwrap().0, 4);
     tester.next("[]")?;
     tester.input_mut().insert(Box::new(B(8)));
-    tester.next(r#"[
+    tester.next(
+        r#"[
   {
     "test_object::B": [
       [
@@ -53,7 +60,8 @@ fn test() -> anyhow::Result<()> {
       ]
     ]
   }
-]"#)?;
+]"#,
+    )?;
     assert_eq!(tester.output().get::<B>().unwrap().0, 8);
     Ok(())
 }

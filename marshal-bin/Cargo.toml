@@ -12,7 +12,7 @@ num-traits = { workspace = true }
 by_address = { workspace = true }
 safe-once-map = { workspace = true }
 safe-once = { workspace = true }
-lock_api = "0.4.12"
+lock_api = {workspace=true}
 marshal = { workspace = true }
 
 [dev-dependencies]

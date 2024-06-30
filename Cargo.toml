@@ -37,6 +37,7 @@ parking_lot = "0.12.3"
 atomic_refcell = "0.1.13"
 slab = "0.4.9"
 tokenlock = "0.3.8"
+lock_api = "0.4.12"
 
 [profile.bench]
 debug = true
