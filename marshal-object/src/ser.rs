@@ -6,7 +6,7 @@ use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
-use crate::variants::VariantImpl;
+use crate::variants::{VariantImpl, VariantImplSet};
 use crate::{AsDiscriminant, Object};
 
 pub fn serialize_object<'w, 'en, O: Object, E: Encoder>(
@@ -95,3 +95,7 @@ where
 }
 
 impl<E, O> VariantImpl for &'static dyn SerializeVariantDyn<E, O> {}
+
+pub trait SerializeProvider<V: 'static> {
+    fn add_serialize_variant(map: &mut VariantImplSet);
+}

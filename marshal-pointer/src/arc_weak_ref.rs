@@ -1,8 +1,9 @@
 use std::{fmt::Debug, marker::PhantomData, mem, sync};
+use std::any::TypeId;
 use std::cell::UnsafeCell;
 use std::fmt::Formatter;
 
-use crate::{AsFlatRef, DerefRaw};
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use crate::global_uninit::global_uninit_for_ptr;
 
 #[repr(transparent)]
@@ -62,6 +63,18 @@ impl<T: ?Sized> DerefRaw for ArcWeakRef<T> {
     type RawTarget = T;
     fn deref_raw(&self) -> *const Self::RawTarget {
         self as *const ArcWeakRef<T> as *const T
+    }
+}
+
+impl<T: 'static> DowncastRef<ArcWeakRef<T>> for ArcWeakRef<dyn RawAny> {
+    fn downcast_ref(&self) -> Option<&ArcWeakRef<T>> {
+        unsafe {
+            if self.deref_raw().raw_type_id() == TypeId::of::<T>() {
+                Some(&*(self as *const ArcWeakRef<dyn RawAny> as *const ArcWeakRef<T>))
+            } else {
+                None
+            }
+        }
     }
 }
 

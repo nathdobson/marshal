@@ -1,11 +1,7 @@
+use crate::{Object, OBJECT_REGISTRY};
 use std::marker::PhantomData;
 use std::ops::Index;
 use type_map::concurrent::TypeMap;
-use crate::{Object, OBJECT_REGISTRY};
-
-pub trait VariantImplProvider<V: 'static> {
-    fn add_deserialize_variant(map: &mut VariantImplSet);
-}
 
 pub struct VariantImplTable<O: Object, DV: VariantImpl> {
     variants: Vec<&'static DV>,

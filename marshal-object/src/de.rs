@@ -6,7 +6,7 @@ use marshal::de::{Deserialize, SchemaError};
 use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView};
 
 use crate::{Object};
-use crate::variants::VariantImpl;
+use crate::variants::{VariantImpl, VariantImplSet};
 
 pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {
     fn deserialize_variant<'p, 'de>(
@@ -86,4 +86,8 @@ where
     ) -> anyhow::Result<O::Pointer<O::Dyn>> {
         Ok(<O::Pointer<V> as Deserialize<D>>::deserialize(d, ctx)?)
     }
+}
+
+pub trait DeserializeProvider<V: 'static> {
+    fn add_deserialize_variant(map: &mut VariantImplSet);
 }

@@ -29,61 +29,67 @@ use crate::x::{MyTrait, A};
 
 #[no_implicit_prelude]
 mod x {
-    // use ::marshal_bin::bin_object;
-    // use ::marshal_json::json_object;
-
     pub struct BoxMyTrait;
-    ::marshal_object::derive_box_object!(
+    ::marshal_object::derive_box_object!(BoxMyTrait, MyTrait);
+    ::marshal_object::derive_serialize_provider!(
         BoxMyTrait,
-        MyTrait,
-        (
-            ::marshal_bin::encode::full::BinEncoder,
-            ::marshal_json::encode::full::JsonEncoder
-        ),
-        (
-            ::marshal_bin::decode::full::BinDecoder,
-            ::marshal_json::decode::full::JsonDecoder
-        )
+        ::marshal_bin::encode::full::BinEncoder,
+        ::marshal_json::encode::full::JsonEncoder
+    );
+    ::marshal_object::derive_deserialize_provider!(
+        BoxMyTrait,
+        ::marshal_bin::decode::full::BinDecoder,
+        ::marshal_json::decode::full::JsonDecoder
     );
     pub struct RcMyTrait;
-    ::marshal_object::derive_rc_object!(
+    ::marshal_object::derive_rc_object!(RcMyTrait, MyTrait);
+    ::marshal_object::derive_serialize_provider!(
         RcMyTrait,
-        MyTrait,
-        (
-            ::marshal_bin::encode::full::BinEncoder,
-            ::marshal_json::encode::full::JsonEncoder
-        ),
-        (
-            ::marshal_bin::decode::full::BinDecoder,
-            ::marshal_json::decode::full::JsonDecoder
-        )
+        ::marshal_bin::encode::full::BinEncoder,
+        ::marshal_json::encode::full::JsonEncoder
+    );
+    ::marshal_object::derive_deserialize_provider!(
+        RcMyTrait,
+        ::marshal_bin::decode::full::BinDecoder,
+        ::marshal_json::decode::full::JsonDecoder
     );
     pub struct RcWeakMyTrait;
-    ::marshal_object::derive_rc_weak_object!(
+    ::marshal_object::derive_rc_weak_object!(RcWeakMyTrait, MyTrait);
+    ::marshal_object::derive_serialize_provider!(
         RcWeakMyTrait,
-        MyTrait,
-        (
-            ::marshal_bin::encode::full::BinEncoder,
-            ::marshal_json::encode::full::JsonEncoder
-        ),
-        (
-            ::marshal_bin::decode::full::BinDecoder,
-            ::marshal_json::decode::full::JsonDecoder
-        )
+        ::marshal_bin::encode::full::BinEncoder,
+        ::marshal_json::encode::full::JsonEncoder
+    );
+    ::marshal_object::derive_deserialize_provider!(
+        RcWeakMyTrait,
+        ::marshal_bin::decode::full::BinDecoder,
+        ::marshal_json::decode::full::JsonDecoder
     );
 
     pub struct ArcMyTrait;
-    ::marshal_object::derive_arc_object!(
+    ::marshal_object::derive_arc_object!(ArcMyTrait, MyTrait);
+    ::marshal_object::derive_serialize_provider!(
         ArcMyTrait,
-        MyTrait,
-        (
-            ::marshal_bin::encode::full::BinEncoder,
-            ::marshal_json::encode::full::JsonEncoder
-        ),
-        (
-            ::marshal_bin::decode::full::BinDecoder,
-            ::marshal_json::decode::full::JsonDecoder
-        )
+        ::marshal_bin::encode::full::BinEncoder,
+        ::marshal_json::encode::full::JsonEncoder
+    );
+    ::marshal_object::derive_deserialize_provider!(
+        ArcMyTrait,
+        ::marshal_bin::decode::full::BinDecoder,
+        ::marshal_json::decode::full::JsonDecoder
+    );
+
+    pub struct ArcWeakMyTrait;
+    ::marshal_object::derive_arc_weak_object!(ArcWeakMyTrait, MyTrait);
+    ::marshal_object::derive_serialize_provider!(
+        ArcWeakMyTrait,
+        ::marshal_bin::encode::full::BinEncoder,
+        ::marshal_json::encode::full::JsonEncoder
+    );
+    ::marshal_object::derive_deserialize_provider!(
+        ArcWeakMyTrait,
+        ::marshal_bin::decode::full::BinDecoder,
+        ::marshal_json::decode::full::JsonDecoder
     );
 
     pub trait MyTrait:
@@ -94,6 +100,7 @@ mod x {
         + ::marshal_object::AsDiscriminant<RcMyTrait>
         + ::marshal_object::AsDiscriminant<ArcMyTrait>
         + ::marshal_object::AsDiscriminant<RcWeakMyTrait>
+        + ::marshal_object::AsDiscriminant<ArcWeakMyTrait>
     {
     }
 
@@ -118,6 +125,8 @@ mod x {
     ::marshal_object::derive_variant!(BoxMyTrait, B);
     ::marshal_object::derive_variant!(ArcMyTrait, A);
     ::marshal_object::derive_variant!(ArcMyTrait, B);
+    ::marshal_object::derive_variant!(ArcWeakMyTrait, A);
+    ::marshal_object::derive_variant!(ArcWeakMyTrait, B);
 
     ::marshal_shared::derive_deserialize_rc_shared!(A);
     ::marshal_shared::derive_deserialize_rc_shared!(B);

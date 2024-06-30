@@ -1,25 +1,23 @@
 #![deny(unused_must_use)]
 #![feature(arbitrary_self_types)]
+#![feature(unsize)]
 
-use std::fmt::Debug;
 use marshal_bin::decode::full::BinDecoder;
 use marshal_bin::encode::full::BinEncoder;
+use std::fmt::Debug;
 // use marshal_bin::bin_object;
 use marshal_derive::{Deserialize, Serialize};
 use marshal_json::decode::full::JsonDecoder;
 use marshal_json::encode::full::JsonEncoder;
-use marshal_object::{derive_box_object, derive_variant, AsDiscriminant};
+use marshal_object::{derive_box_object, derive_deserialize_provider, derive_variant, AsDiscriminant, derive_serialize_provider};
 use marshal_pointer::RawAny;
 use marshal_update::object_map::ObjectMap;
 use marshal_update::tester::Tester;
 
 pub struct BoxFoo;
-derive_box_object!(
-    BoxFoo,
-    Foo,
-    (BinEncoder, JsonEncoder),
-    (BinDecoder, JsonDecoder)
-);
+derive_box_object!(BoxFoo, Foo);
+derive_serialize_provider!(BoxFoo, BinEncoder, JsonEncoder);
+derive_deserialize_provider!(BoxFoo, BinDecoder, JsonDecoder);
 pub trait Foo: 'static + Debug + RawAny + AsDiscriminant<BoxFoo> {}
 
 derive_variant!(BoxFoo, A);
