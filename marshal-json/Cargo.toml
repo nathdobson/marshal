@@ -10,12 +10,10 @@ base64 = { workspace = true }
 anyhow = { workspace = true }
 itertools = { workspace = true }
 marshal-core = { workspace = true }
-marshal-derive = { workspace = true }
-marshal-object = {workspace=true}
-marshal-pointer = {workspace=true}
 safe-once = {workspace=true}
 
 [dev-dependencies]
+marshal-derive = { workspace = true }
 marshal = { workspace = true }
 criterion = { workspace=true, features = ["html_reports"] }
 serde_json = {workspace=true}

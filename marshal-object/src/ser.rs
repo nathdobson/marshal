@@ -63,53 +63,6 @@ pub trait SerializeVariantForDiscriminant<E: Encoder>: Object {
     ) -> anyhow::Result<()>;
 }
 
-// pub trait DowncastSerialize<V, E: Encoder> {
-//     fn downcast_serialize(&self, e: E::AnySpecEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()>;
-// }
-//
-// impl<T: ?Sized + Unsize<dyn Any>, V: 'static + Serialize<E>, E: Encoder> DowncastSerialize<V, E>
-//     for Box<T>
-// {
-//     fn downcast_serialize(&self, e: E::AnySpecEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-//         (&**self as &dyn Any)
-//             .downcast_ref::<V>()
-//             .unwrap()
-//             .serialize(e, ctx)
-//     }
-// }
-//
-// impl<T: ?Sized + RawAny, V: 'static + Serialize<E>, E: Encoder> DowncastSerialize<V, E> for Arc<T> {
-//     fn downcast_serialize(&self, e: E::AnySpecEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-//         if Arc::as_ptr(self).raw_type_id() == TypeId::of::<V>() {
-//             unsafe { Arc::from_raw(Arc::into_raw(self.clone()) as *const V).serialize(e, ctx) }
-//         } else {
-//             panic!("cannot downcast to {}", type_name::<V>());
-//         }
-//     }
-// }
-//
-// impl<T: ?Sized + Unsize<dyn Any>, V: 'static + Serialize<E>, E: Encoder> DowncastSerialize<V, E>
-//     for Rc<T>
-// {
-//     fn downcast_serialize(&self, e: E::AnySpecEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-//         Rc::<dyn 'static + Any>::downcast::<V>(self.clone())
-//             .unwrap()
-//             .serialize(e, ctx)
-//     }
-// }
-//
-// impl<T: ?Sized + RawAny, V: 'static + Serialize<E>, E: Encoder> DowncastSerialize<V, E>
-//     for rc::Weak<T>
-// {
-//     fn downcast_serialize(&self, e: E::AnySpecEncoder<'_>, ctx: &mut Context) -> anyhow::Result<()> {
-//         if self.as_ptr().raw_type_id() == TypeId::of::<V>() {
-//             unsafe { Rc::from_raw(self.clone().into_raw() as *const V).serialize(e, ctx) }
-//         } else {
-//             panic!("cannot downcast to {}", type_name::<V>());
-//         }
-//     }
-// }
-
 pub trait SerializeVariantDyn<E: Encoder, O: Object>: Sync + Send {
     fn serialize_variant_dyn<'w, 'en>(
         &self,

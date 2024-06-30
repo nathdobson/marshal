@@ -18,23 +18,12 @@ use marshal::ser::Serialize;
 use crate::decode::full::BinDecoder;
 use crate::encode::full::BinEncoder;
 
-//pub mod bin_object;
 pub mod decode;
 pub mod encode;
 #[cfg(test)]
 mod test;
 mod to_from_vu128;
 mod util;
-
-#[doc(hidden)]
-pub mod reexports {
-    pub use anyhow;
-    pub use safe_once;
-
-    pub use marshal;
-    pub use marshal_object;
-    pub use marshal_pointer;
-}
 
 pub const VU128_MAX_PADDING: usize = 17;
 

@@ -16,20 +16,9 @@ use crate::encode::full::JsonEncoder;
 
 pub mod decode;
 pub mod encode;
-//pub mod json_object;
 #[cfg(test)]
 mod test;
 pub mod value;
-
-#[doc(hidden)]
-pub mod reexports {
-    pub use anyhow;
-    pub use safe_once;
-
-    pub use marshal;
-    pub use marshal_object;
-    pub use marshal_pointer;
-}
 
 pub trait SerializeJson = Serialize<JsonEncoder>;
 pub trait DeserializeJson = Deserialize<JsonDecoder>;
