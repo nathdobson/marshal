@@ -11,36 +11,80 @@ use std::rc;
 use std::rc::Rc;
 
 use marshal::context::OwnedContext;
-use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::decode::full::BinDecoderBuilder;
-use marshal_bin::DeserializeBin;
-use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
+use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::DeserializeBin;
 use marshal_bin::SerializeBin;
 use marshal_bin::VU128_MAX_PADDING;
 use marshal_json::decode::full::JsonDecoderBuilder;
-use marshal_json::DeserializeJson;
 use marshal_json::encode::full::JsonEncoderBuilder;
+use marshal_json::DeserializeJson;
 use marshal_json::SerializeJson;
 use marshal_shared::de::SharedRcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
 
-use crate::x::{A, MyTrait};
+use crate::x::{MyTrait, A};
 
 #[no_implicit_prelude]
 mod x {
-    use ::marshal_bin::bin_object;
-    use ::marshal_json::json_object;
+    // use ::marshal_bin::bin_object;
+    // use ::marshal_json::json_object;
 
     pub struct BoxMyTrait;
-    ::marshal_object::derive_box_object!(BoxMyTrait, MyTrait, bin_object, json_object);
+    ::marshal_object::derive_box_object!(
+        BoxMyTrait,
+        MyTrait,
+        (
+            ::marshal_bin::encode::full::BinEncoder,
+            ::marshal_json::encode::full::JsonEncoder
+        ),
+        (
+            ::marshal_bin::decode::full::BinDecoder,
+            ::marshal_json::decode::full::JsonDecoder
+        )
+    );
     pub struct RcMyTrait;
-    ::marshal_object::derive_rc_object!(RcMyTrait, MyTrait, bin_object, json_object);
+    ::marshal_object::derive_rc_object!(
+        RcMyTrait,
+        MyTrait,
+        (
+            ::marshal_bin::encode::full::BinEncoder,
+            ::marshal_json::encode::full::JsonEncoder
+        ),
+        (
+            ::marshal_bin::decode::full::BinDecoder,
+            ::marshal_json::decode::full::JsonDecoder
+        )
+    );
     pub struct RcWeakMyTrait;
-    ::marshal_object::derive_rc_weak_object!(RcWeakMyTrait, MyTrait, bin_object, json_object);
+    ::marshal_object::derive_rc_weak_object!(
+        RcWeakMyTrait,
+        MyTrait,
+        (
+            ::marshal_bin::encode::full::BinEncoder,
+            ::marshal_json::encode::full::JsonEncoder
+        ),
+        (
+            ::marshal_bin::decode::full::BinDecoder,
+            ::marshal_json::decode::full::JsonDecoder
+        )
+    );
 
     pub struct ArcMyTrait;
-    ::marshal_object::derive_arc_object!(ArcMyTrait, MyTrait, bin_object, json_object);
+    ::marshal_object::derive_arc_object!(
+        ArcMyTrait,
+        MyTrait,
+        (
+            ::marshal_bin::encode::full::BinEncoder,
+            ::marshal_json::encode::full::JsonEncoder
+        ),
+        (
+            ::marshal_bin::decode::full::BinDecoder,
+            ::marshal_json::decode::full::JsonDecoder
+        )
+    );
 
     pub trait MyTrait:
         'static

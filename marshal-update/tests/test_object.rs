@@ -4,7 +4,7 @@
 
 use std::fmt::Debug;
 
-use marshal_bin::bin_object;
+// use marshal_bin::bin_object;
 use marshal_derive::{Deserialize, Serialize};
 use marshal_json::json_object;
 use marshal_object::{AsDiscriminant, derive_box_object, derive_variant};

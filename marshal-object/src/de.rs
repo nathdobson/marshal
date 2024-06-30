@@ -1,13 +1,12 @@
 use std::marker::PhantomData;
-use std::ops::Index;
-
-use type_map::concurrent::TypeMap;
+use std::ops::{CoerceUnsized};
 
 use marshal::context::Context;
-use marshal::de::SchemaError;
-use marshal::decode::{AnyDecoder, DecodeHint, DecoderView, DecodeVariantHint, Decoder};
+use marshal::de::{Deserialize, SchemaError};
+use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView};
 
-use crate::{Object, OBJECT_REGISTRY};
+use crate::{Object};
+use crate::variants::VariantImpl;
 
 pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {
     fn deserialize_variant<'p, 'de>(
@@ -54,48 +53,37 @@ where
     }
 }
 
-pub trait DeserializeProvider {}
 
-pub trait DeserializeVariantProvider<V: 'static>: DeserializeProvider {
-    fn add_deserialize_variant(map: &mut DeserializeVariantSet);
+
+pub trait DeserializeVariantDyn<D: Decoder, O: Object>: 'static + Sync + Send {
+    fn deserialize_variant_dyn<'p, 'de>(
+        &self,
+        d: AnyDecoder<'p, 'de, D>,
+        ctx: Context,
+    ) -> anyhow::Result<O::Pointer<O::Dyn>>;
 }
 
-pub struct DeserializeVariantTable<O: Object, DV: DeserializeVariant> {
-    variants: Vec<&'static DV>,
-    phantom: PhantomData<O>,
-}
+// pub struct DeserializeVariantDynValue<V>();
+//
+// impl<V> DeserializeVariantDynValue<V> {
+//     pub const fn new() -> Self {
+//         DeserializeVariantDynValue(PhantomData)
+//     }
+// }
 
-pub trait DeserializeVariant: 'static + Sync + Send {}
+impl<D, O> VariantImpl for &'static dyn DeserializeVariantDyn<D, O> {}
 
-impl<O: Object, DV: DeserializeVariant> DeserializeVariantTable<O, DV> {
-    pub fn new() -> Self {
-        let object = OBJECT_REGISTRY.object_descriptor::<O>();
-        DeserializeVariantTable {
-            variants: (0..object.discriminant_names().len())
-                .map(|i| object.deserialize_variant(i))
-                .collect(),
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<O: Object, DV: DeserializeVariant> Index<usize> for DeserializeVariantTable<O, DV> {
-    type Output = &'static DV;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.variants[index]
-    }
-}
-
-pub struct DeserializeVariantSet(TypeMap);
-
-impl DeserializeVariantSet {
-    pub(crate) fn new() -> Self {
-        DeserializeVariantSet(TypeMap::new())
-    }
-    pub fn insert<DV: DeserializeVariant>(&mut self, dv: DV) {
-        self.0.insert(dv);
-    }
-    pub fn get<DV: DeserializeVariant>(&self) -> Option<&DV> {
-        self.0.get::<DV>()
+impl<D: Decoder, O: Object, V: 'static> DeserializeVariantDyn<D, O>
+    for PhantomData<fn() -> V>
+where
+    O::Pointer<V>: Deserialize<D>,
+    O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,
+{
+    fn deserialize_variant_dyn<'p, 'de>(
+        &self,
+        d: AnyDecoder<'p, 'de, D>,
+        ctx: Context,
+    ) -> anyhow::Result<O::Pointer<O::Dyn>> {
+        Ok(<O::Pointer<V> as Deserialize<D>>::deserialize(d, ctx)?)
     }
 }

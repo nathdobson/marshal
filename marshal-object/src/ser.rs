@@ -1,10 +1,12 @@
+use std::marker::{PhantomData, Unsize};
 use std::rc;
 
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use marshal_pointer::AsFlatRef;
+use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
 
+use crate::variants::VariantImpl;
 use crate::{AsDiscriminant, Object};
 
 pub fn serialize_object<'w, 'en, O: Object, E: Encoder>(
@@ -107,3 +109,36 @@ pub trait SerializeVariantForDiscriminant<E: Encoder>: Object {
 //         }
 //     }
 // }
+
+pub trait SerializeVariantDyn<E: Encoder, O: Object>: Sync + Send {
+    fn serialize_variant_dyn<'w, 'en>(
+        &self,
+        this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
+        e: AnyEncoder<'w, 'en, E>,
+        ctx: Context,
+    ) -> anyhow::Result<()>;
+}
+
+impl<E: Encoder, O: Object, V> SerializeVariantDyn<E, O> for PhantomData<fn() -> V>
+where
+    <O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
+        DowncastRef<<O::Pointer<V> as AsFlatRef>::FlatRef>,
+    <O::Pointer<V> as AsFlatRef>::FlatRef: Serialize<E>,
+    <O::Pointer<O::Dyn> as AsFlatRef>::FlatRef:
+        Unsize<<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
+{
+    fn serialize_variant_dyn<'w, 'en>(
+        &self,
+        this: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,
+        e: AnyEncoder<'w, 'en, E>,
+        ctx: Context,
+    ) -> anyhow::Result<()> {
+        let upcast = this as &<O::Pointer<dyn RawAny> as AsFlatRef>::FlatRef;
+        let downcast: &<O::Pointer<V> as AsFlatRef>::FlatRef = upcast
+            .downcast_ref()
+            .expect("failed to downcast for serializer");
+        <<O::Pointer<V> as AsFlatRef>::FlatRef as Serialize<E>>::serialize(downcast, e, ctx)
+    }
+}
+
+impl<E, O> VariantImpl for &'static dyn SerializeVariantDyn<E, O> {}

@@ -15,11 +15,10 @@ use num_derive::FromPrimitive;
 
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
-
 use crate::decode::full::BinDecoder;
 use crate::encode::full::BinEncoder;
 
-pub mod bin_object;
+//pub mod bin_object;
 pub mod decode;
 pub mod encode;
 #[cfg(test)]

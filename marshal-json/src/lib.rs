@@ -16,7 +16,7 @@ use crate::encode::full::JsonEncoder;
 
 pub mod decode;
 pub mod encode;
-pub mod json_object;
+//pub mod json_object;
 #[cfg(test)]
 mod test;
 pub mod value;
