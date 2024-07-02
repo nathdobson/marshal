@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
-use std::ops::{CoerceUnsized};
+use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::{Deserialize, SchemaError};
-use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint};
 
-use crate::{Object};
+use crate::Object;
 use crate::variants::{VariantImpl, VariantImplSet};
 
 pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {

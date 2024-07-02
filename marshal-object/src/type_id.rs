@@ -1,13 +1,15 @@
-use crate::{AsDiscriminant, Object};
-use marshal::context::Context;
-use marshal::de::{Deserialize, SchemaError};
-use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder};
-use marshal::encode::{AnyEncoder, Encoder};
-use marshal::ser::Serialize;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::marker::{PhantomData, Unsize};
 use std::ptr::null;
+
+use marshal::context::Context;
+use marshal::de::{Deserialize, SchemaError};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecodeVariantHint};
+use marshal::encode::{AnyEncoder, Encoder};
+use marshal::ser::Serialize;
+
+use crate::{AsDiscriminant, Object};
 
 pub struct ObjectTypeId<C> {
     discriminant: usize,
@@ -64,7 +66,7 @@ impl<C: Object> Ord for ObjectTypeId<C> {
 }
 
 impl<E: Encoder, C: Object> Serialize<E> for ObjectTypeId<C> {
-    fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
+    fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, _ctx: Context) -> anyhow::Result<()> {
         e.encode_unit_variant(
             "ObjectTypeId",
             C::object_descriptor().discriminant_names(),
@@ -74,7 +76,7 @@ impl<E: Encoder, C: Object> Serialize<E> for ObjectTypeId<C> {
 }
 
 impl<D: Decoder, C: Object> Deserialize<D> for ObjectTypeId<C> {
-    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self> {
         let variants = C::object_descriptor().discriminant_names();
         let mut d = d
             .decode(DecodeHint::Enum {

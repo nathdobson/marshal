@@ -14,10 +14,10 @@
 #![feature(never_type)]
 #![feature(strict_provenance)]
 
-use std::any::{type_name, Any, TypeId};
+use std::{rc, sync};
+use std::any::{Any, type_name, TypeId};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{rc, sync};
 
 use crate::arc_ref::ArcRef;
 

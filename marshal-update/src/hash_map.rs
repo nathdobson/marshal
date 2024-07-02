@@ -174,13 +174,48 @@ impl<K: Eq + Hash + Sync + Send + Clone, V> UpdateHashMap<K, V> {
         Some(result)
     }
     pub fn entry(&mut self, k: K) -> Entry<K, V> {
-        todo!();
+        match self.map.entry(k) {
+            hash_map::Entry::Occupied(o) => Entry::Occupied(OccupiedEntry {
+                inner: o,
+                publisher: &mut self.publisher,
+            }),
+            hash_map::Entry::Vacant(v) => Entry::Vacant(VacantEntry {
+                inner: v,
+                publisher: &mut self.publisher,
+            }),
+        }
     }
 }
 
 impl<'a, K: 'a + Eq + Hash + Sync + Send + Clone, V: 'a> Entry<'a, K, V> {
-    pub fn or_insert_with<F>(self, f: F) -> &'a V {
-        todo!();
+    pub fn or_insert_with<F: FnOnce() -> V>(self, f: F) -> &'a V {
+        match self {
+            Entry::Occupied(o) => o.into_ref(),
+            Entry::Vacant(v) => v.insert(f()),
+        }
+    }
+    pub fn or_insert_with_mut<F: FnOnce() -> V>(self, f: F) -> &'a mut V {
+        match self {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => v.insert(f()),
+        }
+    }
+}
+
+impl<'a, K: 'a + Eq + Hash + Sync + Send + Clone, V: 'a> VacantEntry<'a, K, V> {
+    pub fn insert(self, value: V) -> &'a mut V {
+        self.publisher.send(self.inner.key());
+        self.inner.insert(value)
+    }
+}
+
+impl<'a, K: 'a + Eq + Hash + Sync + Send + Clone, V: 'a> OccupiedEntry<'a, K, V> {
+    pub fn into_ref(self) -> &'a V {
+        self.inner.into_mut()
+    }
+    pub fn into_mut(self) -> &'a mut V {
+        self.publisher.send(self.inner.key());
+        self.inner.into_mut()
     }
 }
 

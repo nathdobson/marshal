@@ -11,21 +11,21 @@ use std::rc;
 use std::rc::Rc;
 
 use marshal::context::OwnedContext;
-use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::decode::BinDecoderSchema;
-use marshal_bin::encode::full::BinEncoderBuilder;
-use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::decode::full::BinDecoderBuilder;
 use marshal_bin::DeserializeBin;
+use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::encode::full::BinEncoderBuilder;
 use marshal_bin::SerializeBin;
 use marshal_bin::VU128_MAX_PADDING;
 use marshal_json::decode::full::JsonDecoderBuilder;
-use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_json::DeserializeJson;
+use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_json::SerializeJson;
 use marshal_shared::de::SharedRcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
 
-use crate::x::{MyTrait, A};
+use crate::x::{A, MyTrait};
 
 #[no_implicit_prelude]
 mod x {

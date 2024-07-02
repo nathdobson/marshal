@@ -1,5 +1,5 @@
 use marshal_core::decode::{
-    AnyDecoder, DecodeHint, DecoderView, Decoder,
+    AnyDecoder, DecodeHint, Decoder, DecoderView,
 };
 
 use crate::context::Context;

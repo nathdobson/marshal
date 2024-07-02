@@ -6,7 +6,7 @@ use std::mem;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
-use marshal::encode::{AnyEncoder,  Encoder};
+use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;

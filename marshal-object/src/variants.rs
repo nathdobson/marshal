@@ -1,7 +1,9 @@
-use crate::{Object, OBJECT_REGISTRY};
 use std::marker::PhantomData;
 use std::ops::Index;
+
 use type_map::concurrent::TypeMap;
+
+use crate::{Object, OBJECT_REGISTRY};
 
 pub struct VariantImplTable<O: Object, DV: VariantImpl> {
     variants: Vec<&'static DV>,

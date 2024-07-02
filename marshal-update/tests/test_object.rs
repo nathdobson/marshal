@@ -2,15 +2,13 @@
 #![feature(arbitrary_self_types)]
 #![feature(unsize)]
 
+use std::fmt::Debug;
+
 use marshal::context::Context;
-use marshal::de::Deserialize;
 use marshal::decode::AnyDecoder;
 use marshal::encode::AnyEncoder;
 use marshal_bin::decode::full::BinDecoder;
 use marshal_bin::encode::full::BinEncoder;
-use std::any::Any;
-use std::fmt::Debug;
-// use marshal_bin::bin_object;
 use marshal_derive::{Deserialize, DeserializeUpdate, Serialize, SerializeStream, SerializeUpdate};
 use marshal_json::decode::full::JsonDecoder;
 use marshal_json::encode::full::JsonEncoder;
@@ -21,9 +19,7 @@ use marshal_object::{
 use marshal_pointer::RawAny;
 use marshal_update::de::DeserializeUpdate;
 use marshal_update::object_map::ObjectMap;
-use marshal_update::ser::{
-     SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn,
-};
+use marshal_update::ser::{SerializeStream, SerializeUpdate, SerializeUpdateDyn};
 use marshal_update::tester::Tester;
 
 pub struct BoxFoo;

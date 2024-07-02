@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use crate::decode::{DecodeHint, SpecDecoder, DecodeVariantHint, SimpleDecoderView};
+use crate::decode::{DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder};
 
 pub struct DepthBudgetDecoder<D> {
     inner: D,

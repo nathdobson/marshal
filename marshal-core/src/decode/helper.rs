@@ -1,4 +1,4 @@
-use crate::decode::{AnySpecDecoder, DecodeHint, SpecDecoder, DecoderView, EntryDecoder, MapDecoder};
+use crate::decode::{AnySpecDecoder, DecodeHint, DecoderView, EntryDecoder, MapDecoder, SpecDecoder};
 
 pub struct StructDecoderHelper<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
     fields: &'static [&'static str],

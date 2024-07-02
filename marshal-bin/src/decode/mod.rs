@@ -6,7 +6,7 @@ use num_traits::FromPrimitive;
 use safe_once_map::cell::OnceCellMap;
 
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, SpecDecoder, DecodeVariantHint, SimpleDecoderView};
+use marshal_core::decode::{DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder};
 
 use crate::{TypeTag, VU128_MAX_PADDING};
 use crate::to_from_vu128::{Array, ToFromVu128};

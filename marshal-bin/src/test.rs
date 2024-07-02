@@ -10,7 +10,7 @@ use crate::{BinDecoder, VU128_MAX_PADDING};
 use crate::decode::BinDecoderSchema;
 use crate::decode::full::BinDecoderBuilder;
 use crate::encode::BinEncoderSchema;
-use crate::encode::full::{BinEncoderBuilder, BinEncoder};
+use crate::encode::full::{BinEncoder, BinEncoderBuilder};
 
 #[track_caller]
 fn test_round_trip<

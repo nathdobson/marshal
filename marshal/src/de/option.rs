@@ -1,4 +1,4 @@
-use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, Decoder};
+use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
 
 use crate::context::Context;
 use crate::de::Deserialize;

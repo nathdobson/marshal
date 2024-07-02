@@ -12,8 +12,8 @@ use std::mem::{align_of, size_of};
 use marshal::context::Context;
 use marshal::de::{Deserialize, SchemaError};
 use marshal::ser::Serialize;
-use marshal_core::decode::{AnyDecoder, DecodeHint, DecoderView, Decoder};
-use marshal_core::encode::{ AnyEncoder,  Encoder, StructEncoder};
+use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
+use marshal_core::encode::{AnyEncoder, Encoder, StructEncoder};
 
 #[cfg(test)]
 mod test;

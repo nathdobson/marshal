@@ -1,6 +1,6 @@
 //! These operations work around limitations of the pre-polonius model checker
 
-use crate::decode::{SpecDecoder, EntryDecoder, MapDecoder};
+use crate::decode::{EntryDecoder, MapDecoder, SpecDecoder};
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> EntryDecoder<'p, 'de, D> {
     pub fn polonius(

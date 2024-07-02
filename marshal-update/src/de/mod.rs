@@ -1,4 +1,4 @@
-use std::any::Any;
+
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
@@ -17,6 +17,7 @@ pub trait DeserializeUpdate<D: Decoder>: Deserialize<D> {
     ) -> anyhow::Result<()>;
 }
 
+#[allow(dead_code)]
 fn is_object_safe<D: Decoder, T: DeserializeUpdate<D>>(x: &T) -> &dyn DeserializeUpdate<D> {
     x
 }

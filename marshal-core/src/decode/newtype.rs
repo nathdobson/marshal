@@ -1,4 +1,4 @@
-use crate::decode::{SpecDecoder, SimpleDecoderView};
+use crate::decode::{SimpleDecoderView, SpecDecoder};
 
 pub fn cast_simple_decoder_view<
     'de,

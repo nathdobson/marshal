@@ -4,9 +4,7 @@ use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
 use itertools::Itertools;
 
-use marshal_core::decode::{
-    AnyDecoder, DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder,
-};
+use marshal_core::decode::{DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder};
 use marshal_core::{Primitive, PrimitiveType};
 
 use crate::decode::any::PeekType;
@@ -175,7 +173,7 @@ impl<'de> SpecDecoder<'de> for SimpleJsonSpecDecoder<'de> {
                 PeekType::String) if context.must_be_string => {
                 Ok(SimpleDecoderView::Primitive(self.read_prim_from_str(prim)?))
             },
-            (DecodeHint::Enum { name, variants }, PeekType::String) => {
+            (DecodeHint::Enum { .. }, PeekType::String) => {
                 Ok(SimpleDecoderView::Enum(JsonDiscriminantDecoder::Unit{
                     must_be_string:context.must_be_string,
                     cannot_be_null:context.must_be_string
