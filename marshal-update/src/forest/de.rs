@@ -3,15 +3,15 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use marshal::context::Context;
-use marshal::de::Deserialize;
 use marshal::de::rc::DeserializeArc;
+use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 use marshal_shared::de::deserialize_arc;
 
 use crate::de::DeserializeUpdate;
 use crate::forest::error::TreeError;
 use crate::forest::forest::{Forest, ForestId, ForestRoot, Tree};
-use crate::ser::DeserializeUpdateDyn;
+// use crate::ser::DeserializeUpdateDyn;
 
 pub(super) struct ForestDeserializerTable {
     forest: ForestId,
@@ -28,10 +28,7 @@ impl ForestDeserializerTable {
 }
 
 impl<D: Decoder, T: Deserialize<D>> Deserialize<D> for ForestRoot<T> {
-    fn deserialize<'p, 'de>(
-        d: AnyDecoder<'p, 'de, D>,
-        mut ctx: Context,
-    ) -> anyhow::Result<Self> {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
         let forest = Forest::new();
         let mut deserializers = ForestDeserializerTable::new(forest.id());
         let mut ctx = ctx.insert_mut_scoped(&mut deserializers);
@@ -39,6 +36,10 @@ impl<D: Decoder, T: Deserialize<D>> Deserialize<D> for ForestRoot<T> {
         Ok(ForestRoot::new_raw(forest, deserializers, root))
     }
 }
+
+trait DeserializeUpdateDyn<D: Decoder>: Sync + Send + Any + DeserializeUpdate<D> {}
+
+impl<D: Decoder, T: 'static + Sync + Send + DeserializeUpdate<D>> DeserializeUpdateDyn<D> for T {}
 
 impl<D: Decoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T> {
     fn deserialize_update<'p, 'de>(
@@ -61,18 +62,18 @@ impl<D: Decoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T>
                             d.decode_key()?,
                             ctx.reborrow(),
                         )?;
-                        let des: Arc<Tree<dyn Sync + Send + DeserializeUpdateDyn<D>>> = (**ctx
+                        let des: Arc<Tree<dyn DeserializeUpdateDyn<D>>> = (**ctx
                             .reborrow()
                             .get_mut::<ForestDeserializerTable>()?
                             .deserializers
                             .get(&key)
                             .ok_or(TreeError::MissingId)?)
-                        .downcast_ref::<Arc<Tree<dyn Sync + Send + DeserializeUpdateDyn<D>>>>()
+                        .downcast_ref::<Arc<Tree<dyn DeserializeUpdateDyn<D>>>>()
                         .unwrap()
                         .clone();
                         forest
                             .get_mut(&des)
-                            .deserialize_update_dyn(d.decode_value()?, ctx.reborrow())?;
+                            .deserialize_update(d.decode_value()?, ctx.reborrow())?;
                         d.decode_end()?;
                     }
                 }
@@ -94,17 +95,14 @@ impl<D: Decoder, T: 'static + Sync + Send + DeserializeUpdate<D>> DeserializeArc
             .deserializers
             .insert(
                 id,
-                Box::new(arc.clone() as Arc<Tree<dyn Sync + Send + DeserializeUpdateDyn<D>>>),
+                Box::new(arc.clone() as Arc<Tree<dyn DeserializeUpdateDyn<D>>>),
             );
         Ok(arc)
     }
 }
 
 impl<D: Decoder, T: Deserialize<D>> Deserialize<D> for Tree<T> {
-    fn deserialize<'p, 'de>(
-        d: AnyDecoder<'p, 'de, D>,
-        mut ctx: Context,
-    ) -> anyhow::Result<Self> {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
         let tree = T::deserialize(d, ctx.reborrow())?;
         Ok(ctx
             .get_mut::<ForestDeserializerTable>()?

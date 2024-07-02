@@ -22,7 +22,7 @@ use marshal_pointer::RawAny;
 use marshal_update::de::DeserializeUpdate;
 use marshal_update::object_map::ObjectMap;
 use marshal_update::ser::{
-    DeserializeUpdateDyn, SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn,
+     SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn,
 };
 use marshal_update::tester::Tester;
 
@@ -36,7 +36,7 @@ pub trait Foo:
     + RawAny
     + AsDiscriminant<BoxFoo>
     + SerializeUpdateDyn<JsonEncoder>
-    + DeserializeUpdateDyn<JsonDecoder>
+    + DeserializeUpdate<JsonDecoder>
 {
 }
 
@@ -64,7 +64,7 @@ impl DeserializeUpdate<JsonDecoder> for Box<dyn Foo> {
         d: AnyDecoder<'p, 'de, JsonDecoder>,
         ctx: Context,
     ) -> anyhow::Result<()> {
-        (**self).deserialize_update_dyn(d, ctx)
+        (**self).deserialize_update(d, ctx)
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::de::DeserializeUpdate;
-use crate::ser::DeserializeUpdateDyn;
+// use crate::ser::DeserializeUpdateDyn;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
