@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::hash::Hash;
 use std::marker::{PhantomData, Unsize};
 use std::ops::{CoerceUnsized, DerefMut};
 
@@ -194,6 +193,18 @@ where
     }
 }
 impl<'a, C: Object, T: 'static> Entry<'a, C, T> {
+    pub fn or_default(self) -> &'a <C::Pointer<T> as AsFlatRef>::FlatRef
+    where
+        C::Pointer<T>: CoerceUnsized<C::Pointer<C::Dyn>>,
+        <C::Pointer<C::Dyn> as AsFlatRef>::FlatRef:
+            Unsize<<C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
+        <C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
+            DowncastRef<<C::Pointer<T> as AsFlatRef>::FlatRef>,
+        C::Pointer<C::Dyn>: DerefMut<Target = C::Dyn>,
+        C::Pointer<T>: Default,
+    {
+        self.or_insert_with(C::Pointer::<T>::default)
+    }
     pub fn or_insert_with<F: FnOnce() -> C::Pointer<T>>(
         self,
         f: F,
@@ -221,6 +232,15 @@ impl<'a, C: Object, T: 'static> Entry<'a, C, T> {
             Entry::Occupied(o) => o.into_mut(),
             Entry::Vacant(v) => v.insert_mut(f()),
         }
+    }
+    pub fn or_default_mut(self) -> &'a mut T
+    where
+        C::Pointer<T>: CoerceUnsized<C::Pointer<C::Dyn>>,
+        C::Pointer<C::Dyn>: DerefMut<Target = C::Dyn>,
+        C::Dyn: Unsize<dyn Any>,
+        C::Pointer<T>: Default,
+    {
+        self.or_insert_with_mut(C::Pointer::<T>::default)
     }
 }
 
@@ -270,5 +290,11 @@ impl<'a, C: Object, T: 'static> OccupiedEntry<'a, C, T> {
         (self.inner.into_mut().deref_mut() as &mut dyn Any)
             .downcast_mut()
             .unwrap()
+    }
+}
+
+impl<C: Object> Default for ObjectMap<C> {
+    fn default() -> Self {
+        ObjectMap::new()
     }
 }

@@ -5,6 +5,7 @@ use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 use marshal_pointer::RawAny;
 
+mod boxed;
 mod derive_serialize_update_for_clone;
 mod option;
 mod rc;
@@ -66,21 +67,3 @@ impl<E: Encoder, T: 'static + SerializeUpdate<E> + SerializeStream<Stream: 'stat
         )?)
     }
 }
-//
-// pub trait DeserializeUpdateDyn<D: Decoder>: 'static + Any {
-//     fn deserialize_update_dyn<'p, 'de>(
-//         &mut self,
-//         d: AnyDecoder<'p, 'de, D>,
-//         ctx: Context,
-//     ) -> anyhow::Result<()>;
-// }
-
-// impl<D: Decoder, T: 'static + Any + DeserializeUpdate<D>> DeserializeUpdateDyn<D> for T {
-//     fn deserialize_update_dyn<'p, 'de>(
-//         &mut self,
-//         d: AnyDecoder<'p, 'de, D>,
-//         ctx: Context,
-//     ) -> anyhow::Result<()> {
-//         self.deserialize_update(d, ctx)
-//     }
-// }

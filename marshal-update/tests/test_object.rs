@@ -5,7 +5,6 @@
 use std::fmt::Debug;
 
 use marshal::context::Context;
-use marshal::decode::AnyDecoder;
 use marshal::encode::AnyEncoder;
 use marshal_bin::decode::full::BinDecoder;
 use marshal_bin::encode::full::BinEncoder;
@@ -51,16 +50,6 @@ impl SerializeUpdate<JsonEncoder> for Box<dyn Foo> {
         ctx: Context,
     ) -> anyhow::Result<()> {
         (**self).serialize_update_dyn(stream, e, ctx)
-    }
-}
-
-impl DeserializeUpdate<JsonDecoder> for Box<dyn Foo> {
-    fn deserialize_update<'p, 'de>(
-        &mut self,
-        d: AnyDecoder<'p, 'de, JsonDecoder>,
-        ctx: Context,
-    ) -> anyhow::Result<()> {
-        (**self).deserialize_update(d, ctx)
     }
 }
 
