@@ -14,10 +14,10 @@
 #![feature(never_type)]
 #![feature(strict_provenance)]
 
-use std::{rc, sync};
-use std::any::{Any, TypeId};
+use std::any::{type_name, Any, TypeId};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::{rc, sync};
 
 use crate::arc_ref::ArcRef;
 
@@ -47,11 +47,15 @@ pub trait DerefRaw {
 
 pub trait RawAny: Any {
     fn raw_type_id(self: *const Self) -> TypeId;
+    fn raw_type_name(self: *const Self) -> &'static str;
 }
 
 impl<T: Any> RawAny for T {
     fn raw_type_id(self: *const Self) -> TypeId {
         TypeId::of::<T>()
+    }
+    fn raw_type_name(self: *const Self) -> &'static str {
+        type_name::<T>()
     }
 }
 

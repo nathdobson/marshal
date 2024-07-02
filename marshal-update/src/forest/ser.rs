@@ -6,16 +6,17 @@ use std::sync::Arc;
 use by_address::ByAddress;
 
 use marshal::context::Context;
-use marshal::encode::{AnyEncoder,  Encoder};
+use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::rc::SerializeArc;
 use marshal::ser::Serialize;
 use marshal_pointer::arc_ref::ArcRef;
+use marshal_pointer::RawAny;
 use marshal_shared::ser::SharedSerializeContext;
 
 use crate::forest::error::TreeError;
 use crate::forest::forest::{Forest, ForestRoot, Tree};
-use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
 use crate::ser::set_channel::SetSubscriber;
+use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
 
 type ForestSharedSerializeContext = SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>;
 pub(super) struct ForestSerializerTable {
@@ -55,7 +56,7 @@ impl<E: Encoder, T: Serialize<E>> Serialize<E> for ForestRoot<T> {
 
 pub struct ForestStream<T> {
     root: T,
-    streams: HashMap<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>, Box<dyn Sync + Send + Any>>,
+    streams: HashMap<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>, Box<dyn Sync + Send + RawAny>>,
     subscriber: SetSubscriber<HashSet<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>>>,
 }
 
@@ -130,7 +131,12 @@ impl<E: Encoder, T: SerializeUpdate<E>> SerializeUpdate<E> for ForestRoot<T> {
 
 impl<
         E: Encoder,
-        T: 'static + Sync + Send + Serialize<E> + SerializeStream + SerializeUpdate<E>,
+        T: 'static
+            + Sync
+            + Send
+            + Serialize<E>
+            + SerializeStream<Stream: 'static>
+            + SerializeUpdate<E>,
     > SerializeArc<E> for Tree<T>
 {
     fn serialize_arc<'w, 'en>(

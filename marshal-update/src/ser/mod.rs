@@ -1,11 +1,11 @@
-use std::any::Any;
+use std::any::{type_name, Any};
 
+use crate::de::DeserializeUpdate;
 use marshal::context::Context;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-
-use crate::de::DeserializeUpdate;
+use marshal_pointer::RawAny;
 
 mod derive_serialize_update_for_clone;
 mod option;
@@ -28,20 +28,20 @@ pub trait SerializeUpdate<E: Encoder>: Serialize<E> + SerializeStream {
 }
 
 pub trait SerializeStreamDyn: Any {
-    fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + Any>>;
+    fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + RawAny>>;
 }
 
 pub trait SerializeUpdateDyn<E: Encoder>: 'static + Serialize<E> + SerializeStreamDyn {
     fn serialize_update_dyn<'w, 'en>(
         &self,
-        stream: &mut Box<dyn Sync + Send + Any>,
+        stream: &mut Box<dyn Sync + Send + RawAny>,
         e: AnyEncoder<'w, 'en, E>,
         ctx: Context,
     ) -> anyhow::Result<()>;
 }
 
 impl<T: SerializeStream<Stream: 'static> + Any> SerializeStreamDyn for T {
-    fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + Any>> {
+    fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + RawAny>> {
         Ok(Box::new(self.start_stream(ctx)?))
     }
 }
@@ -51,11 +51,21 @@ impl<E: Encoder, T: 'static + SerializeUpdate<E> + SerializeStream<Stream: 'stat
 {
     fn serialize_update_dyn<'w, 'en>(
         &self,
-        stream: &mut Box<dyn Sync + Send + Any>,
+        stream: &mut Box<dyn Sync + Send + RawAny>,
         e: AnyEncoder<'w, 'en, E>,
         ctx: Context,
     ) -> anyhow::Result<()> {
-        Ok(self.serialize_update((**stream).downcast_mut().unwrap(), e, ctx)?)
+        let stream = (&mut **stream) as &mut dyn RawAny;
+        let name = (stream as *const dyn RawAny).raw_type_name();
+        Ok(self.serialize_update(
+            (stream as &mut dyn Any)
+                .downcast_mut::<T::Stream>()
+                .unwrap_or_else(
+                    || panic!("expected {}, found {}", type_name::<T::Stream>(), name,),
+                ),
+            e,
+            ctx,
+        )?)
     }
 }
 

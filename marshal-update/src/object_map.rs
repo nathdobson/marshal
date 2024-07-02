@@ -10,11 +10,11 @@ use marshal::ser::Serialize;
 use marshal_object::type_id::ObjectTypeId;
 use marshal_object::{AsDiscriminant, Object};
 use marshal_pointer::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
-use std::any::TypeId;
+use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::marker::{PhantomData, Unsize};
-use std::ops::CoerceUnsized;
+use std::ops::{CoerceUnsized, DerefMut};
 use std::ptr::null;
 
 pub struct ObjectMap<C: Object> {
@@ -44,6 +44,28 @@ impl<C: Object> ObjectMap<C> {
         let any_flat_ref: &<C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef = dyn_flat_ref;
         let flat_ref: &<C::Pointer<T> as AsFlatRef>::FlatRef = any_flat_ref.downcast_ref().unwrap();
         Some(flat_ref)
+    }
+    pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T>
+    where
+        C::Pointer<C::Dyn>: DerefMut<Target = C::Dyn>,
+        // for<'a> &'a <C::Pointer<C::Dyn> as AsFlatRef>::FlatRef:
+        //     CoerceUnsized<&'a <C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef>,
+        // <C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef:
+        //     DowncastRef<<C::Pointer<T> as AsFlatRef>::FlatRef>,
+        T: Unsize<C::Dyn>,
+        C::Dyn: Unsize<dyn Any>,
+    {
+        Some(
+            (self.map.get_mut(&ObjectTypeId::of::<T>())?.deref_mut() as &mut dyn Any)
+                .downcast_mut::<T>()
+                .unwrap(),
+        )
+        // let dyn_flat_ref: &mut <C::Pointer<C::Dyn> as AsFlatRef>::FlatRef =
+        //     self.map.get_mut(&ObjectTypeId::of::<T>())?.as_flat_ref();
+        // let any_flat_ref: &mut <C::Pointer<dyn RawAny> as AsFlatRef>::FlatRef = dyn_flat_ref;
+        // let flat_ref: &mut <C::Pointer<T> as AsFlatRef>::FlatRef =
+        //     any_flat_ref.downcast_ref().unwrap();
+        // Some(flat_ref)
     }
     // pub fn get_or_default<T: 'static>(&mut self) -> &<C::Pointer<T> as AsFlatRef>::FlatRef
     // where
