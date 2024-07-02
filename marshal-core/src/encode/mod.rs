@@ -136,6 +136,8 @@ pub trait SpecEncoder {
         key: &'static str,
     ) -> anyhow::Result<Self::AnySpecEncoder>;
     fn struct_variant_end(&mut self, map: Self::StructVariantEncoder) -> anyhow::Result<()>;
+
+    fn is_human_readable(&self) -> bool;
 }
 
 pub type AnyEncoder<'w, 'en, T> = AnySpecEncoder<'w, <T as Encoder>::SpecEncoder<'en>>;
@@ -146,8 +148,17 @@ pub struct AnySpecEncoder<'w, T: SpecEncoder> {
 }
 
 impl<'w, T: SpecEncoder> AnySpecEncoder<'w, T> {
+    pub fn is_human_readable(&self) -> bool {
+        self.encoder.is_human_readable()
+    }
+}
+
+impl<'w, T: SpecEncoder> AnySpecEncoder<'w, T> {
     pub fn new(encoder: &'w mut T, inner: T::AnySpecEncoder) -> Self {
         AnySpecEncoder { encoder, inner }
+    }
+    pub fn into_raw(self) -> (&'w mut T, T::AnySpecEncoder) {
+        (self.encoder, self.inner)
     }
 }
 

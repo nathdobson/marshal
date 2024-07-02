@@ -2,7 +2,7 @@
 resolver = "2"
 
 members = [
-    "marshal", "marshal-bin",  "marshal-core", "marshal-derive", "marshal-json", "marshal-object", "marshal-pointer", "marshal-shared", "marshal-structural", "marshal-update",
+    "marshal", "marshal-bin",  "marshal-core", "marshal-derive", "marshal-json", "marshal-object", "marshal-pointer", "marshal-serde", "marshal-shared", "marshal-structural", "marshal-update",
 ]
 
 [workspace.dependencies]
@@ -38,6 +38,7 @@ atomic_refcell = "0.1.13"
 slab = "0.4.9"
 tokenlock = "0.3.8"
 lock_api = "0.4.12"
+serde = "1.0.203"
 
 [profile.bench]
 debug = true

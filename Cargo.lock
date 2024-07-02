@@ -607,6 +607,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "marshal-serde"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "marshal",
+ "serde",
+]
+
+[[package]]
 name = "marshal-shared"
 version = "0.1.0"
 dependencies = [

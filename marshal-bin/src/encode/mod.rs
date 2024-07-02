@@ -413,4 +413,8 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
     fn struct_variant_end(&mut self, _map: Self::StructVariantEncoder) -> anyhow::Result<()> {
         Ok(())
     }
+
+    fn is_human_readable(&self) -> bool {
+        false
+    }
 }

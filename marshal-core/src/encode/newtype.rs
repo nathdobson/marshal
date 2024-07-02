@@ -218,6 +218,10 @@ macro_rules! derive_encoder_for_newtype {
                 fn struct_variant_end(&mut self, map: Self::StructVariantEncoder) -> anyhow::Result<()> {
                     self.0.struct_variant_end(map)
                 }
+
+                fn is_human_readable(&self) -> bool {
+                    self.0.is_human_readable()
+                }
             }
         };
     }

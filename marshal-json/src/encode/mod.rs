@@ -598,6 +598,10 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         self.close_map(s.ctx)?;
         Ok(())
     }
+
+    fn is_human_readable(&self) -> bool {
+        true
+    }
 }
 
 #[derive(Copy, Clone)]

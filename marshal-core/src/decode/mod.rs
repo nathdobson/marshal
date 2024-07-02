@@ -53,7 +53,7 @@ pub enum DecodeVariantHint {
 }
 
 pub struct SeqIter<'p, 'de, D: ?Sized + SpecDecoder<'de> + 'p, F> {
-    seq: SeqSpecDecoder<'p, 'de, D>,
+    seq: SeqDecoder<'p, 'de, D>,
     map: F,
     phantom: PhantomData<(&'p D, &'de ())>,
 }
@@ -195,7 +195,7 @@ where
     Bytes(Cow<'de, [u8]>),
     None,
     Some(SomeDecoder<'p, 'de, P>),
-    Seq(SeqSpecDecoder<'p, 'de, P>),
+    Seq(SeqDecoder<'p, 'de, P>),
     Map(MapDecoder<'p, 'de, P>),
     Enum(EnumDecoder<'p, 'de, P>),
 }
@@ -277,7 +277,7 @@ pub struct AnySpecDecoder<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
 
 pub type AnyDecoder<'p, 'de, D> = AnySpecDecoder<'p, 'de, <D as Decoder>::SpecDecoder<'de>>;
 
-pub struct SeqSpecDecoder<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
+pub struct SeqDecoder<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
     this: &'p mut D,
     seq: Option<D::SeqDecoder>,
 }
@@ -306,6 +306,12 @@ pub struct SomeDecoder<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
     some_closer: Option<D::SomeCloser>,
 }
 
+impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> MapDecoder<'p, 'de, D> {
+    pub fn into_raw(self) -> (&'p mut D, D::MapDecoder) {
+        (self.this, self.map.unwrap())
+    }
+}
+
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
     pub fn decode(self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, D>> {
         Ok(self.this.decode(self.any, hint)?.wrap(self.this))
@@ -313,9 +319,12 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
     pub fn ignore(self) -> anyhow::Result<()> {
         self.decode(DecodeHint::Ignore)?.ignore()
     }
+    pub fn is_human_readable(&self) -> bool {
+        self.this.is_human_readable()
+    }
 }
 
-impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SeqSpecDecoder<'p, 'de, D> {
+impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SeqDecoder<'p, 'de, D> {
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<AnySpecDecoder<'p2, 'de, D>>> {
         if let Some(any) = self.this.decode_seq_next(self.seq.as_mut().unwrap())? {
             Ok(Some(AnySpecDecoder {
@@ -487,7 +496,7 @@ impl<'p, 'de, T: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, T> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
-    pub fn try_into_seq(self) -> anyhow::Result<SeqSpecDecoder<'p, 'de, D>> {
+    pub fn try_into_seq(self) -> anyhow::Result<SeqDecoder<'p, 'de, D>> {
         match self {
             DecoderView::Seq(x) => Ok(x),
             unexpected => unexpected.mismatch("seq")?,
@@ -595,7 +604,7 @@ impl<'de, D: ?Sized + SpecDecoder<'de>> SimpleDecoderView<'de, D> {
                 some_decoder: Some(some),
                 some_closer: None,
             }),
-            SimpleDecoderView::Seq(seq) => DecoderView::Seq(SeqSpecDecoder {
+            SimpleDecoderView::Seq(seq) => DecoderView::Seq(SeqDecoder {
                 this,
                 seq: Some(seq),
             }),

@@ -338,4 +338,8 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         self.inner.struct_variant_end(variant)?;
         Ok(())
     }
+
+    fn is_human_readable(&self) -> bool {
+        self.inner.is_human_readable()
+    }
 }
