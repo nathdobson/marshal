@@ -68,9 +68,7 @@ fn test_rt() -> anyhow::Result<()> {
         vec![Enum1::A, Enum1::B(1, 2), Enum1::C { x: 3, y: 4, z: 5 }],
         r#"
 [
-  {
-    "A": null
-  },
+  "A",
   {
     "B": [
       1,

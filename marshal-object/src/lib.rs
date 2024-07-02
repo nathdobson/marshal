@@ -21,6 +21,7 @@ use marshal_pointer::AsFlatRef;
 pub mod de;
 pub mod ser;
 pub mod variants;
+pub mod type_id;
 
 #[doc(hidden)]
 pub mod reexports {

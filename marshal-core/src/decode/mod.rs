@@ -512,6 +512,12 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
             unexpected => unexpected.mismatch("option")?,
         }
     }
+    pub fn try_into_enum(self) -> anyhow::Result<EnumDecoder<'p, 'de, D>> {
+        match self {
+            DecoderView::Enum(e) => Ok(e),
+            unexpected => unexpected.mismatch("enum")?,
+        }
+    }
     pub fn try_into_identifier(
         self,
         ids: &'static [&'static str],
@@ -519,7 +525,13 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
         match self {
             DecoderView::Primitive(n) => Ok(Some(n.try_into()?)),
             DecoderView::String(s) => Ok(ids.iter().position(|x| **x == s)),
-            unexpected => unexpected.mismatch("option")?,
+            unexpected => unexpected.mismatch("identifier")?,
+        }
+    }
+    pub fn try_into_unit(self) -> anyhow::Result<()> {
+        match self {
+            DecoderView::Primitive(p) => p.try_into(),
+            unexpected => unexpected.mismatch("unit")?,
         }
     }
     pub fn kind(&self) -> &'static str {

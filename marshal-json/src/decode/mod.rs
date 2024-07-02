@@ -1,11 +1,13 @@
 use std::borrow::Cow;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 use itertools::Itertools;
 
+use marshal_core::decode::{
+    AnyDecoder, DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder,
+};
 use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, SpecDecoder, DecodeVariantHint, SimpleDecoderView};
 
 use crate::decode::any::PeekType;
 use crate::decode::error::JsonDecoderError;
@@ -49,15 +51,33 @@ pub struct JsonMapDecoder {
     started: bool,
 }
 
+pub enum JsonDiscriminantDecoder {
+    Unit {
+        must_be_string: bool,
+        cannot_be_null: bool,
+    },
+    Map,
+}
+
+pub enum JsonVariantDecoder {
+    Unit,
+    Map,
+}
+
+pub enum JsonEnumCloser {
+    Unit,
+    Map,
+}
+
 impl<'de> SpecDecoder<'de> for SimpleJsonSpecDecoder<'de> {
     type AnyDecoder = JsonAnyDecoder;
     type SeqDecoder = JsonSeqDecoder;
     type MapDecoder = JsonMapDecoder;
     type KeyDecoder = ();
     type ValueDecoder = ();
-    type DiscriminantDecoder = ();
-    type VariantDecoder = ();
-    type EnumCloser = ();
+    type DiscriminantDecoder = JsonDiscriminantDecoder;
+    type VariantDecoder = JsonVariantDecoder;
+    type EnumCloser = JsonEnumCloser;
     type SomeDecoder = JsonSomeDecoder;
     type SomeCloser = JsonSomeCloser;
 
@@ -155,6 +175,12 @@ impl<'de> SpecDecoder<'de> for SimpleJsonSpecDecoder<'de> {
                 PeekType::String) if context.must_be_string => {
                 Ok(SimpleDecoderView::Primitive(self.read_prim_from_str(prim)?))
             },
+            (DecodeHint::Enum { name, variants }, PeekType::String) => {
+                Ok(SimpleDecoderView::Enum(JsonDiscriminantDecoder::Unit{
+                    must_be_string:context.must_be_string,
+                    cannot_be_null:context.must_be_string
+                }))
+            },
             (
                 DecodeHint::Any
                 | DecodeHint::Ignore
@@ -182,8 +208,7 @@ impl<'de> SpecDecoder<'de> for SimpleJsonSpecDecoder<'de> {
                 | DecodeHint::UnitStruct { .. }
                 | DecodeHint::Tuple { .. }
                 | DecodeHint::TupleStruct { .. }
-                | DecodeHint::Struct { .. }
-                | DecodeHint::Enum { .. },
+                | DecodeHint::Struct { .. },
                 PeekType::String,
             ) => {
                 Ok(SimpleDecoderView::String(Cow::Owned(self.read_string()?)))
@@ -203,7 +228,7 @@ impl<'de> SpecDecoder<'de> for SimpleJsonSpecDecoder<'de> {
             }
             (DecodeHint::Enum { .. }, PeekType::Map) => {
                 self.read_exact(b'{')?;
-                Ok(SimpleDecoderView::Enum(()))
+                Ok(SimpleDecoderView::Enum(JsonDiscriminantDecoder::Map))
             }
             (
                 DecodeHint::Any
@@ -360,49 +385,72 @@ impl<'de> SpecDecoder<'de> for SimpleJsonSpecDecoder<'de> {
 
     fn decode_enum_discriminant(
         &mut self,
-        _: Self::DiscriminantDecoder,
+        disc: Self::DiscriminantDecoder,
     ) -> anyhow::Result<(Self::AnyDecoder, Self::VariantDecoder)> {
-        Ok((
-            JsonAnyDecoder {
-                must_be_string: true,
-                cannot_be_null: false,
-            },
-            (),
-        ))
+        match disc {
+            JsonDiscriminantDecoder::Unit {
+                must_be_string,
+                cannot_be_null,
+            } => Ok((
+                JsonAnyDecoder {
+                    must_be_string,
+                    cannot_be_null,
+                },
+                JsonVariantDecoder::Unit,
+            )),
+            JsonDiscriminantDecoder::Map => Ok((
+                JsonAnyDecoder {
+                    must_be_string: true,
+                    cannot_be_null: false,
+                },
+                JsonVariantDecoder::Map,
+            )),
+        }
     }
 
     fn decode_enum_variant(
         &mut self,
-        _: Self::VariantDecoder,
+        decoder: Self::VariantDecoder,
         hint: DecodeVariantHint,
     ) -> anyhow::Result<(SimpleDecoderView<'de, Self>, Self::EnumCloser)> {
-        self.read_exact(b':')?;
-        let hint = match hint {
-            DecodeVariantHint::UnitVariant => DecodeHint::Primitive(PrimitiveType::Unit),
-            DecodeVariantHint::TupleVariant { len } => DecodeHint::TupleStruct {
-                name: "<enum>",
-                len,
-            },
-            DecodeVariantHint::StructVariant { fields } => DecodeHint::Struct {
-                name: "<enum>",
-                fields,
-            },
-            DecodeVariantHint::Ignore => DecodeHint::Ignore,
-        };
-        Ok((
-            self.decode(
-                JsonAnyDecoder {
-                    must_be_string: false,
-                    cannot_be_null: false,
-                },
-                hint,
-            )?,
-            (),
-        ))
+        match decoder {
+            JsonVariantDecoder::Unit => Ok((
+                SimpleDecoderView::Primitive(Primitive::Unit),
+                JsonEnumCloser::Unit,
+            )),
+            JsonVariantDecoder::Map => {
+                self.read_exact(b':')?;
+                let hint = match hint {
+                    DecodeVariantHint::UnitVariant => DecodeHint::Primitive(PrimitiveType::Unit),
+                    DecodeVariantHint::TupleVariant { len } => DecodeHint::TupleStruct {
+                        name: "<enum>",
+                        len,
+                    },
+                    DecodeVariantHint::StructVariant { fields } => DecodeHint::Struct {
+                        name: "<enum>",
+                        fields,
+                    },
+                    DecodeVariantHint::Ignore => DecodeHint::Ignore,
+                };
+                Ok((
+                    self.decode(
+                        JsonAnyDecoder {
+                            must_be_string: false,
+                            cannot_be_null: false,
+                        },
+                        hint,
+                    )?,
+                    JsonEnumCloser::Map,
+                ))
+            }
+        }
     }
 
-    fn decode_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
-        self.read_exact(b'}')
+    fn decode_enum_end(&mut self, decoder: Self::EnumCloser) -> anyhow::Result<()> {
+        match decoder {
+            JsonEnumCloser::Unit => Ok(()),
+            JsonEnumCloser::Map => self.read_exact(b'}'),
+        }
     }
 
     fn decode_some_inner(

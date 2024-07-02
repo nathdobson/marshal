@@ -308,16 +308,17 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         variants: &'static [&'static str],
         variant_index: usize,
     ) -> anyhow::Result<()> {
-        if any.must_be_string {
-            return Err(JsonEncoderError::MustBeString.into());
-        }
-
-        self.open_map(any.ctx)?;
-        let ctx = any.ctx.indent();
-        self.write_str_literal(ctx, variants[variant_index])?;
-        self.write_colon(ctx)?;
-        self.write_null(ctx)?;
-        self.close_map(any.ctx)?;
+        self.write_str_literal(any.ctx, variants[variant_index])?;
+        // if any.must_be_string {
+        //     return Err(JsonEncoderError::MustBeString.into());
+        // }
+        //
+        // self.open_map(any.ctx)?;
+        // let ctx = any.ctx.indent();
+        // self.write_str_literal(ctx, variants[variant_index])?;
+        // self.write_colon(ctx)?;
+        // self.write_null(ctx)?;
+        // self.close_map(any.ctx)?;
         Ok(())
     }
 

@@ -120,3 +120,9 @@ impl ForestId {
         Arc::new(self.add_raw(value))
     }
 }
+
+impl<T: Default> Default for ForestRoot<T> {
+    fn default() -> Self {
+        ForestRoot::new(Forest::new(), T::default())
+    }
+}

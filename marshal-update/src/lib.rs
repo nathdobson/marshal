@@ -16,4 +16,4 @@ pub mod version;
 pub mod object_map;
 pub mod tester;
 pub mod forest;
-
+mod object_type_id;

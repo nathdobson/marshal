@@ -1,17 +1,16 @@
-use std::collections::{HashMap, HashSet};
-use std::collections::hash_map::Entry;
+use std::collections::{hash_map, HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
-use marshal::encode::{AnyEncoder,  Encoder};
+use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
-use crate::ser::{SerializeStream, SerializeUpdate};
 use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct UpdateHashMap<K, V> {
     map: HashMap<K, V>,
@@ -21,6 +20,21 @@ pub struct UpdateHashMap<K, V> {
 pub struct UpdateHashMapStream<K, VS> {
     subscriber: SetSubscriber<HashSet<K>>,
     streams: HashMap<K, VS>,
+}
+
+pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
+    inner: hash_map::OccupiedEntry<'a, K, V>,
+    publisher: &'a mut SetPublisher<HashSet<K>>,
+}
+
+pub struct VacantEntry<'a, K: 'a, V: 'a> {
+    inner: hash_map::VacantEntry<'a, K, V>,
+    publisher: &'a mut SetPublisher<HashSet<K>>,
+}
+
+pub enum Entry<'a, K: 'a, V: 'a> {
+    Occupied(OccupiedEntry<'a, K, V>),
+    Vacant(VacantEntry<'a, K, V>),
 }
 
 impl<K: Eq + Hash + Sync + Send + Clone, V: SerializeStream> SerializeStream
@@ -66,10 +80,10 @@ impl<E: Encoder, K: Eq + Hash + Sync + Send + Clone + Serialize<E>, V: Serialize
             if let Some(source) = source {
                 let mut e = e.encode_value()?.encode_some()?;
                 match stream.streams.entry(key) {
-                    Entry::Occupied(mut o) => {
+                    hash_map::Entry::Occupied(mut o) => {
                         source.serialize_update(o.get_mut(), e.encode_some()?, ctx.reborrow())?;
                     }
-                    Entry::Vacant(v) => {
+                    hash_map::Entry::Vacant(v) => {
                         v.insert(source.start_stream(ctx.reborrow())?);
                         source.serialize(e.encode_some()?, ctx.reborrow())?;
                     }
@@ -117,11 +131,11 @@ impl<D: Decoder, K: Eq + Hash + Deserialize<D>, V: DeserializeUpdate<D>> Deseria
             let v = d.decode_value()?;
             if let Some(mut v) = v.decode(DecodeHint::Option)?.try_into_option()? {
                 match self.map.entry(key) {
-                    Entry::Occupied(mut o) => {
+                    hash_map::Entry::Occupied(mut o) => {
                         o.get_mut()
                             .deserialize_update(v.decode_some()?, ctx.reborrow())?;
                     }
-                    Entry::Vacant(vac) => {
+                    hash_map::Entry::Vacant(vac) => {
                         vac.insert(V::deserialize(v.decode_some()?, ctx.reborrow())?);
                     }
                 }
@@ -158,6 +172,15 @@ impl<K: Eq + Hash + Sync + Send + Clone, V> UpdateHashMap<K, V> {
         let result = self.map.get_mut(k)?;
         self.publisher.send(&k);
         Some(result)
+    }
+    pub fn entry(&mut self, k: K) -> Entry<K, V> {
+        todo!();
+    }
+}
+
+impl<'a, K: 'a + Eq + Hash + Sync + Send + Clone, V: 'a> Entry<'a, K, V> {
+    pub fn or_insert_with<F>(self, f: F) -> &'a V {
+        todo!();
     }
 }
 

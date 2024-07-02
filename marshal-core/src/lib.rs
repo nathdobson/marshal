@@ -71,7 +71,6 @@ impl TryFrom<Primitive> for usize {
     }
 }
 
-
 impl TryFrom<Primitive> for isize {
     type Error = anyhow::Error;
 
@@ -93,5 +92,15 @@ impl TryFrom<Primitive> for isize {
             Primitive::F64(_) => value.mismatch("u8")?,
             Primitive::Char(x) => Self::try_from(x as u32)?,
         })
+    }
+}
+
+impl TryFrom<Primitive> for () {
+    type Error = anyhow::Error;
+    fn try_from(value: Primitive) -> Result<Self, Self::Error> {
+        match value {
+            Primitive::Unit => Ok(()),
+            unexpected => unexpected.mismatch("unit")?,
+        }
     }
 }
