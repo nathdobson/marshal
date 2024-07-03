@@ -1,13 +1,14 @@
+use std::borrow::Cow;
 use std::marker::PhantomData;
 use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint};
+use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView};
 use marshal::SchemaError;
 
-use crate::Object;
 use crate::variants::{VariantImpl, VariantImplSet};
+use crate::Object;
 
 pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {
     fn deserialize_variant<'p, 'de>(
@@ -29,13 +30,17 @@ where
         variants: O::object_descriptor().discriminant_names(),
     })? {
         DecoderView::Enum(mut d) => {
-            let disc = match d.decode_discriminant()?.decode(DecodeHint::Identifier)? {
-                DecoderView::String(x) => O::object_descriptor()
-                    .variant_index_of(&*x)
-                    .ok_or(SchemaError::UnknownVariant)?,
-                DecoderView::Primitive(p) => p.try_into()?,
-                d => d.mismatch("discriminant")?,
-            };
+            let disc =
+                match d.decode_discriminant()?.decode(DecodeHint::Identifier)? {
+                    DecoderView::String(x) => O::object_descriptor()
+                        .variant_index_of(&*x)
+                        .ok_or_else(|| SchemaError::UnknownDiscriminantName {
+                            disc: x.into_owned(),
+                            expected: O::object_descriptor().discriminant_names(),
+                        })?,
+                    DecoderView::Primitive(p) => p.try_into()?,
+                    d => d.mismatch("discriminant")?,
+                };
             let result = match d.decode_variant(DecodeVariantHint::TupleVariant { len: 1 })? {
                 DecoderView::Seq(mut d) => {
                     let variant = d.decode_next()?.ok_or(SchemaError::TupleTooShort)?;

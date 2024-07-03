@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Data, DeriveInput, Token, Variant};
 use syn::parse::ParseStream;
+use syn::{Data, DeriveInput, Token, Variant};
 
 use crate::generics::DeriveGenerics;
 use crate::ident_to_lit;
@@ -296,12 +296,13 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
             Ok(quote! {
                 #imp {
                     fn deserialize<'p, 'de>(decoder: #any_gen_decoder_type<'p, 'de, D>, mut ctx: #context_type) -> #result_type<Self>{
+                        let variants = &[
+                            #(
+                                #variant_literals
+                            ),*
+                        ];
                         let hint = #decode_hint_type::Enum {
-                            variants: &[
-                                #(
-                                    #variant_literals
-                                ),*
-                            ],
+                            variants,
                             name: #type_name,
                         };
                         let decoder = decoder.decode( hint)?;
@@ -316,14 +317,20 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                                             #(
                                                 #variant_literals => #variant_indices,
                                             )*
-                                            _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
+                                            _ => return #result_type::Err(#schema_error::UnknownDiscriminantName {
+                                                disc: disc.into_owned(),
+                                                expected: variants
+                                            }.into()),
                                         },
-                                        _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
+                                        unexpected => unexpected.mismatch("identifier")?,
                                     }
                                 };
                                 let result=match variant_index {
                                     #(#matches)*
-                                    _ => return #result_type::Err(#schema_error::UnknownVariant.into()),
+                                    n => return #result_type::Err(#schema_error::UnknownDiscriminantIndex{
+                                        disc:n,
+                                        expected:variants,
+                                    }.into()),
                                 };
                                 decoder.decode_end()?;
                                 ::std::result::Result::Ok(result)

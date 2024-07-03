@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 
-use crate::{Primitive, PrimitiveType};
+use crate::{Primitive, PrimitiveType, SchemaError};
 
 pub mod depth_budget;
 mod enum_helper;
@@ -545,12 +545,20 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
     pub fn try_into_identifier(
         self,
         ids: &'static [&'static str],
-    ) -> anyhow::Result<Option<usize>> {
+    ) -> anyhow::Result<Result<usize, Cow<'de, str>>> {
         match self {
-            DecoderView::Primitive(n) => Ok(Some(n.try_into()?)),
-            DecoderView::String(s) => Ok(ids.iter().position(|x| **x == s)),
+            DecoderView::Primitive(n) => Ok(Ok(n.try_into()?)),
+            DecoderView::String(s) => Ok(ids.iter().position(|x| **x == s).ok_or(s)),
             unexpected => unexpected.mismatch("identifier")?,
         }
+    }
+    pub fn try_into_discriminant(self, ids: &'static [&'static str]) -> anyhow::Result<usize> {
+        Ok(self
+            .try_into_identifier(ids)?
+            .map_err(|v| SchemaError::UnknownDiscriminantName {
+                disc: v.into_owned(),
+                expected: ids,
+            })?)
     }
     pub fn try_into_unit(self) -> anyhow::Result<()> {
         match self {

@@ -109,8 +109,17 @@ impl TryFrom<Primitive> for () {
 
 #[derive(Debug)]
 pub enum SchemaError {
-    MissingField { field_name: &'static str },
-    UnknownVariant,
+    MissingField {
+        field_name: &'static str,
+    },
+    UnknownDiscriminantName {
+        disc: String,
+        expected: &'static [&'static str],
+    },
+    UnknownDiscriminantIndex {
+        disc: usize,
+        expected: &'static [&'static str],
+    },
     TupleTooShort,
     UninhabitedType,
     TupleTooLong,
@@ -123,4 +132,3 @@ impl Display for SchemaError {
 }
 
 impl std::error::Error for SchemaError {}
-

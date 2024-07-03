@@ -1,5 +1,5 @@
-use crate::decode::{AnySpecDecoder, DecodeHint, DecodeVariantHint, EnumDecoder, SpecDecoder};
 use crate::decode::tuple_helper::TupleHelper;
+use crate::decode::{AnySpecDecoder, DecodeHint, DecodeVariantHint, EnumDecoder, SpecDecoder};
 use crate::SchemaError;
 
 pub struct EnumDecoderHelper<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
@@ -19,8 +19,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
         let disc = d
             .decode_discriminant()?
             .decode(DecodeHint::Identifier)?
-            .try_into_identifier(variants)?
-            .ok_or(SchemaError::UnknownVariant)?;
+            .try_into_discriminant(variants)?;
         Ok((disc, d))
     }
 }

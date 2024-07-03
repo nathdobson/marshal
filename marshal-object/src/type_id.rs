@@ -5,10 +5,10 @@ use std::ptr::null;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecodeVariantHint};
+use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
-use marshal::SchemaError;
 use marshal::ser::Serialize;
+use marshal::SchemaError;
 
 use crate::{AsDiscriminant, Object};
 
@@ -88,9 +88,9 @@ impl<D: Decoder, C: Object> Deserialize<D> for ObjectTypeId<C> {
         let discriminant = d
             .decode_discriminant()?
             .decode(DecodeHint::Identifier)?
-            .try_into_identifier(variants)?
-            .ok_or(SchemaError::UnknownVariant)?;
-        d.decode_variant(DecodeVariantHint::UnitVariant)?.try_into_unit()?;
+            .try_into_discriminant(variants)?;
+        d.decode_variant(DecodeVariantHint::UnitVariant)?
+            .try_into_unit()?;
         d.decode_end()?;
         Ok(ObjectTypeId {
             discriminant,
