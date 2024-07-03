@@ -7,6 +7,7 @@
 #![feature(trait_alias)]
 #![feature(coerce_unsized)]
 #![feature(unsize)]
+#![feature(try_blocks)]
 
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;

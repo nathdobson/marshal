@@ -10,9 +10,7 @@ use crate::encode::full::{JsonEncoder, JsonEncoderBuilder};
 use crate::JsonDecoder;
 
 #[track_caller]
-pub fn test_round_trip<
-    T: Debug + Eq + Serialize<JsonEncoder> + Deserialize<JsonDecoder>,
->(
+pub fn test_round_trip<T: Debug + Eq + Serialize<JsonEncoder> + Deserialize<JsonDecoder>>(
     input: T,
     expected: &str,
 ) -> anyhow::Result<()> {
@@ -84,6 +82,11 @@ fn test_rt() -> anyhow::Result<()> {
   }
 ]"#,
     )?;
+    test_round_trip("\u{0000}".to_string(), "\"\\u0000\"")?;
+    test_round_trip(vec![0u8], "\"AA\"")?;
+    test_round_trip(vec![0u8, 0u8], "\"AAA\"")?;
+    test_round_trip(vec![0u8, 0u8, 0u8], "\"AAAA\"")?;
+    test_round_trip(vec![0u8, 0u8, 0u8, 0u8], "\"AAAAAA\"")?;
 
     Ok(())
 }

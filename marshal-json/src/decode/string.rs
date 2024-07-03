@@ -16,7 +16,7 @@ impl<'de> SimpleJsonSpecDecoder<'de> {
         loop {
             let c = self.read_unicode()?;
             if c as u32 <= 0x1F {
-                return Err(JsonDecoderError::StringContainsControl.into());
+                return Err(JsonDecoderError::StringContainsControl{control:c}.into());
             }
             match c {
                 '"' => break,

@@ -1,8 +1,7 @@
-use std::borrow::Cow;
-
 use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::Engine;
 use itertools::Itertools;
+use std::borrow::Cow;
 
 use marshal_core::decode::{DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder};
 use marshal_core::{Primitive, PrimitiveType};
@@ -20,6 +19,7 @@ mod string;
 mod test;
 
 pub struct SimpleJsonSpecDecoder<'de> {
+    original: &'de [u8],
     cursor: &'de [u8],
 }
 
@@ -483,6 +483,32 @@ impl<'de> SpecDecoder<'de> for SimpleJsonSpecDecoder<'de> {
 
 impl<'de> SimpleJsonSpecDecoder<'de> {
     pub fn new(input: &'de [u8]) -> Self {
-        SimpleJsonSpecDecoder { cursor: input }
+        SimpleJsonSpecDecoder {
+            original: input,
+            cursor: input,
+        }
+    }
+    pub fn location(&self) -> String {
+        let offset = self.original.len() - self.cursor.len();
+        let consumed = std::str::from_utf8(&self.original[0..offset]);
+        let consumed = match consumed {
+            Ok(consumed) => consumed,
+            Err(_) => return format!("cannot find location in json"),
+        };
+        let mut line = 0;
+        let mut column = 0;
+        for c in consumed.chars() {
+            if c == '\n' {
+                line += 1;
+                column = 0;
+            } else {
+                column += 1;
+            }
+        }
+        format!("at line {} column {}", line, column)
+    }
+    pub fn try_read_eof(&mut self) -> anyhow::Result<bool> {
+        self.read_whitespace()?;
+        Ok(self.cursor.len() == 0)
     }
 }

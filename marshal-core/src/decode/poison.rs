@@ -71,6 +71,12 @@ impl<'de, D: SpecDecoder<'de>> PoisonDecoder<D> {
             SimpleDecoderView::Enum(x) => SimpleDecoderView::Enum(self.push(x)),
         }
     }
+    pub fn inner(&self) -> &D {
+        &self.inner
+    }
+    pub fn inner_mut(&mut self) -> &mut D {
+        &mut self.inner
+    }
 }
 
 impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {

@@ -3,8 +3,8 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::io::Write;
 
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::Engine;
 
 use marshal_core::encode::{AnySpecEncoder, SpecEncoder};
 use marshal_core::Primitive;
@@ -199,7 +199,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         let len = base64::encoded_len(s.len(), false).ok_or(JsonEncoderError::NumericOverflow)?;
         let start = self.output.len();
         self.output.resize(start + len, 0);
-        BASE64_STANDARD_NO_PAD.encode(&mut self.output[start..]);
+        BASE64_STANDARD_NO_PAD.encode_slice(s, &mut self.output[start..])?;
         self.write(any.ctx, "\"")?;
         Ok(())
     }
@@ -259,7 +259,11 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
         }
     }
 
-    fn encode_unit_struct(&mut self, any: Self::AnySpecEncoder, _: &'static str) -> anyhow::Result<()> {
+    fn encode_unit_struct(
+        &mut self,
+        any: Self::AnySpecEncoder,
+        _: &'static str,
+    ) -> anyhow::Result<()> {
         if any.must_be_string {
             return Err(JsonEncoderError::MustBeString.into());
         }

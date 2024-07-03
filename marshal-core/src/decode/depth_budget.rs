@@ -48,6 +48,12 @@ impl<'de, D: SpecDecoder<'de>> DepthBudgetDecoder<D> {
             SimpleDecoderView::Enum(x) => SimpleDecoderView::Enum(WithDepthBudget::new(budget, x)),
         }
     }
+    pub fn inner(&self) -> &D {
+        &self.inner
+    }
+    pub fn inner_mut(&mut self) -> &mut  D {
+        &mut self.inner
+    }
     pub fn end(self) -> anyhow::Result<D> {
         Ok(self.inner)
     }

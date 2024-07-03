@@ -16,7 +16,7 @@ pub enum JsonDecoderError {
     BadNumber,
     CharTryFromError,
     FromUtf8Error,
-    StringContainsControl,
+    StringContainsControl { control: char },
     StringBadEscape,
     UnexpectedIdentifier { found: Vec<u8> },
     UnexpectedInitialCharacter { found: char },
