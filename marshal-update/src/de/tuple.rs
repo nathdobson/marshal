@@ -1,7 +1,6 @@
 use marshal::context::Context;
-use marshal::de::SchemaError;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
-
+use marshal::SchemaError;
 use crate::de::DeserializeUpdate;
 
 impl<D: Decoder, T1: DeserializeUpdate<D>, T2: DeserializeUpdate<D>>

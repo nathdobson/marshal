@@ -1,11 +1,10 @@
 use crate::{MarshalError, WithSerde};
 use marshal::context::Context;
-use marshal::de::SchemaError;
 use marshal::decode::{
     AnyDecoder, AnySpecDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, SeqDecoder,
     SpecDecoder,
 };
-use marshal::{Primitive, PrimitiveType};
+use marshal::{Primitive, PrimitiveType, SchemaError};
 use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 use serde::Deserializer;
 use std::borrow::Cow;

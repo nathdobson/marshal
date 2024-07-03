@@ -6,11 +6,12 @@ use std::marker::PhantomData;
 use crate::{Primitive, PrimitiveType};
 
 pub mod depth_budget;
-mod helper;
+mod enum_helper;
 pub mod newtype;
 pub mod poison;
 mod polonius;
-
+mod struct_helper;
+mod tuple_helper;
 // pub mod depth_budget;
 // pub mod poison;
 
@@ -496,6 +497,16 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SomeDecoder<'p, 'de, D> {
 impl<'p, 'de, T: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, T> {
     pub fn new(decoder: &'p mut T, any: T::AnyDecoder) -> Self {
         AnySpecDecoder { this: decoder, any }
+    }
+}
+
+impl<'p, 'de, T: ?Sized + SpecDecoder<'de>> EntryDecoder<'p, 'de, T> {
+    pub fn new(decoder: &'p mut T, key: T::KeyDecoder) -> Self {
+        EntryDecoder {
+            this: decoder,
+            key: Some(key),
+            value: None,
+        }
     }
 }
 

@@ -10,10 +10,11 @@ use std::intrinsics::const_allocate;
 use std::mem::{align_of, size_of};
 
 use marshal::context::Context;
-use marshal::de::{Deserialize, SchemaError};
+use marshal::de::{Deserialize};
 use marshal::ser::Serialize;
 use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
 use marshal_core::encode::{AnyEncoder, Encoder, StructEncoder};
+use marshal_core::SchemaError;
 
 #[cfg(test)]
 mod test;

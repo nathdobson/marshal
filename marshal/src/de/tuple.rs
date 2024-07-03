@@ -1,8 +1,8 @@
-use marshal_core::{Primitive, PrimitiveType};
 use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
+use marshal_core::{Primitive, PrimitiveType, SchemaError};
 
 use crate::context::Context;
-use crate::de::{Deserialize, SchemaError};
+use crate::de::Deserialize;
 
 impl<D: Decoder> Deserialize<D> for () {
     fn deserialize<'p, 'de>(p: AnyDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self> {

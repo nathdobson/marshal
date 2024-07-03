@@ -6,6 +6,8 @@
 #![feature(try_blocks)]
 #![feature(never_type)]
 
+use std::fmt::{Debug, Display, Formatter};
+
 pub mod decode;
 pub mod encode;
 
@@ -104,3 +106,21 @@ impl TryFrom<Primitive> for () {
         }
     }
 }
+
+#[derive(Debug)]
+pub enum SchemaError {
+    MissingField { field_name: &'static str },
+    UnknownVariant,
+    TupleTooShort,
+    UninhabitedType,
+    TupleTooLong,
+}
+
+impl Display for SchemaError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for SchemaError {}
+

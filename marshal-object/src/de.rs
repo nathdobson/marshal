@@ -2,11 +2,11 @@ use std::marker::PhantomData;
 use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
-use marshal::de::{Deserialize, SchemaError};
-use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint};
-
-use crate::Object;
+use marshal::de::Deserialize;
+use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView};
+use marshal::SchemaError;
 use crate::variants::{VariantImpl, VariantImplSet};
+use crate::Object;
 
 pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {
     fn deserialize_variant<'p, 'de>(
@@ -53,8 +53,6 @@ where
     }
 }
 
-
-
 pub trait DeserializeVariantDyn<D: Decoder, O: Object>: 'static + Sync + Send {
     fn deserialize_variant_dyn<'p, 'de>(
         &self,
@@ -73,8 +71,7 @@ pub trait DeserializeVariantDyn<D: Decoder, O: Object>: 'static + Sync + Send {
 
 impl<D, O> VariantImpl for &'static dyn DeserializeVariantDyn<D, O> {}
 
-impl<D: Decoder, O: Object, V: 'static> DeserializeVariantDyn<D, O>
-    for PhantomData<fn() -> V>
+impl<D: Decoder, O: Object, V: 'static> DeserializeVariantDyn<D, O> for PhantomData<fn() -> V>
 where
     O::Pointer<V>: Deserialize<D>,
     O::Pointer<V>: CoerceUnsized<O::Pointer<O::Dyn>>,

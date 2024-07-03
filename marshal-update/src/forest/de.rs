@@ -55,9 +55,9 @@ impl<D: Decoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T>
         let mut d = d.decode_struct_helper("ForestRoot", &["root", "trees"])?;
         while let Some((field, mut d)) = d.next()? {
             match field {
-                0 => root.deserialize_update(d.decode_field()?, ctx.reborrow())?,
+                0 => root.deserialize_update(d, ctx.reborrow())?,
                 1 => {
-                    let mut d = d.decode_field()?.decode(DecodeHint::Map)?.try_into_map()?;
+                    let mut d = d.decode(DecodeHint::Map)?.try_into_map()?;
                     while let Some(mut d) = d.decode_next()? {
                         let key = <usize as Deserialize<D>>::deserialize(
                             d.decode_key()?,
@@ -80,7 +80,6 @@ impl<D: Decoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T>
                 }
                 _ => unreachable!(),
             }
-            d.decode_end()?;
         }
         Ok(())
     }

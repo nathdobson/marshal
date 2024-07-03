@@ -32,7 +32,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
     let decoder_view_type = quote!(::marshal::decode::DecoderView);
     let type_name = ident_to_lit(&type_ident);
     let option_type = quote! {::std::option::Option};
-    let schema_error = quote! {::marshal::de::SchemaError};
+    let schema_error = quote! {::marshal::SchemaError};
 
     let imp = quote! { impl<#(#generic_params,)* D:#gen_decoder_trait> #deserialize_update_trait<D> for #type_ident <#(#generic_args),*> };
 
