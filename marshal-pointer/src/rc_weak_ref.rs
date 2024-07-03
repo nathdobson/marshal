@@ -1,10 +1,11 @@
-use std::{fmt::Debug, marker::PhantomData, mem, rc};
 use std::any::TypeId;
 use std::cell::UnsafeCell;
 use std::fmt::Formatter;
+use std::{fmt::Debug, marker::PhantomData, mem, rc, sync};
 
-use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
+use crate::arc_weak_ref::ArcWeakRef;
 use crate::global_uninit::global_uninit_for_ptr;
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 #[repr(transparent)]
 pub struct RcWeakRef<T: ?Sized> {
@@ -75,6 +76,12 @@ impl<T: 'static> DowncastRef<RcWeakRef<T>> for RcWeakRef<dyn RawAny> {
     }
 }
 
+impl<T> AsRef<RcWeakRef<T>> for rc::Weak<T> {
+    fn as_ref(&self) -> &RcWeakRef<T> {
+        self.as_flat_ref()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::rc;
@@ -87,7 +94,6 @@ mod test {
         let x = Rc::new(123);
         Rc::downgrade(&x).as_flat_ref().weak();
     }
-
 
     #[test]
     fn test_fake_weak() {
@@ -149,5 +155,4 @@ mod test {
         get_fake::<Align8192<[u8; 8]>>();
         get_fake::<Align8192<[u8; 9]>>();
     }
-
 }

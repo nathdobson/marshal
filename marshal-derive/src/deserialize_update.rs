@@ -40,6 +40,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
         Data::Struct(data) => match ParsedFields::new(&data.fields) {
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
+                field_var_idents,
                 field_types,
                 field_literals,
                 field_indices,
@@ -143,6 +144,7 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
                     ParsedFields::Named(
                         ParsedFieldsNamed {
                             field_idents,
+                            field_var_idents,
                             field_types,
                             field_literals,
                             field_indices

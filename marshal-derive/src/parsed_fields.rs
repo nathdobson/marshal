@@ -1,10 +1,11 @@
 use proc_macro2::Ident;
 use quote::format_ident;
-use syn::{Fields, LitStr, Type};
 use syn::spanned::Spanned;
+use syn::{Fields, LitStr, Type};
 
 pub struct ParsedFieldsNamed<'a> {
-    pub field_idents: Vec<&'a Ident>, //
+    pub field_idents: Vec<&'a Ident>,
+    pub field_var_idents: Vec<Ident>,
     pub field_types: Vec<&'a Type>,
     pub field_literals: Vec<LitStr>,
     pub field_indices: Vec<usize>,
@@ -28,12 +29,14 @@ impl<'a> ParsedFields<'a> {
         match &fields {
             Fields::Named(fields) => {
                 let mut field_idents = vec![];
+                let mut field_var_idents = vec![];
                 let mut field_types = vec![];
                 let mut field_literals = vec![];
                 let mut field_indices = vec![];
                 for (index, field) in fields.named.iter().enumerate() {
                     let ident = field.ident.as_ref().unwrap();
                     field_idents.push(ident);
+                    field_var_idents.push(format_ident!("_{}", ident));
                     field_types.push(&field.ty);
                     field_literals.push(LitStr::new(&format!("{}", ident), ident.span()));
                     field_indices.push(index);
@@ -41,6 +44,7 @@ impl<'a> ParsedFields<'a> {
 
                 ParsedFields::Named(ParsedFieldsNamed {
                     field_idents,
+                    field_var_idents,
                     field_types,
                     field_literals,
                     field_indices,

@@ -1,10 +1,12 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::sync;
 use std::sync::Arc;
 
 use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
+use crate::rc_ref::RcRef;
 
 #[repr(transparent)]
 pub struct ArcRef<T: ?Sized> {
@@ -65,6 +67,12 @@ impl<T: 'static> DowncastRef<ArcRef<T>> for ArcRef<dyn RawAny> {
                 None
             }
         }
+    }
+}
+
+impl<T> AsRef<ArcRef<T>> for Arc<T> {
+    fn as_ref(&self) -> &ArcRef<T> {
+        self.as_flat_ref()
     }
 }
 

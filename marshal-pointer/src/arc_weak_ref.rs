@@ -1,10 +1,11 @@
-use std::{fmt::Debug, marker::PhantomData, mem, sync};
+use crate::arc_ref::ArcRef;
+use crate::global_uninit::global_uninit_for_ptr;
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 use std::any::TypeId;
 use std::cell::UnsafeCell;
 use std::fmt::Formatter;
-
-use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
-use crate::global_uninit::global_uninit_for_ptr;
+use std::sync::Arc;
+use std::{fmt::Debug, marker::PhantomData, mem, sync};
 
 #[repr(transparent)]
 pub struct ArcWeakRef<T: ?Sized> {
@@ -75,6 +76,12 @@ impl<T: 'static> DowncastRef<ArcWeakRef<T>> for ArcWeakRef<dyn RawAny> {
                 None
             }
         }
+    }
+}
+
+impl<T> AsRef<ArcWeakRef<T>> for sync::Weak<T> {
+    fn as_ref(&self) -> &ArcWeakRef<T> {
+        self.as_flat_ref()
     }
 }
 
@@ -156,5 +163,4 @@ mod test {
         get_fake::<Align8192<[u8; 8]>>();
         get_fake::<Align8192<[u8; 9]>>();
     }
-
 }

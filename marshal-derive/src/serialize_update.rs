@@ -42,6 +42,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
             }),
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
+                field_var_idents,
                 field_types,
                 field_literals,
                 field_indices: _,
@@ -103,6 +104,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
                 match ParsedFields::new(&variant.fields) {
                     ParsedFields::Named(ParsedFieldsNamed {
                         field_idents,
+                        field_var_idents,
                         field_types: _,
                         field_literals,
                         field_indices: _,

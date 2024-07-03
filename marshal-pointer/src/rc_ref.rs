@@ -65,6 +65,12 @@ impl<T: 'static> DowncastRef<RcRef<T>> for RcRef<dyn RawAny> {
     }
 }
 
+impl<T> AsRef<RcRef<T>> for Rc<T> {
+    fn as_ref(&self) -> &RcRef<T> {
+        self.as_flat_ref()
+    }
+}
+
 #[test]
 fn test() {
     Rc::new(123).as_flat_ref().rc();

@@ -1,20 +1,42 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{Data, DeriveInput, Variant};
-
 use crate::generics::DeriveGenerics;
 use crate::ident_to_lit;
 use crate::parsed_enum::ParsedEnum;
 use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
+use proc_macro2::{Ident, TokenStream};
+use quote::quote;
+use syn::parse::ParseStream;
+use syn::{Data, DeriveInput, Token, Variant};
 
 pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
-        attrs: _,
+        attrs,
         vis: _,
         ident: type_ident,
         generics,
         data,
     } = input;
+    let mut extra_where: Vec<TokenStream> = vec![];
+    for attr in attrs {
+        if attr.path().is_ident("deserialize") {
+            attr.meta
+                .require_list()?
+                .parse_args_with(|f: ParseStream| {
+                    let ident = f.parse::<Ident>()?;
+                    f.parse::<Token![=]>()?;
+                    if ident == "bounds" {
+                        let arg = f.parse::<TokenStream>()?;
+                        extra_where.push(arg);
+                    } else {
+                        return Err(syn::Error::new(
+                            ident.span(),
+                            format!("unsupported option {:?}", ident),
+                        ));
+                    }
+                    Ok(())
+                })?;
+        }
+    }
+
     let DeriveGenerics {
         generic_params,
         generic_args,
@@ -34,12 +56,18 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
     let option_type = quote! {::std::option::Option};
     let schema_error = quote! {::marshal::SchemaError};
 
-    let imp = quote! { impl<#(#generic_params,)* D: #gen_decoder_trait> #deserialize_trait<D> for #type_ident <#(#generic_args),*> };
+    let imp = quote! {
+        impl<#(#generic_params,)* D: #gen_decoder_trait>
+        #deserialize_trait<D>
+        for #type_ident <#(#generic_args),*>
+        where #(#extra_where),*
+    };
 
     match data {
         Data::Struct(data) => match ParsedFields::new(&data.fields) {
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
+                field_var_idents,
                 field_types,
                 field_literals,
                 field_indices,
@@ -56,7 +84,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                             name: #type_name,
                         };
                         #(
-                            let mut #field_idents : #option_type<#field_types> = #option_type::None;
+                            let mut #field_var_idents : #option_type<#field_types> = #option_type::None;
                         )*
                         let decoder = decoder.decode( hint)?;
                         match decoder {
@@ -77,7 +105,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                                             #(
                                                 #field_indices => {
                                                     let value = entry.decode_value()?;
-                                                    #field_idents = Some(<#field_types as #deserialize_trait<D>>::deserialize(value, ctx.reborrow())?);
+                                                    #field_var_idents = Some(<#field_types as #deserialize_trait<D>>::deserialize(value, ctx.reborrow())?);
                                                 }
                                             )*
                                             _ => {
@@ -93,11 +121,11 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                             v => v.mismatch("map from field names or indices to field values")?,
                         }
                         #(
-                            let #field_idents = #field_idents.ok_or(#schema_error::MissingField{field_name:#field_literals})?;
+                            let #field_var_idents = #field_var_idents.ok_or(#schema_error::MissingField{field_name:#field_literals})?;
                         )*
                         ::std::result::Result::Ok(#type_ident {
                             #(
-                                #field_idents
+                                #field_idents: #field_var_idents
                             ),*
                         })
                     }
@@ -161,6 +189,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                     ParsedFields::Named(
                         ParsedFieldsNamed {
                             field_idents,
+                            field_var_idents,
                             field_types,
                             field_literals,
                             field_indices
@@ -175,7 +204,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                                     ],
                                 };
                                 #(
-                                    let mut #field_idents : #option_type<#field_types> = #option_type::None;
+                                    let mut #field_var_idents : #option_type<#field_types> = #option_type::None;
                                 )*
                                 let decoder = decoder.decode_variant(hint)?;
                                 match decoder {
@@ -196,7 +225,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                                                     #(
                                                         #field_indices => {
                                                             let value = entry.decode_value()?;
-                                                            #field_idents = Some(<#field_types as #deserialize_trait<D>>::deserialize(value, ctx.reborrow())?);
+                                                            #field_var_idents = Some(<#field_types as #deserialize_trait<D>>::deserialize(value, ctx.reborrow())?);
                                                         }
                                                     )*
                                                     _ => entry.decode_value()?.ignore()?,
@@ -210,11 +239,11 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                                     v => v.mismatch("expected map")?
                                 }
                                 #(
-                                    let #field_idents = #field_idents.ok_or(#schema_error::MissingField{field_name:#field_literals})?;
+                                    let #field_var_idents = #field_var_idents.ok_or(#schema_error::MissingField{field_name:#field_literals})?;
                                 )*
                                 #type_ident::#variant_ident {
                                     #(
-                                        #field_idents
+                                        #field_idents:#field_var_idents
                                     ),*
                                 }
                             },
