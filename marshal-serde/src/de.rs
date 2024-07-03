@@ -1,9 +1,9 @@
-use crate::{MarshalError, SerdeWrapper};
+use crate::{MarshalError, WithSerde};
 use marshal::context::Context;
 use marshal::de::SchemaError;
 use marshal::decode::{
-    AnyDecoder, AnySpecDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView, EnumDecoder,
-    SeqDecoder, SpecDecoder,
+    AnyDecoder, AnySpecDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, SeqDecoder,
+    SpecDecoder,
 };
 use marshal::{Primitive, PrimitiveType};
 use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
@@ -12,25 +12,25 @@ use std::borrow::Cow;
 
 struct MarshalDeserializer<'p, 'de, D: Decoder>(AnyDecoder<'p, 'de, D>);
 
-struct MarshalSeqAccess<'p, 'de, D: Decoder>(SeqDecoder<'p, 'de, D::SpecDecoder<'de>>);
+struct MarshalSeqAccess<'p2, 'p, 'de, D: Decoder>(
+    &'p2 mut SeqDecoder<'p, 'de, D::SpecDecoder<'de>>,
+);
 struct MarshalMapAccess<'p, 'de, D: Decoder> {
     decoder: &'p mut D::SpecDecoder<'de>,
     entry: Option<<D::SpecDecoder<'de> as SpecDecoder<'de>>::ValueDecoder>,
     map: Option<<D::SpecDecoder<'de> as SpecDecoder<'de>>::MapDecoder>,
 }
 
-struct MarshalEnumAccess<'p, 'de, D: Decoder>(EnumDecoder<'p, 'de, D::SpecDecoder<'de>>);
-struct MarshalVariantAccess<'p, 'de, D: Decoder>(EnumDecoder<'p, 'de, D::SpecDecoder<'de>>);
+struct MarshalEnumAccess<'p, 'de, D: Decoder>(EntryDecoder<'p, 'de, D::SpecDecoder<'de>>);
+struct MarshalVariantAccess<'p, 'de, D: Decoder>(EntryDecoder<'p, 'de, D::SpecDecoder<'de>>);
 
-impl<D: Decoder, T: for<'de> serde::Deserialize<'de>> marshal::de::Deserialize<D>
-    for SerdeWrapper<T>
-{
-    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self>
+impl<D: Decoder, T: for<'de> serde::Deserialize<'de>> marshal::de::Deserialize<D> for WithSerde<T> {
+    fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, _ctx: Context) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
-        Ok(SerdeWrapper {
-            inner: T::deserialize(MarshalDeserializer::<D>(d))?,
+        Ok(WithSerde {
+            inner: T::deserialize(MarshalDeserializer::<D>(d)).map_err(|x| x.0)?,
         })
     }
 }
@@ -71,8 +71,12 @@ fn visit<'p, 'de, D: Decoder, V: Visitor<'de>>(
             d.decode_end()?;
             Ok(result)
         }
-        DecoderView::Seq(mut d) => visitor.visit_seq(MarshalSeqAccess::<D>(d)),
-        DecoderView::Map(mut d) => {
+        DecoderView::Seq(mut d) => {
+            let result = visitor.visit_seq(MarshalSeqAccess::<D>(&mut d))?;
+            d.ignore()?;
+            Ok(result)
+        }
+        DecoderView::Map(d) => {
             let (decoder, map) = d.into_raw();
             let result = visitor.visit_map(MarshalMapAccess::<D> {
                 decoder,
@@ -81,7 +85,7 @@ fn visit<'p, 'de, D: Decoder, V: Visitor<'de>>(
             })?;
             Ok(result)
         }
-        DecoderView::Enum(mut d) => visitor.visit_enum(MarshalEnumAccess::<D>(d)),
+        DecoderView::Enum(_) => todo!(),
     }
 }
 
@@ -355,14 +359,25 @@ impl<'p, 'de, D: Decoder> Deserializer<'de> for MarshalDeserializer<'p, 'de, D> 
 
     fn deserialize_enum<V>(
         self,
-        name: &'static str,
-        variants: &'static [&'static str],
+        _name: &'static str,
+        _variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        visit::<D, V>(visitor, self.0.decode(DecodeHint::Enum { name, variants })?)
+        let mut d = self.0.decode(DecodeHint::Map)?.try_into_map()?;
+        let output;
+        {
+            let d = d
+                .decode_next()?
+                .ok_or_else(|| anyhow::Error::from(SchemaError::TupleTooShort))?;
+            output = visitor.visit_enum(MarshalEnumAccess::<D>(d))?;
+        }
+        if let Some(_) = d.decode_next()? {
+            return Err(anyhow::Error::from(SchemaError::TupleTooLong).into());
+        }
+        Ok(output)
     }
 
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -384,7 +399,7 @@ impl<'p, 'de, D: Decoder> Deserializer<'de> for MarshalDeserializer<'p, 'de, D> 
     }
 }
 
-impl<'p, 'de, D: Decoder> SeqAccess<'de> for MarshalSeqAccess<'p, 'de, D> {
+impl<'p2, 'p, 'de, D: Decoder> SeqAccess<'de> for MarshalSeqAccess<'p2, 'p, 'de, D> {
     type Error = MarshalError;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
@@ -406,7 +421,7 @@ impl<'p, 'de, D: Decoder> MapAccess<'de> for MarshalMapAccess<'p, 'de, D> {
     where
         K: DeserializeSeed<'de>,
     {
-        if let Some(mut d) = self.decoder.decode_map_next(self.map.as_mut().unwrap())? {
+        if let Some(d) = self.decoder.decode_map_next(self.map.as_mut().unwrap())? {
             let (key, value) = self.decoder.decode_entry_key(d)?;
             let key = seed.deserialize(MarshalDeserializer::<D>(AnySpecDecoder::new(
                 self.decoder,
@@ -443,7 +458,7 @@ impl<'p, 'de, D: Decoder> EnumAccess<'de> for MarshalEnumAccess<'p, 'de, D> {
     where
         V: DeserializeSeed<'de>,
     {
-        let result = seed.deserialize(MarshalDeserializer::<D>(self.0.decode_discriminant()?))?;
+        let result = seed.deserialize(MarshalDeserializer::<D>(self.0.decode_key()?))?;
         Ok((result, MarshalVariantAccess(self.0)))
     }
 }
@@ -453,7 +468,8 @@ impl<'p, 'de, D: Decoder> VariantAccess<'de> for MarshalVariantAccess<'p, 'de, D
 
     fn unit_variant(mut self) -> Result<(), Self::Error> {
         self.0
-            .decode_variant(DecodeVariantHint::UnitVariant)?
+            .decode_value()?
+            .decode(DecodeHint::Primitive(PrimitiveType::Unit))?
             .try_into_unit()?;
         self.0.decode_end()?;
         Ok(())
@@ -465,7 +481,8 @@ impl<'p, 'de, D: Decoder> VariantAccess<'de> for MarshalVariantAccess<'p, 'de, D
     {
         let mut seq = self
             .0
-            .decode_variant(DecodeVariantHint::TupleVariant { len: 1 })?
+            .decode_value()?
+            .decode(DecodeHint::Tuple { len: 1 })?
             .try_into_seq()?;
         let result = seed.deserialize(MarshalDeserializer::<D>(
             seq.decode_next()?
@@ -485,8 +502,7 @@ impl<'p, 'de, D: Decoder> VariantAccess<'de> for MarshalVariantAccess<'p, 'de, D
     {
         let result = visit::<D, V>(
             visitor,
-            self.0
-                .decode_variant(DecodeVariantHint::TupleVariant { len })?,
+            self.0.decode_value()?.decode(DecodeHint::Tuple { len })?,
         )?;
         self.0.decode_end()?;
         Ok(result)
@@ -494,17 +510,13 @@ impl<'p, 'de, D: Decoder> VariantAccess<'de> for MarshalVariantAccess<'p, 'de, D
 
     fn struct_variant<V>(
         mut self,
-        fields: &'static [&'static str],
+        _fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        let result = visit::<D, V>(
-            visitor,
-            self.0
-                .decode_variant(DecodeVariantHint::StructVariant { fields })?,
-        )?;
+        let result = visit::<D, V>(visitor, self.0.decode_value()?.decode(DecodeHint::Map)?)?;
         self.0.decode_end()?;
         Ok(result)
     }

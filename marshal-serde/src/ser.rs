@@ -1,10 +1,8 @@
-use anyhow::{anyhow, Error};
+use crate::{MarshalError, WithSerde};
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, AnySpecEncoder, Encoder, SpecEncoder};
 use marshal::Primitive;
 use serde::{Serialize, Serializer};
-use std::fmt::{Debug, Display, Formatter};
-use crate::{MarshalError, SerdeWrapper};
 
 struct MarshalSerializer<'w, 'en, E: Encoder>(marshal::encode::AnyEncoder<'w, 'en, E>);
 
@@ -42,7 +40,6 @@ struct MarshalSerializeStructVariant<'w, 'en, E: Encoder> {
     entry: <E::SpecEncoder<'en> as SpecEncoder>::EntryCloser,
     map: <E::SpecEncoder<'en> as SpecEncoder>::MapEncoder,
 }
-
 
 impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
     type Ok = ();
@@ -186,9 +183,14 @@ impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
         {
             let mut e = e.encode_entry()?;
             e.encode_key()?.encode_str(variant)?;
-            value.serialize(MarshalSerializer::<E>(e.encode_value()?))?;
+            {
+                let mut e = e.encode_value()?.encode_tuple(1)?;
+                value.serialize(MarshalSerializer::<E>(e.encode_element()?))?;
+                e.end()?
+            }
             e.end()?;
         }
+        e.end()?;
         Ok(())
     }
 
@@ -439,7 +441,7 @@ impl<'w, 'en, E: Encoder> serde::ser::SerializeMap for MarshalSerializeMap<'w, '
     }
 }
 
-impl<E: Encoder, T> marshal::ser::Serialize<E> for SerdeWrapper<T>
+impl<E: Encoder, T> marshal::ser::Serialize<E> for WithSerde<T>
 where
     T: serde::Serialize,
 {

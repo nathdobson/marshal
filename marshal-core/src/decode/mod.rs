@@ -326,13 +326,17 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SeqDecoder<'p, 'de, D> {
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<AnySpecDecoder<'p2, 'de, D>>> {
-        if let Some(any) = self.this.decode_seq_next(self.seq.as_mut().unwrap())? {
-            Ok(Some(AnySpecDecoder {
-                this: self.this,
-                any,
-            }))
+        if let Some(seq) = &mut self.seq {
+            if let Some(any) = self.this.decode_seq_next(seq)? {
+                Ok(Some(AnySpecDecoder {
+                    this: self.this,
+                    any,
+                }))
+            } else {
+                self.this.decode_seq_end(self.seq.take().unwrap())?;
+                Ok(None)
+            }
         } else {
-            self.this.decode_seq_end(self.seq.take().unwrap())?;
             Ok(None)
         }
     }

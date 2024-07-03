@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde={workspace = true}
+serde={workspace = true, features = ["derive"]}
 marshal = {workspace=true}
 anyhow = {workspace=true}
+
+[dev-dependencies]
+marshal-bin = {workspace=true}

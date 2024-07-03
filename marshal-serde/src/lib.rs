@@ -6,13 +6,16 @@ use std::fmt::{Display, Formatter};
 mod de;
 mod ser;
 
-pub struct SerdeWrapper<T> {
+pub struct WithSerde<T> {
     inner: T,
 }
 
-impl<T> SerdeWrapper<T> {
+impl<T> WithSerde<T> {
     pub fn new(inner: T) -> Self {
-        SerdeWrapper { inner }
+        WithSerde { inner }
+    }
+    pub fn into_inner(self) -> T {
+        self.inner
     }
 }
 
