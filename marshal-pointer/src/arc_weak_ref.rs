@@ -1,11 +1,10 @@
-use crate::arc_ref::ArcRef;
-use crate::global_uninit::global_uninit_for_ptr;
-use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
+use std::{fmt::Debug, marker::PhantomData, mem, sync};
 use std::any::TypeId;
 use std::cell::UnsafeCell;
 use std::fmt::Formatter;
-use std::sync::Arc;
-use std::{fmt::Debug, marker::PhantomData, mem, sync};
+
+use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
+use crate::global_uninit::global_uninit_for_ptr;
 
 #[repr(transparent)]
 pub struct ArcWeakRef<T: ?Sized> {

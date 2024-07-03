@@ -12,8 +12,8 @@ use marshal_derive::{Deserialize, DeserializeUpdate, Serialize, SerializeStream,
 use marshal_json::decode::full::JsonDecoder;
 use marshal_json::encode::full::JsonEncoder;
 use marshal_object::{
-    derive_box_object, derive_deserialize_provider, derive_serialize_provider, derive_variant,
-    AsDiscriminant,
+    AsDiscriminant, derive_box_object, derive_deserialize_provider, derive_serialize_provider,
+    derive_variant,
 };
 use marshal_pointer::RawAny;
 use marshal_update::de::DeserializeUpdate;

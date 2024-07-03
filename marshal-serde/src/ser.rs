@@ -1,8 +1,10 @@
-use crate::{MarshalError, WithSerde};
+use serde::{Serialize, Serializer};
+
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, AnySpecEncoder, Encoder, SpecEncoder};
 use marshal::Primitive;
-use serde::{Serialize, Serializer};
+
+use crate::{MarshalError, WithSerde};
 
 struct MarshalSerializer<'w, 'en, E: Encoder>(marshal::encode::AnyEncoder<'w, 'en, E>);
 

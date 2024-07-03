@@ -1,13 +1,16 @@
-use crate::{MarshalError, WithSerde};
+use std::borrow::Cow;
+
+use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
+use serde::Deserializer;
+
+use marshal::{Primitive, PrimitiveType, SchemaError};
 use marshal::context::Context;
 use marshal::decode::{
     AnyDecoder, AnySpecDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, SeqDecoder,
     SpecDecoder,
 };
-use marshal::{Primitive, PrimitiveType, SchemaError};
-use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
-use serde::Deserializer;
-use std::borrow::Cow;
+
+use crate::{MarshalError, WithSerde};
 
 struct MarshalDeserializer<'p, 'de, D: Decoder>(AnyDecoder<'p, 'de, D>);
 

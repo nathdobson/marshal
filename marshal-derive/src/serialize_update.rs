@@ -32,7 +32,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
 
     let imp = quote!(impl<#(#generic_params,)* W: #gen_encoder_trait> #serialize_update_trait<W> for #type_ident <#(#generic_args),*>);
     match data {
-        Data::Struct(data) => match ParsedFields::new(&data.fields) {
+        Data::Struct(data) => match ParsedFields::new(&data.fields)? {
             ParsedFields::Unit => Ok(quote! {
                 #imp {
                     fn serialize_update<'w, 'en>(&self, stream: &mut Self::Stream, encoder: #any_gen_encoder_type<'w, 'en, W>, mut ctx: #context_type) -> #result_type<()> {
@@ -42,7 +42,7 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
             }),
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
-                field_var_idents,
+                field_var_idents: _,
                 field_types,
                 field_literals,
                 field_indices: _,
@@ -101,10 +101,10 @@ pub fn derive_serialize_update_impl(input: &DeriveInput) -> Result<TokenStream, 
                     fields: _,
                     discriminant: _,
                 } = variant;
-                match ParsedFields::new(&variant.fields) {
+                match ParsedFields::new(&variant.fields)? {
                     ParsedFields::Named(ParsedFieldsNamed {
                         field_idents,
-                        field_var_idents,
+                        field_var_idents: _,
                         field_types: _,
                         field_literals,
                         field_indices: _,

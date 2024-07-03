@@ -4,7 +4,7 @@ use std::marker::{PhantomData, Unsize};
 use std::ptr::null;
 
 use marshal::context::Context;
-use marshal::de::{Deserialize};
+use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecodeVariantHint};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::SchemaError;

@@ -1,12 +1,11 @@
-use crate::generics::DeriveGenerics;
-use crate::parsed_enum::ParsedEnum;
-use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::parse::ParseStream;
-use syn::punctuated::Punctuated;
-use syn::spanned::Spanned;
-use syn::{Data, DeriveInput, LitStr, Meta, Token, Variant};
+use syn::{Data, DeriveInput, LitStr, Token, Variant};
+
+use crate::generics::DeriveGenerics;
+use crate::parsed_enum::ParsedEnum;
+use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
 
 pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
@@ -58,7 +57,7 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
     };
 
     match data {
-        Data::Struct(data) => match ParsedFields::new(&data.fields) {
+        Data::Struct(data) => match ParsedFields::new(&data.fields)? {
             ParsedFields::Unit => Ok(quote! {
                 #imp {
                     fn serialize<'w,'en>(&self, encoder: #any_gen_encoder_type<'w,'en, E>, mut ctx: #context_type) -> #result_type<()> {
@@ -68,7 +67,7 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
             }),
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
-                field_var_idents,
+                field_var_idents:_,
                 field_types: _,
                 field_literals,
                 field_indices: _,
@@ -119,10 +118,10 @@ pub fn derive_serialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Er
                     fields: _,
                     discriminant: _,
                 } = variant;
-                match ParsedFields::new(&variant.fields) {
+                match ParsedFields::new(&variant.fields)? {
                     ParsedFields::Named(ParsedFieldsNamed {
                         field_idents,
-                        field_var_idents,
+                        field_var_idents:_,
                         field_types: _,
                         field_literals,
                         field_indices: _,

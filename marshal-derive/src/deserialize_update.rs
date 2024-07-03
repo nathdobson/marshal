@@ -37,10 +37,10 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
     let imp = quote! { impl<#(#generic_params,)* D:#gen_decoder_trait> #deserialize_update_trait<D> for #type_ident <#(#generic_args),*> };
 
     match data {
-        Data::Struct(data) => match ParsedFields::new(&data.fields) {
+        Data::Struct(data) => match ParsedFields::new(&data.fields)? {
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
-                field_var_idents,
+                field_var_idents:_,
                 field_types,
                 field_literals,
                 field_indices,
@@ -140,11 +140,11 @@ pub fn derive_deserialize_update_impl(input: &DeriveInput) -> Result<TokenStream
                     fields,
                     discriminant: _,
                 } = variant;
-                match ParsedFields::new(fields) {
+                match ParsedFields::new(fields)? {
                     ParsedFields::Named(
                         ParsedFieldsNamed {
                             field_idents,
-                            field_var_idents,
+                            field_var_idents:_,
                             field_types,
                             field_literals,
                             field_indices

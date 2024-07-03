@@ -30,7 +30,7 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
     let stream_ident = format_ident!("{}Stream", type_ident);
 
     match data {
-        Data::Struct(data) => match ParsedFields::new(&data.fields) {
+        Data::Struct(data) => match ParsedFields::new(&data.fields)? {
             ParsedFields::Unit => Ok(quote! {
                 pub struct #stream_ident;
                 #imp {
@@ -42,7 +42,7 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
             }),
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
-                field_var_idents,
+                field_var_idents:_,
                 field_types,
                 field_literals: _,
                 field_indices: _,
@@ -99,10 +99,10 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                     fields: _,
                     discriminant: _,
                 } = variant;
-                match ParsedFields::new(&variant.fields) {
+                match ParsedFields::new(&variant.fields)? {
                     ParsedFields::Named(ParsedFieldsNamed {
                         field_idents,
-                        field_var_idents,
+                        field_var_idents:_,
                         field_types: _,
                         field_literals: _,
                         field_indices: _,

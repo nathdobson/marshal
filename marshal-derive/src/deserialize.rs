@@ -1,11 +1,12 @@
+use proc_macro2::{Ident, TokenStream};
+use quote::quote;
+use syn::{Data, DeriveInput, Token, Variant};
+use syn::parse::ParseStream;
+
 use crate::generics::DeriveGenerics;
 use crate::ident_to_lit;
 use crate::parsed_enum::ParsedEnum;
 use crate::parsed_fields::{ParsedFields, ParsedFieldsNamed, ParsedFieldsUnnamed};
-use proc_macro2::{Ident, TokenStream};
-use quote::quote;
-use syn::parse::ParseStream;
-use syn::{Data, DeriveInput, Token, Variant};
 
 pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let DeriveInput {
@@ -64,7 +65,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
     };
 
     match data {
-        Data::Struct(data) => match ParsedFields::new(&data.fields) {
+        Data::Struct(data) => match ParsedFields::new(&data.fields)? {
             ParsedFields::Named(ParsedFieldsNamed {
                 field_idents,
                 field_var_idents,
@@ -185,7 +186,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                     fields,
                     discriminant: _,
                 } = variant;
-                match ParsedFields::new(fields) {
+                match ParsedFields::new(fields)? {
                     ParsedFields::Named(
                         ParsedFieldsNamed {
                             field_idents,

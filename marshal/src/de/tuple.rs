@@ -1,5 +1,5 @@
-use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
 use marshal_core::{Primitive, PrimitiveType, SchemaError};
+use marshal_core::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView};
 
 use crate::context::Context;
 use crate::de::Deserialize;

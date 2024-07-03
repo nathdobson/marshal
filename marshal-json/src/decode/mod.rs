@@ -1,10 +1,11 @@
-use base64::prelude::BASE64_STANDARD_NO_PAD;
-use base64::Engine;
-use itertools::Itertools;
 use std::borrow::Cow;
 
-use marshal_core::decode::{DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder};
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD_NO_PAD;
+use itertools::Itertools;
+
 use marshal_core::{Primitive, PrimitiveType};
+use marshal_core::decode::{DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder};
 
 use crate::decode::any::PeekType;
 use crate::decode::error::JsonDecoderError;

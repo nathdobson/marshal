@@ -3,7 +3,7 @@
 extern crate proc_macro;
 
 use proc_macro2::Ident;
-use syn::{parse_macro_input, DeriveInput, LitStr};
+use syn::{DeriveInput, LitStr, parse_macro_input};
 
 use crate::deserialize::derive_deserialize_impl;
 use crate::deserialize_update::derive_deserialize_update_impl;
@@ -20,7 +20,7 @@ mod serialize;
 mod serialize_stream;
 mod serialize_update;
 
-#[proc_macro_derive(Deserialize, attributes(deserialize))]
+#[proc_macro_derive(Deserialize, attributes(deserialize, marshal))]
 pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     derive_deserialize_impl(&input)
@@ -40,7 +40,7 @@ fn ident_to_lit(ident: &Ident) -> LitStr {
     LitStr::new(&format!("{}", ident), ident.span())
 }
 
-#[proc_macro_derive(Serialize, attributes(serialize))]
+#[proc_macro_derive(Serialize, attributes(serialize, marshal))]
 pub fn derive_serialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     derive_serialize_impl(&input)

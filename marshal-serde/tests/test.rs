@@ -1,13 +1,14 @@
 #![deny(unused_must_use)]
 
-use marshal::context::OwnedContext;
-use marshal_bin::decode::full::BinDecoderBuilder;
-use marshal_bin::decode::BinDecoderSchema;
-use marshal_bin::encode::full::BinEncoderBuilder;
-use marshal_bin::encode::BinEncoderSchema;
-use marshal_serde::WithSerde;
 use std::collections::HashMap;
 use std::fmt::Debug;
+
+use marshal::context::OwnedContext;
+use marshal_bin::decode::BinDecoderSchema;
+use marshal_bin::decode::full::BinDecoderBuilder;
+use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::encode::full::BinEncoderBuilder;
+use marshal_serde::WithSerde;
 
 fn test_round_trip<T: Debug + Eq + serde::Serialize + for<'de> serde::Deserialize<'de>>(
     input: &T,

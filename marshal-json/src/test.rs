@@ -87,6 +87,17 @@ fn test_rt() -> anyhow::Result<()> {
     test_round_trip(vec![0u8, 0u8], "\"AAA\"")?;
     test_round_trip(vec![0u8, 0u8, 0u8], "\"AAAA\"")?;
     test_round_trip(vec![0u8, 0u8, 0u8, 0u8], "\"AAAAAA\"")?;
+    #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+    struct Renamed {
+        #[marshal(rename = "type")]
+        typ: u8,
+    }
+    test_round_trip(
+        Renamed { typ: 1 },
+        r#"{
+  "type": 1
+}"#,
+    )?;
 
     Ok(())
 }

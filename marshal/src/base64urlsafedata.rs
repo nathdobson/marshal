@@ -1,9 +1,11 @@
+use base64urlsafedata::{Base64UrlSafeData, HumanBinaryData};
+
+use marshal_core::decode::{AnyDecoder, Decoder};
+use marshal_core::encode::{AnyEncoder, Encoder};
+
 use crate::context::Context;
 use crate::de::Deserialize;
 use crate::ser::Serialize;
-use base64urlsafedata::{Base64UrlSafeData, HumanBinaryData};
-use marshal_core::decode::{AnyDecoder, Decoder};
-use marshal_core::encode::{AnyEncoder, Encoder};
 
 impl<E: Encoder> Serialize<E> for HumanBinaryData {
     fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, _ctx: Context) -> anyhow::Result<()> {

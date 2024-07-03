@@ -1,6 +1,7 @@
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
+
 use crate::de::DeserializeUpdate;
 
 impl<D: Decoder, T: ?Sized + DeserializeUpdate<D>> DeserializeUpdate<D> for Box<T>

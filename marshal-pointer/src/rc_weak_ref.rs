@@ -1,11 +1,10 @@
+use std::{fmt::Debug, marker::PhantomData, mem, rc};
 use std::any::TypeId;
 use std::cell::UnsafeCell;
 use std::fmt::Formatter;
-use std::{fmt::Debug, marker::PhantomData, mem, rc, sync};
 
-use crate::arc_weak_ref::ArcWeakRef;
-use crate::global_uninit::global_uninit_for_ptr;
 use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
+use crate::global_uninit::global_uninit_for_ptr;
 
 #[repr(transparent)]
 pub struct RcWeakRef<T: ?Sized> {

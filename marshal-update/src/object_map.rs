@@ -7,8 +7,8 @@ use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use marshal_object::type_id::ObjectTypeId;
 use marshal_object::Object;
+use marshal_object::type_id::ObjectTypeId;
 use marshal_pointer::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 use crate::de::DeserializeUpdate;

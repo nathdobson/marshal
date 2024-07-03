@@ -1,8 +1,9 @@
 #![deny(unused_must_use)]
 
-use anyhow::{anyhow, Error};
 use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut};
+
+use anyhow::{anyhow, Error};
 
 mod de;
 mod ser;
