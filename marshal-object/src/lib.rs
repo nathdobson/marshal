@@ -33,6 +33,7 @@ pub mod reexports {
 
     pub use marshal;
     pub use marshal_pointer;
+    pub use paste;
 }
 
 pub trait AsDiscriminant<Key> {
@@ -199,30 +200,32 @@ impl BuilderFrom<&'static VariantRegistration> for ObjectRegistry {
 #[macro_export]
 macro_rules! derive_variant {
     ($carrier:path, $concrete:ty) => {
-        const _: () = {
-            #[$crate::reexports::catalog::register($crate::OBJECT_REGISTRY)]
-            pub static REGISTER: $crate::VariantRegistration = $crate::VariantRegistration::new::<
-                $carrier,
-                $concrete,
-            >(|map| {
-                <$carrier as $crate::ser::SerializeProvider<$concrete>>::add_serialize_variant(map);
-                <$carrier as $crate::de::DeserializeProvider<$concrete>>::add_deserialize_variant(
-                    map,
-                );
-            });
-            pub static VARIANT_INDEX: $crate::reexports::safe_once::sync::LazyLock<usize> =
-                $crate::reexports::safe_once::sync::LazyLock::new(|| {
-                    $crate::OBJECT_REGISTRY
-                        .object_descriptor::<$carrier>()
-                        .variant_index_of(REGISTER.discriminant_name())
-                        .unwrap()
+        $crate::reexports::paste::paste! {
+            const _: () = {
+                #[$crate::reexports::catalog::register($crate::OBJECT_REGISTRY)]
+                pub static [< VARIANT_ $concrete >]: $crate::VariantRegistration = $crate::VariantRegistration::new::<
+                    $carrier,
+                    $concrete,
+                >(|map| {
+                    <$carrier as $crate::ser::SerializeProvider<$concrete>>::add_serialize_variant(map);
+                    <$carrier as $crate::de::DeserializeProvider<$concrete>>::add_deserialize_variant(
+                        map,
+                    );
                 });
-            impl $crate::AsDiscriminant<$carrier> for $concrete {
-                fn as_discriminant(self: *const Self) -> usize {
-                    *VARIANT_INDEX
+                pub static VARIANT_INDEX: $crate::reexports::safe_once::sync::LazyLock<usize> =
+                    $crate::reexports::safe_once::sync::LazyLock::new(|| {
+                        $crate::OBJECT_REGISTRY
+                            .object_descriptor::<$carrier>()
+                            .variant_index_of([< VARIANT_ $concrete >].discriminant_name())
+                            .unwrap()
+                    });
+                impl $crate::AsDiscriminant<$carrier> for $concrete {
+                    fn as_discriminant(self: *const Self) -> usize {
+                        *VARIANT_INDEX
+                    }
                 }
-            }
-        };
+            };
+        }
     };
 }
 

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use marshal::context::Context;
-use marshal::de::Deserialize;
 use marshal::de::rc::DeserializeArc;
+use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 use marshal_shared::de::deserialize_arc;
 
@@ -53,7 +53,7 @@ impl<D: Decoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T>
         ctx.insert_mut::<ForestDeserializerTable>(deserializers);
         let mut ctx = ctx.borrow();
         let mut d = d.decode_struct_helper("ForestRoot", &["root", "trees"])?;
-        while let Some((field, mut d)) = d.next()? {
+        while let Some((field, d)) = d.next()? {
             match field {
                 0 => root.deserialize_update(d, ctx.reborrow())?,
                 1 => {
