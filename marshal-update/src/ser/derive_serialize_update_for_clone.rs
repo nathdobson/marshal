@@ -6,7 +6,7 @@ use marshal::ser::Serialize;
 use crate::ser::SerializeStream;
 use crate::ser::SerializeUpdate;
 
-macro_rules! derive_serialize_update_for_clone {
+macro_rules! derive_serialize_update_for_clone_eq {
     ($($ty:ty;)*) => {
         $(
             impl SerializeStream for $ty {
@@ -39,7 +39,7 @@ macro_rules! derive_serialize_update_for_clone {
     };
 }
 
-derive_serialize_update_for_clone! {
+derive_serialize_update_for_clone_eq! {
     u8; u16; u32; u64; u128;
     i8; i16; i32; i64; i128;
     f32; f64;

@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
@@ -165,7 +166,11 @@ impl<K: Eq + Hash + Sync + Send + Clone, V> UpdateHashMap<K, V> {
         self.publisher.send(&k);
         Some(result)
     }
-    pub fn get(&self, k: &K) -> Option<&V> {
+    pub fn get<Q>(&self, k: &Q) -> Option<&V>
+    where
+        Q: ?Sized + Hash + Eq,
+        K: Borrow<Q>,
+    {
         self.map.get(k)
     }
     pub fn get_mut(&mut self, k: &K) -> Option<&mut V> {
@@ -184,6 +189,9 @@ impl<K: Eq + Hash + Sync + Send + Clone, V> UpdateHashMap<K, V> {
                 publisher: &mut self.publisher,
             }),
         }
+    }
+    pub fn iter<'a>(&'a self) -> impl 'a + Iterator<Item = (&'a K, &'a V)> {
+        self.map.iter()
     }
 }
 
@@ -222,5 +230,11 @@ impl<'a, K: 'a + Eq + Hash + Sync + Send + Clone, V: 'a> OccupiedEntry<'a, K, V>
 impl<K: Debug, V: Debug> Debug for UpdateHashMap<K, V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.map.fmt(f)
+    }
+}
+
+impl<K: Sync + Send + Eq + Hash + Clone, V> Default for UpdateHashMap<K, V> {
+    fn default() -> Self {
+        UpdateHashMap::new()
     }
 }

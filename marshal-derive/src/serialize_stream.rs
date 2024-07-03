@@ -32,7 +32,7 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
     match data {
         Data::Struct(data) => match ParsedFields::new(&data.fields) {
             ParsedFields::Unit => Ok(quote! {
-                struct #stream_ident;
+                pub struct #stream_ident;
                 #imp {
                     type Stream = #stream_ident;
                     fn start_stream(&self, mut ctx: #context_type)->#result_type<#stream_ident>{
@@ -46,7 +46,7 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                 field_literals: _,
                 field_indices: _,
             }) => Ok(quote! {
-                struct #stream_ident{
+                pub struct #stream_ident{
                     #(
                         #field_idents: <#field_types as #serialize_stream_trait>::Stream,
                     )*
@@ -68,7 +68,7 @@ pub fn derive_serialize_stream_impl(input: &DeriveInput) -> Result<TokenStream, 
                 field_index_idents,
                 field_named_idents: _,
             }) => Ok(quote! {
-                struct #stream_ident(
+                pub struct #stream_ident(
                     #(
                         #field_types
                     ),*

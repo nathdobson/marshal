@@ -15,13 +15,15 @@ use marshal_shared::ser::SharedSerializeContext;
 
 use crate::forest::error::TreeError;
 use crate::forest::forest::{Forest, ForestRoot, Tree};
-use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
 use crate::ser::set_channel::SetSubscriber;
+use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
 
 type ForestSharedSerializeContext = SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>;
 pub(super) struct ForestSerializerTable {
-    streamers:
-        HashMap<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>, Arc<Tree<dyn SerializeStreamDyn>>>,
+    streamers: HashMap<
+        ByAddress<Arc<Tree<dyn Sync + Send + Any>>>,
+        Arc<Tree<dyn Sync + Send + SerializeStreamDyn>>,
+    >,
     serializers: HashMap<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>, Box<dyn Sync + Send + Any>>,
 }
 
@@ -148,7 +150,7 @@ impl<
         serializer_table
             .streamers
             .entry(ByAddress(this.arc()))
-            .or_insert_with(|| this.arc() as Arc<Tree<dyn SerializeStreamDyn>>);
+            .or_insert_with(|| this.arc() as Arc<Tree<dyn Sync + Send + SerializeStreamDyn>>);
         serializer_table
             .serializers
             .entry(ByAddress(this.arc()))

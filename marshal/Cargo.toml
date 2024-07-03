@@ -10,7 +10,7 @@ base64 = { workspace = true }
 marshal-core = { workspace = true }
 marshal-derive = {workspace=true}
 marshal-pointer = {workspace=true}
-
+base64urlsafedata = {workspace=true, optional = true}
 
 [dev-dependencies]
 criterion = { version = "0.5.1" }

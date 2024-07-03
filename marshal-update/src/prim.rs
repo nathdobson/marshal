@@ -97,3 +97,9 @@ impl<E: Encoder, T: Serialize<E>> SerializeUpdate<E> for Prim<T> {
         Ok(())
     }
 }
+
+impl<T:Clone> Clone for Prim<T>{
+    fn clone(&self) -> Self {
+        Prim::new(self.inner.clone())
+    }
+}

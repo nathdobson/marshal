@@ -2,11 +2,13 @@
 
 use anyhow::{anyhow, Error};
 use std::fmt::{Display, Formatter};
+use std::ops::{Deref, DerefMut};
 
 mod de;
 mod ser;
 
-pub struct WithSerde<T> {
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Hash, Debug)]
+pub struct WithSerde<T: ?Sized> {
     inner: T,
 }
 
@@ -16,6 +18,19 @@ impl<T> WithSerde<T> {
     }
     pub fn into_inner(self) -> T {
         self.inner
+    }
+}
+
+impl<T: ?Sized> Deref for WithSerde<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T: ?Sized> DerefMut for WithSerde<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 
