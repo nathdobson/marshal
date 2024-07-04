@@ -623,6 +623,7 @@ name = "marshal-pointer"
 version = "0.1.0"
 dependencies = [
  "safe-once",
+ "weak-table",
 ]
 
 [[package]]

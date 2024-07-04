@@ -110,7 +110,7 @@ pub fn serialize_rc<'w, 'en, E: Encoder, T: 'static + Serialize<E>>(
     e: AnyEncoder<'w, 'en, E>,
     ctx: Context,
 ) -> anyhow::Result<()> {
-    SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_strong(&**ptr, ptr.weak(), e, ctx)
+    SharedSerializeContext::<rc::Weak<dyn Any>>::serialize_strong(&**ptr, ptr.rc_weak(), e, ctx)
 }
 
 pub fn serialize_arc<'w, 'en, E: Encoder, T: 'static + Sync + Send + Serialize<E>>(

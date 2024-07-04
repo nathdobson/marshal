@@ -8,11 +8,17 @@ use marshal_pointer::arc_weak_ref::ArcWeakRef;
 use marshal_pointer::AsFlatRef;
 use marshal_pointer::rc_ref::RcRef;
 use marshal_pointer::rc_weak_ref::RcWeakRef;
-
+use marshal_pointer::rcf::{Rcf, RcfWeak};
 use crate::context::Context;
 use crate::ser::Serialize;
 
 impl<E: Encoder, T: ?Sized + SerializeRc<E>> Serialize<E> for Rc<T> {
+    fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
+        T::serialize_rc(self.as_flat_ref(), e, ctx)
+    }
+}
+
+impl<E: Encoder, T: ?Sized + SerializeRc<E>> Serialize<E> for Rcf<T> {
     fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
         T::serialize_rc(self.as_flat_ref(), e, ctx)
     }
@@ -61,6 +67,12 @@ impl<E: Encoder, T: ?Sized + SerializeRcWeak<E>> Serialize<E> for rc::Weak<T> {
 impl<E: Encoder, T: ?Sized + SerializeRcWeak<E>> Serialize<E> for RcWeakRef<T> {
     fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
         T::serialize_rc_weak(self, e, ctx)
+    }
+}
+
+impl<E: Encoder, T: ?Sized + SerializeRcWeak<E>> Serialize<E> for RcfWeak<T> {
+    fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {
+        T::serialize_rc_weak(self.as_flat_ref(), e, ctx)
     }
 }
 

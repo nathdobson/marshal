@@ -1,11 +1,11 @@
-use std::{rc, sync};
 use std::rc::Rc;
 use std::sync::Arc;
-
-use marshal_core::decode::{AnyDecoder, Decoder};
+use std::{rc, sync};
 
 use crate::context::Context;
 use crate::de::Deserialize;
+use marshal_core::decode::{AnyDecoder, Decoder};
+use marshal_pointer::rcf::{Rcf, RcfWeak};
 
 impl<D: Decoder, T: ?Sized + DeserializeArc<D>> Deserialize<D> for Arc<T> {
     fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
@@ -26,11 +26,15 @@ impl<D: Decoder, T: ?Sized + DeserializeRc<D>> Deserialize<D> for Rc<T> {
     }
 }
 
+impl<D: Decoder, T: ?Sized + DeserializeRc<D>> Deserialize<D> for Rcf<T> {
+    fn deserialize<'p, 'de>(p: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
+        Ok(T::deserialize_rc(p, ctx)?.into())
+    }
+}
+
 pub trait DeserializeRc<D: Decoder> {
-    fn deserialize_rc<'p, 'de>(
-        p: AnyDecoder<'p, 'de, D>,
-        ctx: Context,
-    ) -> anyhow::Result<Rc<Self>>;
+    fn deserialize_rc<'p, 'de>(p: AnyDecoder<'p, 'de, D>, ctx: Context)
+        -> anyhow::Result<Rc<Self>>;
 }
 
 impl<D: Decoder, T: ?Sized + DeserializeArcWeak<D>> Deserialize<D> for sync::Weak<T> {
@@ -49,6 +53,12 @@ pub trait DeserializeArcWeak<D: Decoder> {
 impl<D: Decoder, T: ?Sized + DeserializeRcWeak<D>> Deserialize<D> for rc::Weak<T> {
     fn deserialize<'p, 'de>(p: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
         T::deserialize_rc_weak(p, ctx)
+    }
+}
+
+impl<D: Decoder, T: ?Sized + DeserializeRcWeak<D>> Deserialize<D> for RcfWeak<T> {
+    fn deserialize<'p, 'de>(p: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {
+        Ok(T::deserialize_rc_weak(p, ctx)?.into())
     }
 }
 

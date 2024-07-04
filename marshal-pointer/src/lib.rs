@@ -34,6 +34,7 @@ pub mod rc_ref;
 pub mod rc_weak_ref;
 pub mod unique_arc;
 pub mod unique_rc;
+pub mod rcf;
 
 pub trait AsFlatRef {
     type FlatRef: ?Sized;

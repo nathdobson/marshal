@@ -4,6 +4,7 @@ use std::ops::Deref;
 use std::rc;
 use std::rc::Rc;
 
+use crate::rcf::{Rcf, RcfWeak};
 use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
 
 #[repr(transparent)]
@@ -27,8 +28,14 @@ impl<T: ?Sized> RcRef<T> {
             Rc::<T>::from_raw(self as *const RcRef<T> as *const T)
         }
     }
-    pub fn weak(&self) -> rc::Weak<T> {
+    pub fn rcf(&self) -> Rcf<T> {
+        self.rc().into()
+    }
+    pub fn rc_weak(&self) -> rc::Weak<T> {
         Rc::downgrade(&self.rc())
+    }
+    pub fn rcf_weak(&self) -> RcfWeak<T> {
+        self.rc_weak().into()
     }
 }
 
