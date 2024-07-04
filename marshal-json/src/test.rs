@@ -99,5 +99,14 @@ fn test_rt() -> anyhow::Result<()> {
 }"#,
     )?;
 
+    test_round_trip(
+        Ok::<u8, u16>(1),
+        r#"{
+  "Ok": [
+    1
+  ]
+}"#,
+    )?;
+
     Ok(())
 }

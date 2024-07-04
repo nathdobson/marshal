@@ -22,8 +22,8 @@ use crate::variants::{VariantImpl, VariantImplSet};
 
 pub mod de;
 pub mod ser;
-pub mod variants;
 pub mod type_id;
+pub mod variants;
 
 #[doc(hidden)]
 pub mod reexports {
@@ -70,6 +70,9 @@ impl ObjectDescriptor {
     }
     pub fn variant_index_of(&self, s: &str) -> Option<usize> {
         self.index_by_name.as_ref().unwrap().get(s).copied()
+    }
+    pub fn variant_index_of_type(&self, id: TypeId) -> Option<usize> {
+        self.index_by_type.as_ref().unwrap().get(&id).copied()
     }
     pub fn variant_impl<DV: 'static + VariantImpl>(&self, index: usize) -> &DV {
         self.variants[index]
@@ -143,21 +146,28 @@ pub struct VariantRegistration {
     object_type: TypeId,
     object_name: &'static str,
     variant_type: TypeId,
-    discriminant_name: &'static str,
+    crate_name: &'static str,
+    crate_rename: Option<&'static str>,
+    variant_type_name: &'static str,
     deserializers: fn(&mut VariantImplSet),
 }
 
 impl VariantRegistration {
-    pub const fn new<O: Object, V: 'static>(deserializers: fn(&mut VariantImplSet)) -> Self
+    pub const fn new<O: Object, V: 'static>(
+        crate_name: &'static str,
+        crate_rename: Option<&'static str>,
+        deserializers: fn(&mut VariantImplSet),
+    ) -> Self
     where
         V: Unsize<O::Dyn>,
     {
-        let variant_name = type_name::<V>();
         VariantRegistration {
             object_type: TypeId::of::<O>(),
             object_name: type_name::<O>(),
             variant_type: TypeId::of::<V>(),
-            discriminant_name: variant_name,
+            crate_name,
+            crate_rename,
+            variant_type_name: type_name::<V>(),
             deserializers,
         }
     }
@@ -169,9 +179,6 @@ impl VariantRegistration {
     }
     pub fn variant_type(&self) -> TypeId {
         self.variant_type
-    }
-    pub fn discriminant_name(&self) -> &'static str {
-        self.discriminant_name
     }
 }
 
@@ -189,9 +196,16 @@ impl BuilderFrom<&'static VariantRegistration> for ObjectRegistry {
             });
         let mut deserializers = VariantImplSet::new();
         (element.deserializers)(&mut deserializers);
+        let discriminant_name = if let Some(crate_rename) = element.crate_rename {
+            String::leak(element
+                .variant_type_name
+                .replace(element.crate_name, crate_rename))
+        } else {
+            element.variant_type_name
+        };
         object.variants.push(VariantDescriptor {
             variant_type: element.variant_type,
-            variant_name: element.discriminant_name,
+            variant_name: discriminant_name,
             deserializers,
         });
     }
@@ -206,7 +220,10 @@ macro_rules! derive_variant {
                 pub static [< VARIANT_ $concrete >]: $crate::VariantRegistration = $crate::VariantRegistration::new::<
                     $carrier,
                     $concrete,
-                >(|map| {
+                >(
+                    env!("CARGO_CRATE_NAME"),
+                    option_env!("MARSHAL_OBJECT_RENAME_CRATE"),
+                    |map| {
                     <$carrier as $crate::ser::SerializeProvider<$concrete>>::add_serialize_variant(map);
                     <$carrier as $crate::de::DeserializeProvider<$concrete>>::add_deserialize_variant(
                         map,
@@ -216,7 +233,7 @@ macro_rules! derive_variant {
                     $crate::reexports::safe_once::sync::LazyLock::new(|| {
                         $crate::OBJECT_REGISTRY
                             .object_descriptor::<$carrier>()
-                            .variant_index_of([< VARIANT_ $concrete >].discriminant_name())
+                            .variant_index_of_type(::std::any::TypeId::of::<$concrete>())
                             .unwrap()
                     });
                 impl $crate::AsDiscriminant<$carrier> for $concrete {

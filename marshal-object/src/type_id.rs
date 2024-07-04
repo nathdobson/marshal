@@ -8,7 +8,6 @@ use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use marshal::SchemaError;
 
 use crate::{AsDiscriminant, Object};
 
