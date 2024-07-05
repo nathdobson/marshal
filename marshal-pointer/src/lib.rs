@@ -14,164 +14,25 @@
 #![feature(never_type)]
 #![feature(strict_provenance)]
 
-mod inner;
+use crate::raw_arc::RawArc;
+use crate::raw_rc::RawRc;
+use crate::strong::Strong;
+use crate::weak::Weak;
+
+pub mod boxed;
+pub mod empty;
+pub mod inner;
+pub mod raw_any;
 pub mod raw_arc;
 pub mod raw_count;
 pub mod raw_rc;
 pub mod strong;
-pub mod unique_strong;
+pub mod strong_ref;
+pub mod unique;
 pub mod weak;
-mod empty;
-mod strong_ref;
+pub mod weak_ref;
 
-use std::any::{type_name, Any, TypeId};
-use std::fmt::{Debug, Display, Formatter};
-use crate::raw_arc::RawArc;
-use crate::strong::Strong;
-
-pub type Arco<T> = Strong<RawArc, T>;
-
-//
-// use std::{rc, sync};
-// use std::any::{Any, type_name, TypeId};
-// use std::rc::Rc;
-// use std::sync::Arc;
-//
-// use crate::strong_ref::ArcRef;
-//
-// // use crate::either_rc_ref::ArcRef;
-// // use crate::arc_ref::ArcRef;
-//
-// // pub mod arc_ref;
-// // pub mod arc_weak_ref;
-// pub mod boxed;
-// pub mod empty_arc;
-// pub mod empty_rc;
-// mod global_uninit;
-// // pub mod rc_ref;
-// pub mod strong_ref;
-// pub mod flat;
-// mod inner;
-// // pub mod rc_weak_ref;
-// // pub mod rcf;
-// pub mod unique_arc;
-// pub mod unique_rc;
-// mod weak_ref;
-//
-pub trait AsFlatRef {
-    type FlatRef: ?Sized;
-    fn as_flat_ref(&self) -> &Self::FlatRef;
-}
-
-pub trait DerefRaw {
-    type RawTarget: ?Sized;
-    fn deref_raw(&self) -> *const Self::RawTarget;
-}
-
-pub trait RawAny: Any {
-    fn raw_type_id(self: *const Self) -> TypeId;
-    fn raw_type_name(self: *const Self) -> &'static str;
-}
-
-impl<T: Any> RawAny for T {
-    fn raw_type_id(self: *const Self) -> TypeId {
-        TypeId::of::<T>()
-    }
-    fn raw_type_name(self: *const Self) -> &'static str {
-        type_name::<T>()
-    }
-}
-
-impl dyn RawAny {
-    pub fn downcast_check<T: 'static>(self: *const Self) -> Result<(), DowncastError> {
-        if self.raw_type_id() == TypeId::of::<T>() {
-            Ok(())
-        } else {
-            Err(DowncastError {
-                from: self.raw_type_name(),
-                to: type_name::<T>(),
-            })
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct DowncastError {
-    from: &'static str,
-    to: &'static str,
-}
-
-impl Display for DowncastError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "tried to downcast from {} to {}", self.from, self.to)
-    }
-}
-
-impl std::error::Error for DowncastError {}
-
-pub trait DowncastRef<T: ?Sized> {
-    fn downcast_ref(&self) -> Result<&T, DowncastError>;
-}
-
-//
-// pub fn arc_downcast<T: 'static>(arc: Arc<dyn Any>) -> Result<Arc<T>, Arc<dyn Any>> {
-//     unsafe {
-//         if (*arc).type_id() == TypeId::of::<T>() {
-//             Ok(Arc::from_raw(Arc::into_raw(arc) as *const T))
-//         } else {
-//             Err(arc)
-//         }
-//     }
-// }
-//
-// pub fn arc_weak_downcast<T: 'static>(
-//     weak: sync::Weak<dyn RawAny>,
-// ) -> Result<sync::Weak<T>, sync::Weak<dyn RawAny>> {
-//     unsafe {
-//         if weak.as_ptr().raw_type_id() == TypeId::of::<T>() {
-//             Ok(sync::Weak::from_raw(sync::Weak::into_raw(weak) as *const T))
-//         } else {
-//             Err(weak)
-//         }
-//     }
-// }
-//
-// pub fn rc_downcast<T: 'static>(rc: Rc<dyn Any>) -> Result<Rc<T>, Rc<dyn Any>> {
-//     unsafe {
-//         if (*rc).type_id() == TypeId::of::<T>() {
-//             Ok(Rc::from_raw(Rc::into_raw(rc) as *const T))
-//         } else {
-//             Err(rc)
-//         }
-//     }
-// }
-//
-// pub fn rc_weak_downcast<T: 'static>(
-//     weak: rc::Weak<dyn RawAny>,
-// ) -> Result<rc::Weak<T>, rc::Weak<dyn RawAny>> {
-//     unsafe {
-//         if weak.as_ptr().raw_type_id() == TypeId::of::<T>() {
-//             Ok(rc::Weak::from_raw(rc::Weak::into_raw(weak) as *const T))
-//         } else {
-//             Err(weak)
-//         }
-//     }
-// }
-//
-// #[derive(Eq, Ord, PartialEq, PartialOrd, Hash, Copy, Clone)]
-// pub struct Address(*const ());
-//
-// unsafe impl Sync for Address {}
-// unsafe impl Send for Address {}
-//
-// impl Address {
-//     pub fn from_arc<T: ?Sized>(arc: &Arc<T>) -> Self {
-//         Address(arc.deref_raw() as *const ())
-//     }
-//     pub fn from_arc_ref<T: ?Sized>(r: &ArcRef<T>) -> Self {
-//         Address(r.deref_raw() as *const ())
-//     }
-// }
-//
-// type RcWeak<T> = rc::Weak<T>;
-// type ArcWeak<T> = sync::Weak<T>;
+pub type Arcf<T> = Strong<RawArc, T>;
+pub type ArcfWeak<T> = Weak<RawArc, T>;
+pub type Rcf<T> = Strong<RawRc, T>;
+pub type RcfWeak<T> = Weak<RawRc, T>;

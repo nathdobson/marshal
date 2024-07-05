@@ -2,12 +2,12 @@ use crate::inner::Inner;
 use crate::raw_count::RawCount;
 use crate::strong_ref::StrongRef;
 use crate::weak::Weak;
-use crate::AsFlatRef;
 use std::borrow::Borrow;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
 use std::ptr::NonNull;
+use crate::raw_any::AsFlatRef;
 
 pub struct Strong<C: RawCount, T: ?Sized> {
     inner: NonNull<Inner<C, T>>,
@@ -31,10 +31,7 @@ impl<C: RawCount, T: ?Sized> Strong<C, T> {
         }
     }
     pub fn downgrade(this: &Self) -> Weak<C, T> {
-        unsafe {
-            this.inner.as_ptr().count_raw().increment_weak();
-            Weak::from_inner(this.inner.as_ptr())
-        }
+        this.as_flat_ref().weak()
     }
     #[inline(never)]
     unsafe fn drop_slow(&mut self) {
@@ -45,13 +42,7 @@ impl<C: RawCount, T: ?Sized> Strong<C, T> {
 
 impl<C: RawCount, T: ?Sized> Clone for Strong<C, T> {
     fn clone(&self) -> Self {
-        unsafe {
-            self.inner
-                .as_ptr()
-                .count_raw()
-                .increment_strong_assume_non_zero();
-            Strong::from_inner(self.inner.as_ptr())
-        }
+        self.as_flat_ref().strong()
     }
 }
 

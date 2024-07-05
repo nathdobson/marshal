@@ -1,7 +1,5 @@
-use std::any::TypeId;
 use std::ops::Deref;
-
-use crate::{AsFlatRef, DerefRaw, DowncastRef, RawAny};
+use crate::raw_any::{AsFlatRef, DerefRaw, DowncastError, DowncastRef, RawAny};
 
 #[repr(transparent)]
 pub struct BoxRef<T: ?Sized>(T);
@@ -35,13 +33,10 @@ impl<T: ?Sized> DerefRaw for Box<T> {
 }
 
 impl<T: 'static> DowncastRef<BoxRef<T>> for BoxRef<dyn RawAny> {
-    fn downcast_ref(&self) -> Option<&BoxRef<T>> {
+    fn downcast_ref(&self) -> Result<&BoxRef<T>, DowncastError> {
         unsafe {
-            if self.deref_raw().raw_type_id() == TypeId::of::<T>() {
-                Some(&*(self as *const BoxRef<dyn RawAny> as *const BoxRef<T>))
-            } else {
-                None
-            }
+            (&(self.0) as *const dyn RawAny).downcast_check::<T>()?;
+            Ok(&*(self as *const BoxRef<dyn RawAny> as *const BoxRef<T>))
         }
     }
 }
