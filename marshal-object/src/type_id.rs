@@ -5,7 +5,7 @@ use std::ptr::null;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecodeVariantHint};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 

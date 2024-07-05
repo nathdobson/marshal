@@ -1,10 +1,11 @@
+use std::mem;
+
 use marshal_pointer::empty::EmptyStrong;
 use marshal_pointer::raw_arc::RawArc;
 use marshal_pointer::raw_count::RawCount;
 use marshal_pointer::raw_rc::RawRc;
 use marshal_pointer::strong::Strong;
 use marshal_pointer::unique::UniqueStrong;
-use std::mem;
 
 fn test<C: RawCount>() {
     {

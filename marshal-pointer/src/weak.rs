@@ -1,22 +1,22 @@
-use crate::empty::EmptyStrong;
-use crate::inner::Inner;
-use crate::raw_any::{DerefRaw, DowncastError, RawAny};
-use crate::raw_count::RawCount;
-use crate::strong::Strong;
-use crate::weak_ref::WeakRef;
 use std::alloc::{Allocator, Global, Layout};
 use std::marker::Unsize;
 use std::mem;
 use std::ops::CoerceUnsized;
 use std::ptr::NonNull;
+
 use crate::AsFlatRef;
+use crate::inner::Inner;
+use crate::raw_any::{DerefRaw, DowncastError, RawAny};
+use crate::raw_count::RawCount;
+use crate::strong::Strong;
+use crate::weak_ref::WeakRef;
 
 pub struct Weak<C: RawCount, T: ?Sized> {
     inner: NonNull<Inner<C, T>>,
 }
 
 impl<C: RawCount, T: ?Sized> Weak<C, T> {
-    pub(crate) fn from_inner(inner: *const Inner<C, T>) -> Self {
+    pub(crate) unsafe fn from_inner(inner: *const Inner<C, T>) -> Self {
         Weak {
             inner: NonNull::new(inner as *mut Inner<C, T>).unwrap(),
         }
@@ -25,6 +25,12 @@ impl<C: RawCount, T: ?Sized> Weak<C, T> {
         let inner = self.inner.as_ptr();
         mem::forget(self);
         inner
+    }
+    pub fn into_raw(self) -> *const T {
+        unsafe { self.into_inner().into_raw() }
+    }
+    pub unsafe fn from_raw(raw: *const T) -> Self {
+        Self::from_inner(Inner::from_raw(raw))
     }
     pub fn upgrade(&self) -> Option<Strong<C, T>> {
         self.as_flat_ref().strong()
@@ -89,5 +95,17 @@ impl<C: RawCount, T: ?Sized> DerefRaw for Weak<C, T> {
     type RawTarget = T;
     fn deref_raw(&self) -> *const Self::RawTarget {
         unsafe { self.inner.as_ptr().into_raw() }
+    }
+}
+
+#[cfg(feature = "weak-table")]
+impl<C: RawCount, T: ?Sized> weak_table::traits::WeakElement for Weak<C, T> {
+    type Strong = Strong<C, T>;
+    fn new(view: &Self::Strong) -> Self {
+        Strong::downgrade(view)
+    }
+
+    fn view(&self) -> Option<Self::Strong> {
+        self.upgrade()
     }
 }

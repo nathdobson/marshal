@@ -1,12 +1,11 @@
+use std::cell::UnsafeCell;
+use std::marker::PhantomData;
+
 use crate::inner::Inner;
 use crate::raw_any::{DerefRaw, DowncastError, DowncastRef, RawAny};
 use crate::raw_count::RawCount;
 use crate::strong::Strong;
-use crate::strong_ref::StrongRef;
 use crate::weak::Weak;
-use std::cell::UnsafeCell;
-use std::marker::PhantomData;
-use std::mem::ManuallyDrop;
 
 pub struct WeakRef<C: RawCount, T: ?Sized> {
     phantom: PhantomData<C>,

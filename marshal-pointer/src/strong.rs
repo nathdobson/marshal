@@ -1,15 +1,16 @@
-use crate::inner::Inner;
-use crate::raw_any::{DerefRaw, DowncastError, RawAny};
-use crate::raw_count::RawCount;
-use crate::strong_ref::StrongRef;
-use crate::weak::Weak;
-use crate::AsFlatRef;
 use std::borrow::Borrow;
 use std::fmt::{Debug, Formatter};
 use std::marker::{PhantomData, Unsize};
 use std::mem;
 use std::ops::{CoerceUnsized, Deref};
 use std::ptr::NonNull;
+
+use crate::AsFlatRef;
+use crate::inner::Inner;
+use crate::raw_any::{DerefRaw, DowncastError, RawAny};
+use crate::raw_count::RawCount;
+use crate::strong_ref::StrongRef;
+use crate::weak::Weak;
 
 pub struct Strong<C: RawCount, T: ?Sized> {
     inner: NonNull<Inner<C, T>>,
@@ -44,6 +45,12 @@ impl<C: RawCount, T: ?Sized> Strong<C, T> {
     unsafe fn drop_slow(&mut self) {
         std::ptr::drop_in_place(self.inner.as_ptr().into_raw() as *mut T);
         mem::drop(Weak::<C, T>::from_inner(self.inner.as_ptr()));
+    }
+    pub fn into_raw(self) -> *const T {
+        unsafe { self.into_inner().into_raw() }
+    }
+    pub unsafe fn from_raw(raw: *const T) -> Self {
+        Self::from_inner(Inner::from_raw(raw))
     }
 }
 

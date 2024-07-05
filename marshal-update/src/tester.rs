@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::sync;
 
 use pretty_assertions::assert_eq;
 

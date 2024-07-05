@@ -1,14 +1,15 @@
+use std::marker::Unsize;
+use std::mem;
+use std::mem::MaybeUninit;
+use std::ops::CoerceUnsized;
+use std::ptr::NonNull;
+
 use crate::inner::Inner;
 use crate::raw_any::{DowncastError, RawAny};
 use crate::raw_count::RawCount;
 use crate::strong::Strong;
 use crate::weak::Weak;
 use crate::weak_ref::WeakRef;
-use std::marker::Unsize;
-use std::mem;
-use std::mem::MaybeUninit;
-use std::ops::CoerceUnsized;
-use std::ptr::NonNull;
 use crate::AsFlatRef;
 
 pub struct EmptyStrong<C: RawCount, T: ?Sized> {
@@ -56,7 +57,7 @@ impl<C: RawCount, T: ?Sized> EmptyStrong<C, T> {
 
 impl<C: RawCount, T: ?Sized> Drop for EmptyStrong<C, T> {
     fn drop(&mut self) {
-        mem::drop(Weak::from_inner(self.inner.as_ptr()))
+        unsafe { mem::drop(Weak::from_inner(self.inner.as_ptr())) }
     }
 }
 

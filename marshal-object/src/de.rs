@@ -3,11 +3,11 @@ use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView};
+use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint};
 use marshal::SchemaError;
 
-use crate::variants::{VariantImpl, VariantImplSet};
 use crate::Object;
+use crate::variants::{VariantImpl, VariantImplSet};
 
 pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {
     fn deserialize_variant<'p, 'de>(

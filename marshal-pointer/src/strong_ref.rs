@@ -1,10 +1,11 @@
+use std::marker::PhantomData;
+use std::ops::Deref;
+
 use crate::inner::Inner;
 use crate::raw_any::{DerefRaw, DowncastError, DowncastRef, RawAny};
 use crate::raw_count::RawCount;
 use crate::strong::Strong;
 use crate::weak::Weak;
-use std::marker::{PhantomData, Unsize};
-use std::ops::{CoerceUnsized, Deref};
 
 #[repr(transparent)]
 pub struct StrongRef<C: RawCount, T: ?Sized> {

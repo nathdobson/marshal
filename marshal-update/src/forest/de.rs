@@ -1,10 +1,9 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use marshal::context::Context;
-use marshal::de::rc::DeserializeArc;
 use marshal::de::Deserialize;
+use marshal::de::rc::DeserializeArc;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
 use marshal_pointer::Arcf;
 use marshal_shared::de::deserialize_arc;

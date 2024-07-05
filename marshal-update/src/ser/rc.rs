@@ -1,12 +1,10 @@
-use std::sync;
-use std::sync::Arc;
-
-use crate::ser::{SerializeStream, SerializeUpdate};
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use marshal_pointer::raw_any::DerefRaw;
 use marshal_pointer::{Arcf, ArcfWeak};
+use marshal_pointer::raw_any::DerefRaw;
+
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 impl<T: ?Sized + Sync + Send> SerializeStream for Arcf<T> {
     type Stream = ArcfWeak<T>;

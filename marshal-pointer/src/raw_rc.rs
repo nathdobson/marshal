@@ -1,8 +1,9 @@
-use crate::raw_count::RawCount;
 use std::cell::Cell;
 use std::hint;
 use std::hint::assert_unchecked;
 use std::intrinsics::{abort, unlikely};
+
+use crate::raw_count::RawCount;
 
 pub struct RawRc {
     strong: Cell<usize>,

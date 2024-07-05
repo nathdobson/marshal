@@ -1,16 +1,16 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::mem;
 use std::ops::CoerceUnsized;
-use std::{mem, rc, sync};
 
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::reexports::anyhow;
 use marshal::ser::Serialize;
 use marshal::Serialize;
-use marshal_pointer::raw_any::DerefRaw;
 use marshal_pointer::{ArcfRef, ArcfWeak, ArcfWeakRef, RcfRef, RcfWeak, RcfWeakRef};
+use marshal_pointer::raw_any::DerefRaw;
 
 struct ByAddress<T>(T);
 

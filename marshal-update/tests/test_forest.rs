@@ -1,7 +1,5 @@
 #![deny(unused_must_use)]
 
-use std::sync::Arc;
-
 use pretty_assertions::assert_eq;
 
 use marshal_derive::{Deserialize, DeserializeUpdate, Serialize, SerializeStream, SerializeUpdate};

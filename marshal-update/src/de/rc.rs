@@ -1,11 +1,9 @@
-use std::sync;
-use std::sync::Arc;
-
-use crate::de::DeserializeUpdate;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal_pointer::{Arcf, ArcfWeak};
+
+use crate::de::DeserializeUpdate;
 
 impl<D: Decoder, T: ?Sized> DeserializeUpdate<D> for Arcf<T>
 where

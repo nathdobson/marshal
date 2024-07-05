@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::parse::ParseStream;
 use syn::{Data, DeriveInput, LitStr, Token, Variant};
+use syn::parse::ParseStream;
 
 use crate::generics::DeriveGenerics;
 use crate::parsed_enum::ParsedEnum;

@@ -1,7 +1,8 @@
-use crate::raw_any::{DowncastError, RawAny};
-use crate::raw_count::RawCount;
 use std::alloc::Layout;
 use std::ptr::NonNull;
+
+use crate::raw_any::{DowncastError, RawAny};
+use crate::raw_count::RawCount;
 
 #[repr(C)]
 pub struct Inner<C, T: ?Sized> {

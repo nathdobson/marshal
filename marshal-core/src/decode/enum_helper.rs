@@ -1,5 +1,5 @@
-use crate::decode::tuple_helper::TupleHelper;
 use crate::decode::{AnySpecDecoder, DecodeHint, DecodeVariantHint, EnumDecoder, SpecDecoder};
+use crate::decode::tuple_helper::TupleHelper;
 
 pub struct EnumDecoderHelper<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
     variants: &'static [&'static str],

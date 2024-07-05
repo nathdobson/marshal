@@ -2,19 +2,20 @@ use std::any::Any;
 use std::marker::{PhantomData, Unsize};
 use std::ops::{CoerceUnsized, DerefMut};
 
-use crate::de::DeserializeUpdate;
-use crate::hash_map;
-use crate::hash_map::{UpdateHashMap, UpdateHashMapStream};
-use crate::ser::{SerializeStream, SerializeUpdate};
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use marshal_object::type_id::ObjectTypeId;
 use marshal_object::Object;
+use marshal_object::type_id::ObjectTypeId;
 use marshal_pointer::AsFlatRef;
 use marshal_pointer::raw_any::{DerefRaw, DowncastRef, RawAny};
+
+use crate::de::DeserializeUpdate;
+use crate::hash_map;
+use crate::hash_map::{UpdateHashMap, UpdateHashMapStream};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct ObjectMap<C: Object> {
     map: UpdateHashMap<ObjectTypeId<C>, C::Pointer<C::Dyn>>,

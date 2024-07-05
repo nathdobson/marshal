@@ -1,7 +1,5 @@
-use crate::empty::EmptyStrong;
-use std::any::{type_name, Any, TypeId};
+use std::any::{Any, type_name, TypeId};
 use std::fmt::{Debug, Display, Formatter};
-
 
 pub trait DerefRaw {
     type RawTarget: ?Sized;

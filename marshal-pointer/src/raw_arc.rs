@@ -1,7 +1,8 @@
-use crate::raw_count::RawCount;
 use std::process::abort;
 use std::sync::atomic;
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+use crate::raw_count::RawCount;
 
 pub struct RawArc {
     strong: AtomicUsize,

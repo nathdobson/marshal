@@ -1,11 +1,8 @@
-use std::rc::Rc;
-use std::sync::Arc;
-use std::{rc, sync};
+use marshal_core::encode::{AnyEncoder, Encoder};
+use marshal_pointer::{Arcf, ArcfRef, ArcfWeak, ArcfWeakRef, AsFlatRef, Rcf, RcfRef, RcfWeak, RcfWeakRef};
 
 use crate::context::Context;
 use crate::ser::Serialize;
-use marshal_core::encode::{AnyEncoder, Encoder};
-use marshal_pointer::{Arcf, ArcfRef, ArcfWeak, ArcfWeakRef, AsFlatRef, Rcf, RcfRef, RcfWeak, RcfWeakRef};
 
 impl<E: Encoder, T: ?Sized + SerializeRc<E>> Serialize<E> for Rcf<T> {
     fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, E>, ctx: Context) -> anyhow::Result<()> {

@@ -1,13 +1,13 @@
-use crate::empty::EmptyStrong;
+use std::marker::{PhantomData, Unsize};
+use std::mem;
+use std::ops::{CoerceUnsized, Deref, DerefMut};
+use std::ptr::NonNull;
+
 use crate::inner::Inner;
 use crate::raw_count::RawCount;
 use crate::strong::Strong;
 use crate::weak::Weak;
 use crate::weak_ref::WeakRef;
-use std::marker::{PhantomData, Unsize};
-use std::mem;
-use std::ops::{CoerceUnsized, Deref, DerefMut};
-use std::ptr::NonNull;
 use crate::AsFlatRef;
 
 pub struct UniqueStrong<C: RawCount, T: ?Sized> {
@@ -56,7 +56,7 @@ impl<C: RawCount, T: ?Sized> DerefMut for UniqueStrong<C, T> {
 
 impl<C: RawCount, T: ?Sized> Drop for UniqueStrong<C, T> {
     fn drop(&mut self) {
-        mem::drop(Weak::from_inner(self.inner.as_ptr()))
+        unsafe { mem::drop(Weak::from_inner(self.inner.as_ptr())) }
     }
 }
 

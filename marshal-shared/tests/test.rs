@@ -1,21 +1,19 @@
 use std::any::Any;
-use std::rc;
-use std::rc::Rc;
 
 use pretty_assertions::assert_eq;
 
-use marshal::context::OwnedContext;
 use marshal::{Deserialize, Serialize};
+use marshal::context::OwnedContext;
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::encode::full::JsonEncoderBuilder;
 use marshal_pointer::{Rcf, RcfWeak};
 use marshal_pointer::raw_any::DerefRaw;
-use marshal_shared::de::SharedRcDeserializeContext;
-use marshal_shared::ser::SharedSerializeContext;
 use marshal_shared::{
     derive_deserialize_rc_shared, derive_deserialize_rc_weak_shared, derive_serialize_rc_shared,
     derive_serialize_rc_weak_shared,
 };
+use marshal_shared::de::SharedRcDeserializeContext;
+use marshal_shared::ser::SharedSerializeContext;
 
 #[derive(Serialize, Deserialize)]
 struct Foo(u8);
