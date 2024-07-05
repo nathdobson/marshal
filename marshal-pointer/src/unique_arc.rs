@@ -6,7 +6,7 @@ use std::{
     sync::{Arc, Weak},
 };
 
-use crate::arc_inner::ArcInner;
+use crate::inner::ArcInner;
 
 pub struct UniqueArc<T: ?Sized>(*mut ArcInner<T>);
 
@@ -32,7 +32,7 @@ impl<T: ?Sized> UniqueArc<T> {
     pub fn into_arc(this: Self) -> Arc<T> {
         unsafe {
             this.0.increment_strong();
-            let result = this.0.into_arc();
+            let result = this.0.into_strong();
             mem::forget(this);
             result
         }

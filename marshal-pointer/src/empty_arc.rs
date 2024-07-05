@@ -1,7 +1,7 @@
 use std::{marker::Unsize, mem, ops::CoerceUnsized, sync, sync::Arc};
 use std::any::TypeId;
 
-use crate::arc_inner::ArcInner;
+use crate::inner::ArcInner;
 use crate::RawAny;
 
 pub struct EmptyArc<T: ?Sized>(*mut ArcInner<T>);
@@ -31,7 +31,7 @@ impl<T: ?Sized> EmptyArc<T> {
         unsafe {
             this.0.write_inner(value);
             this.0.write_strong(1);
-            let result = this.0.into_arc();
+            let result = this.0.into_strong();
             mem::forget(this);
             result
         }

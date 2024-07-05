@@ -9,7 +9,6 @@ pub mod depth_budget;
 mod enum_helper;
 pub mod newtype;
 pub mod poison;
-mod polonius;
 mod struct_helper;
 mod tuple_helper;
 // pub mod depth_budget;

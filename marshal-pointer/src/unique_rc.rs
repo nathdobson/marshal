@@ -7,7 +7,7 @@ use std::{
 };
 use std::rc::Rc;
 
-use crate::rc_inner::RcInner;
+use crate::inner::RcInner;
 
 pub struct UniqueRc<T: ?Sized>(*mut RcInner<T>);
 
@@ -33,7 +33,7 @@ impl<T: ?Sized> UniqueRc<T> {
     pub fn into_arc(this: Self) -> Rc<T> {
         unsafe {
             this.0.increment_strong();
-            let result = this.0.into_rc();
+            let result = this.0.into_strong();
             mem::forget(this);
             result
         }

@@ -1,6 +1,3 @@
-use crate::rc_ref::RcRef;
-use crate::rc_weak_ref::RcWeakRef;
-use crate::{AsFlatRef, DerefRaw};
 use std::any::Any;
 use std::borrow::Borrow;
 use std::fmt::{Debug, Display, Formatter};
@@ -9,6 +6,10 @@ use std::marker::Unsize;
 use std::ops::{CoerceUnsized, Deref, DispatchFromDyn};
 use std::rc;
 use std::rc::{Rc, Weak};
+
+use crate::{AsFlatRef, DerefRaw};
+use crate::either_rc_ref::RcRef;
+use crate::rc_weak_ref::RcWeakRef;
 
 #[derive(Eq, PartialEq, Hash, Default, Ord, PartialOrd)]
 pub struct Rcf<T: ?Sized>(Rc<T>);

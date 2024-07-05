@@ -5,7 +5,6 @@ use std::{rc, sync};
 use crate::context::Context;
 use crate::de::Deserialize;
 use marshal_core::decode::{AnyDecoder, Decoder};
-use marshal_pointer::rcf::{Rcf, RcfWeak};
 
 impl<D: Decoder, T: ?Sized + DeserializeArc<D>> Deserialize<D> for Arc<T> {
     fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self> {

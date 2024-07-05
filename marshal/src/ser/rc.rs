@@ -3,12 +3,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use marshal_core::encode::{AnyEncoder, Encoder};
-use marshal_pointer::arc_ref::ArcRef;
 use marshal_pointer::arc_weak_ref::ArcWeakRef;
 use marshal_pointer::AsFlatRef;
-use marshal_pointer::rc_ref::RcRef;
 use marshal_pointer::rc_weak_ref::RcWeakRef;
-use marshal_pointer::rcf::{Rcf, RcfWeak};
 use crate::context::Context;
 use crate::ser::Serialize;
 
