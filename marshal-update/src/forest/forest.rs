@@ -6,7 +6,7 @@ use std::sync::Arc;
 use atomic_refcell::AtomicRefCell;
 use by_address::ByAddress;
 use tokenlock::{IcToken, IcTokenId, IcTokenLock};
-
+use marshal_pointer::Arcf;
 use crate::forest::de::ForestDeserializerTable;
 use crate::forest::ser::ForestSerializerTable;
 use crate::ser::set_channel::{SetPublisher, SetSubscriber};
@@ -18,7 +18,7 @@ pub struct ForestId {
 
 pub struct Forest {
     token: IcToken,
-    publisher: SetPublisher<HashSet<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>>>,
+    publisher: SetPublisher<HashSet<ByAddress<Arcf<Tree<dyn Sync + Send + Any>>>>>,
     serializers: AtomicRefCell<ForestSerializerTable>,
 }
 
@@ -74,21 +74,21 @@ impl Forest {
             serializers: AtomicRefCell::new(ForestSerializerTable::new()),
         }
     }
-    pub fn add<T>(&self, value: T) -> Arc<Tree<T>> {
-        Arc::new(self.add_raw(value))
+    pub fn add<T>(&self, value: T) -> Arcf<Tree<T>> {
+        Arcf::new(self.add_raw(value))
     }
     pub(super) fn add_raw<T>(&self, value: T) -> Tree<T> {
         Tree {
             inner: IcTokenLock::new(self.token.id(), value),
         }
     }
-    pub fn get<'a, T: ?Sized>(&'a self, value: &'a Arc<Tree<T>>) -> &'a T {
+    pub fn get<'a, T: ?Sized>(&'a self, value: &'a Arcf<Tree<T>>) -> &'a T {
         value.inner.read(&self.token)
     }
     pub(super) fn get_raw<'a, T: ?Sized>(&'a self, value: &'a Tree<T>) -> &'a T {
         value.inner.read(&self.token)
     }
-    pub fn get_mut<'a, T>(&'a mut self, value: &'a Arc<Tree<T>>) -> &'a mut T
+    pub fn get_mut<'a, T>(&'a mut self, value: &'a Arcf<Tree<T>>) -> &'a mut T
     where
         T: 'static + ?Sized + Unsize<dyn Sync + Send + Any>,
     {
@@ -100,7 +100,7 @@ impl Forest {
     }
     pub(super) fn subscribe(
         &self,
-    ) -> SetSubscriber<HashSet<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>>> {
+    ) -> SetSubscriber<HashSet<ByAddress<Arcf<Tree<dyn Sync + Send + Any>>>>> {
         self.publisher.subscribe()
     }
     pub fn id(&self) -> ForestId {

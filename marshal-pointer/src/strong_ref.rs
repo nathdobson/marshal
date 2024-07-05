@@ -1,9 +1,10 @@
 use crate::inner::Inner;
+use crate::raw_any::{DerefRaw, DowncastError, DowncastRef, RawAny};
 use crate::raw_count::RawCount;
 use crate::strong::Strong;
 use crate::weak::Weak;
-use std::marker::PhantomData;
-use std::ops::Deref;
+use std::marker::{PhantomData, Unsize};
+use std::ops::{CoerceUnsized, Deref};
 
 #[repr(transparent)]
 pub struct StrongRef<C: RawCount, T: ?Sized> {
@@ -32,5 +33,21 @@ impl<C: RawCount, T: ?Sized> Deref for StrongRef<C, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.value
+    }
+}
+
+impl<C: RawCount, T: ?Sized> DerefRaw for StrongRef<C, T> {
+    type RawTarget = T;
+    fn deref_raw(&self) -> *const Self::RawTarget {
+        &self.value
+    }
+}
+
+impl<C: RawCount, T: 'static> DowncastRef<StrongRef<C, T>> for StrongRef<C, dyn RawAny> {
+    fn downcast_ref(&self) -> Result<&StrongRef<C, T>, DowncastError<()>> {
+        unsafe {
+            (&self.value as *const dyn RawAny).downcast_check::<T>()?;
+            Ok(&*(self as *const StrongRef<C, dyn RawAny> as *const StrongRef<C, T>))
+        }
     }
 }

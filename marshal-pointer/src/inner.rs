@@ -1,3 +1,4 @@
+use crate::raw_any::{DowncastError, RawAny};
 use crate::raw_count::RawCount;
 use std::alloc::Layout;
 use std::ptr::NonNull;
@@ -27,5 +28,17 @@ impl<C: RawCount, T: ?Sized> Inner<C, T> {
             .unwrap()
             .1;
         ptr.byte_sub(offset) as *const Self
+    }
+}
+impl<C: RawCount> Inner<C, dyn RawAny> {
+    pub fn downcast_inner<T: 'static>(
+        self: *const Self,
+    ) -> Result<*const Inner<C, T>, DowncastError<*const Self>> {
+        unsafe {
+            self.into_raw()
+                .downcast_check::<T>()
+                .map_err(|e| e.map(|()| self))?;
+            Ok(self as *const Inner<C, T>)
+        }
     }
 }

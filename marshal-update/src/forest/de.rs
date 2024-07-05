@@ -6,6 +6,7 @@ use marshal::context::Context;
 use marshal::de::rc::DeserializeArc;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, DecodeHint, Decoder};
+use marshal_pointer::Arcf;
 use marshal_shared::de::deserialize_arc;
 
 use crate::de::DeserializeUpdate;
@@ -63,13 +64,13 @@ impl<D: Decoder, T: DeserializeUpdate<D>> DeserializeUpdate<D> for ForestRoot<T>
                             d.decode_key()?,
                             ctx.reborrow(),
                         )?;
-                        let des: Arc<Tree<dyn DeserializeUpdateDyn<D>>> = (**ctx
+                        let des: Arcf<Tree<dyn DeserializeUpdateDyn<D>>> = (**ctx
                             .reborrow()
                             .get_mut::<ForestDeserializerTable>()?
                             .deserializers
                             .get(&key)
                             .ok_or(TreeError::MissingId)?)
-                        .downcast_ref::<Arc<Tree<dyn DeserializeUpdateDyn<D>>>>()
+                        .downcast_ref::<Arcf<Tree<dyn DeserializeUpdateDyn<D>>>>()
                         .unwrap()
                         .clone();
                         forest
@@ -89,13 +90,13 @@ impl<D: Decoder, T: 'static + Sync + Send + DeserializeUpdate<D>> DeserializeArc
     fn deserialize_arc<'p, 'de>(
         p: AnyDecoder<'p, 'de, D>,
         mut ctx: Context,
-    ) -> anyhow::Result<Arc<Self>> {
+    ) -> anyhow::Result<Arcf<Self>> {
         let (id, arc) = deserialize_arc::<D, Tree<T>>(p, ctx.reborrow())?;
         ctx.get_mut::<ForestDeserializerTable>()?
             .deserializers
             .insert(
                 id,
-                Box::new(arc.clone() as Arc<Tree<dyn DeserializeUpdateDyn<D>>>),
+                Box::new(arc.clone() as Arcf<Tree<dyn DeserializeUpdateDyn<D>>>),
             );
         Ok(arc)
     }

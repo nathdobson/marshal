@@ -1,28 +1,26 @@
-use std::{rc, sync};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::{rc, sync};
 
+use crate::SharedError;
 use marshal::context::Context;
 use marshal::de::Deserialize;
 use marshal::decode::{AnyDecoder, Decoder};
 use marshal::Deserialize;
-use marshal_pointer::{arc_downcast, arc_weak_downcast, RawAny, rc_downcast, rc_weak_downcast};
-use marshal_pointer::empty_arc::EmptyArc;
-use marshal_pointer::empty_rc::EmptyRc;
-
-use crate::SharedError;
+use marshal_pointer::raw_any::RawAny;
+use marshal_pointer::{Arcf, ArcfWeak, EmptyArcf, EmptyRcf, Rcf, RcfWeak};
 
 struct ArcState {
-    weak: sync::Weak<dyn RawAny + Sync + Send>,
-    uninit: Option<EmptyArc<dyn Sync + Send + RawAny>>,
-    init: Option<Arc<dyn Sync + Send + RawAny>>,
+    weak: ArcfWeak<dyn RawAny + Sync + Send>,
+    uninit: Option<EmptyArcf<dyn Sync + Send + RawAny>>,
+    init: Option<Arcf<dyn Sync + Send + RawAny>>,
 }
 
 struct RcState {
-    weak: rc::Weak<dyn RawAny>,
-    uninit: Option<EmptyRc<dyn RawAny>>,
-    init: Option<Rc<dyn RawAny>>,
+    weak: RcfWeak<dyn RawAny>,
+    uninit: Option<EmptyRcf<dyn RawAny>>,
+    init: Option<Rcf<dyn RawAny>>,
 }
 
 #[derive(Default)]
@@ -37,81 +35,84 @@ pub struct SharedRcDeserializeContext {
 
 impl ArcState {
     pub fn new_uninit<T: 'static + Sync + Send>() -> Self {
-        let uninit = EmptyArc::<T>::new();
-        let weak = EmptyArc::downgrade(&uninit);
+        let uninit = EmptyArcf::<T>::new();
+        let weak = EmptyArcf::downgrade(&uninit);
         ArcState {
             weak,
             uninit: Some(uninit),
             init: None,
         }
     }
-    pub fn new<T: 'static + Sync + Send>(init: Arc<T>) -> Self {
+    pub fn new<T: 'static + Sync + Send>(init: Arcf<T>) -> Self {
         ArcState {
-            weak: Arc::<T>::downgrade(&init),
+            weak: Arcf::<T>::downgrade(&init),
             uninit: None,
             init: Some(init),
         }
     }
-    pub fn init<T: 'static + Sync + Send>(&mut self, value: T) -> anyhow::Result<Arc<T>> {
+    pub fn init<T: 'static + Sync + Send>(&mut self, value: T) -> anyhow::Result<Arcf<T>> {
         let uninit = self.uninit.take().ok_or(SharedError::DoubleDefinition)?;
-        let uninit = EmptyArc::downcast::<T>(uninit)
+        let uninit = EmptyArcf::downcast::<T>(uninit)
             .ok()
             .ok_or(SharedError::TypeMismatch)?;
-        let init = EmptyArc::into_arc(uninit, value);
+        let init = EmptyArcf::into_strong(uninit, value);
         self.init = Some(init.clone());
         Ok(init)
     }
-    pub fn weak<T: 'static + Sync + Send>(&self) -> anyhow::Result<sync::Weak<T>> {
-        Ok(arc_weak_downcast::<T>(self.weak.clone())
+    pub fn weak<T: 'static + Sync + Send>(&self) -> anyhow::Result<ArcfWeak<T>> {
+        Ok(ArcfWeak::downcast(self.weak.clone())
             .ok()
             .ok_or(SharedError::TypeMismatch)?)
     }
-    pub fn arc<T: 'static + Sync + Send>(&self) -> anyhow::Result<Arc<T>> {
+    pub fn arc<T: 'static + Sync + Send>(&self) -> anyhow::Result<Arcf<T>> {
         Ok(
-            arc_downcast::<T>(self.init.clone().ok_or(SharedError::MissingDefinition)?)
-                .ok()
-                .ok_or(SharedError::TypeMismatch)?,
+            ((self.init.clone().ok_or(SharedError::MissingDefinition)?) as Arcf<dyn RawAny>)
+                .downcast::<T>()
+                .map_err(|e| e.map(|_| ()))?,
         )
     }
 }
 
 impl RcState {
     pub fn new_uninit<T: 'static>() -> Self {
-        let uninit = EmptyRc::<T>::new();
-        let weak = EmptyRc::downgrade(&uninit);
+        let uninit = EmptyRcf::<T>::new();
+        let weak = EmptyRcf::downgrade(&uninit);
         RcState {
             weak,
             uninit: Some(uninit),
             init: None,
         }
     }
-    pub fn new<T: 'static>(init: Rc<T>) -> Self {
+    pub fn new<T: 'static>(init: Rcf<T>) -> Self {
         RcState {
-            weak: Rc::<T>::downgrade(&init),
+            weak: Rcf::<T>::downgrade(&init),
             uninit: None,
             init: Some(init),
         }
     }
-    pub fn init<T: 'static>(&mut self, value: T) -> anyhow::Result<Rc<T>> {
+    pub fn init<T: 'static>(&mut self, value: T) -> anyhow::Result<Rcf<T>> {
         let uninit = self.uninit.take().ok_or(SharedError::DoubleDefinition)?;
-        let uninit = EmptyRc::downcast::<T>(uninit)
+        let uninit = EmptyRcf::downcast::<T>(uninit)
             .ok()
             .ok_or(SharedError::TypeMismatch)?;
-        let init = EmptyRc::into_rc(uninit, value);
+        let init = EmptyRcf::into_strong(uninit, value);
         self.init = Some(init.clone());
         Ok(init)
     }
-    pub fn weak<T: 'static>(&self) -> anyhow::Result<rc::Weak<T>> {
-        Ok(rc_weak_downcast::<T>(self.weak.clone())
-            .ok()
-            .ok_or(SharedError::TypeMismatch)?)
+    pub fn weak<T: 'static>(&self) -> anyhow::Result<RcfWeak<T>> {
+        Ok(self
+            .weak
+            .clone()
+            .downcast::<T>()
+            .map_err(|e| e.map(|_| ()))?)
     }
-    pub fn rc<T: 'static>(&self) -> anyhow::Result<Rc<T>> {
-        Ok(
-            rc_downcast::<T>(self.init.clone().ok_or(SharedError::MissingDefinition)?)
-                .ok()
-                .ok_or(SharedError::TypeMismatch)?,
-        )
+    pub fn rc<T: 'static>(&self) -> anyhow::Result<Rcf<T>> {
+        Ok(self
+            .init
+            .clone()
+            .ok_or(SharedError::MissingDefinition)?
+            .downcast::<T>()
+            .map_err(|e| e.map(|_| ()))?)
     }
 }
 
@@ -124,7 +125,7 @@ struct Shared<X> {
 pub fn deserialize_arc<'p, 'de, D: Decoder, T: 'static + Sync + Send + Deserialize<D>>(
     d: AnyDecoder<'p, 'de, D>,
     mut ctx: Context,
-) -> anyhow::Result<(usize, Arc<T>)> {
+) -> anyhow::Result<(usize, Arcf<T>)> {
     let shared = <Shared<T> as Deserialize<D>>::deserialize(d, ctx.reborrow())?;
     let shared_ctx = ctx.get_mut::<SharedArcDeserializeContext>()?;
     if let Some(value) = shared.inner {
@@ -147,7 +148,7 @@ pub fn deserialize_arc<'p, 'de, D: Decoder, T: 'static + Sync + Send + Deseriali
 pub fn deserialize_rc<'de, D: Decoder, T: 'static + Deserialize<D>>(
     d: AnyDecoder<'_, 'de, D>,
     mut ctx: Context,
-) -> anyhow::Result<Rc<T>> {
+) -> anyhow::Result<Rcf<T>> {
     let shared = <Shared<T> as Deserialize<D>>::deserialize(d, ctx.reborrow())?;
     let shared_ctx = ctx.get_mut::<SharedRcDeserializeContext>()?;
     if let Some(value) = shared.inner {
@@ -165,15 +166,10 @@ pub fn deserialize_rc<'de, D: Decoder, T: 'static + Deserialize<D>>(
     }
 }
 
-pub fn deserialize_arc_weak<
-    'p,
-    'de,
-    D: Decoder,
-    T: 'static + Sync + Send + Deserialize<D>,
->(
+pub fn deserialize_arc_weak<'p, 'de, D: Decoder, T: 'static + Sync + Send + Deserialize<D>>(
     d: AnyDecoder<'p, 'de, D>,
     mut ctx: Context,
-) -> anyhow::Result<(usize, sync::Weak<T>)> {
+) -> anyhow::Result<(usize, ArcfWeak<T>)> {
     let id = <usize as Deserialize<D>>::deserialize(d, ctx.reborrow())?;
     let shared_ctx = ctx.get_mut::<SharedArcDeserializeContext>()?;
     Ok((
@@ -186,10 +182,10 @@ pub fn deserialize_arc_weak<
     ))
 }
 
-pub fn deserialize_rc_weak<'de, D: Decoder, T: 'static + Deserialize< D>>(
+pub fn deserialize_rc_weak<'de, D: Decoder, T: 'static + Deserialize<D>>(
     d: AnyDecoder<'_, 'de, D>,
     mut ctx: Context,
-) -> anyhow::Result<rc::Weak<T>> {
+) -> anyhow::Result<RcfWeak<T>> {
     let id = <usize as Deserialize<D>>::deserialize(d, ctx.reborrow())?;
     let shared_ctx = ctx.get_mut::<SharedRcDeserializeContext>()?;
     shared_ctx
@@ -208,7 +204,8 @@ macro_rules! derive_deserialize_rc_shared {
             fn deserialize_rc<'p, 'de>(
                 d: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 mut ctx: $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<::std::rc::Rc<Self>> {
+            ) -> $crate::reexports::anyhow::Result<$crate::reexports::marshal_pointer::Rcf<Self>>
+            {
                 $crate::de::deserialize_rc::<D, Self>(d, ctx)
             }
         }
@@ -224,7 +221,7 @@ macro_rules! derive_deserialize_rc_weak_shared {
             fn deserialize_rc_weak<'p, 'de>(
                 d: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 mut ctx: $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<::std::rc::Weak<Self>> {
+            ) -> $crate::reexports::anyhow::Result<$crate::reexports::marshal_pointer::RcfWeak<Self>> {
                 $crate::de::deserialize_rc_weak::<D, Self>(d, ctx)
             }
         }
@@ -240,7 +237,7 @@ macro_rules! derive_deserialize_arc_weak_shared {
             fn deserialize_arc_weak<'p, 'de>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<::std::sync::Weak<Self>> {
+            ) -> $crate::reexports::anyhow::Result<$crate::reexports::marshal_pointer::ArcfWeak<Self>> {
                 ::std::result::Result::Ok($crate::de::deserialize_arc_weak::<D, Self>(p, ctx)?.1)
             }
         }
@@ -256,7 +253,8 @@ macro_rules! derive_deserialize_arc_shared {
             fn deserialize_arc<'p, 'de>(
                 p: $crate::reexports::marshal::decode::AnyDecoder<'p, 'de, D>,
                 ctx: $crate::reexports::marshal::context::Context,
-            ) -> $crate::reexports::anyhow::Result<::std::sync::Arc<Self>> {
+            ) -> $crate::reexports::anyhow::Result<$crate::reexports::marshal_pointer::Arcf<Self>>
+            {
                 ::std::result::Result::Ok($crate::de::deserialize_arc::<D, Self>(p, ctx)?.1)
             }
         }

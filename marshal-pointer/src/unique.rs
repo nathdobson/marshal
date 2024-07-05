@@ -1,13 +1,14 @@
+use crate::empty::EmptyStrong;
 use crate::inner::Inner;
 use crate::raw_count::RawCount;
 use crate::strong::Strong;
 use crate::weak::Weak;
 use crate::weak_ref::WeakRef;
-use std::marker::PhantomData;
+use std::marker::{PhantomData, Unsize};
 use std::mem;
-use std::ops::{Deref, DerefMut};
+use std::ops::{CoerceUnsized, Deref, DerefMut};
 use std::ptr::NonNull;
-use crate::raw_any::AsFlatRef;
+use crate::AsFlatRef;
 
 pub struct UniqueStrong<C: RawCount, T: ?Sized> {
     inner: NonNull<Inner<C, T>>,
@@ -64,4 +65,23 @@ impl<C: RawCount, T: ?Sized> AsFlatRef for UniqueStrong<C, T> {
     fn as_flat_ref(&self) -> &Self::FlatRef {
         unsafe { &*(self.inner.as_ptr().into_raw() as *const WeakRef<C, T>) }
     }
+}
+
+impl<C: RawCount, T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<UniqueStrong<C, U>>
+    for UniqueStrong<C, T>
+{
+}
+
+unsafe impl<C: RawCount, T: ?Sized> Sync for UniqueStrong<C, T>
+where
+    T: Sync + Send,
+    C: Sync + Send,
+{
+}
+
+unsafe impl<C: RawCount, T: ?Sized> Send for UniqueStrong<C, T>
+where
+    T: Sync + Send,
+    C: Sync + Send,
+{
 }

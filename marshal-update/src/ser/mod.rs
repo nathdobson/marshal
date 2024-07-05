@@ -3,7 +3,7 @@ use std::any::{Any, type_name};
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use marshal_pointer::RawAny;
+use marshal_pointer::raw_any::RawAny;
 
 mod boxed;
 mod derive_serialize_update_for_clone;
@@ -26,7 +26,7 @@ pub trait SerializeUpdate<E: Encoder>: Serialize<E> + SerializeStream {
     ) -> anyhow::Result<()>;
 }
 
-pub trait SerializeStreamDyn: Any {
+pub trait SerializeStreamDyn: RawAny {
     fn start_stream_dyn(&self, ctx: Context) -> anyhow::Result<Box<dyn Sync + Send + RawAny>>;
 }
 

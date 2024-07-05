@@ -9,22 +9,22 @@ use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::rc::SerializeArc;
 use marshal::ser::Serialize;
-use marshal_pointer::arc_ref::ArcRef;
-use marshal_pointer::RawAny;
+use marshal_pointer::raw_any::RawAny;
+use marshal_pointer::{Arcf, ArcfRef, ArcfWeak};
 use marshal_shared::ser::SharedSerializeContext;
 
 use crate::forest::error::TreeError;
 use crate::forest::forest::{Forest, ForestRoot, Tree};
-use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
 use crate::ser::set_channel::SetSubscriber;
+use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
 
-type ForestSharedSerializeContext = SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>;
+type ForestSharedSerializeContext = SharedSerializeContext<ArcfWeak<Tree<dyn Sync + Send + Any>>>;
 pub(super) struct ForestSerializerTable {
     streamers: HashMap<
-        ByAddress<Arc<Tree<dyn Sync + Send + Any>>>,
-        Arc<Tree<dyn Sync + Send + SerializeStreamDyn>>,
+        ByAddress<Arcf<Tree<dyn Sync + Send + Any>>>,
+        Arcf<Tree<dyn Sync + Send + SerializeStreamDyn>>,
     >,
-    serializers: HashMap<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>, Box<dyn Sync + Send + Any>>,
+    serializers: HashMap<ByAddress<Arcf<Tree<dyn Sync + Send + Any>>>, Box<dyn Sync + Send + Any>>,
 }
 
 impl ForestSerializerTable {
@@ -58,8 +58,8 @@ impl<E: Encoder, T: Serialize<E>> Serialize<E> for ForestRoot<T> {
 
 pub struct ForestStream<T> {
     root: T,
-    streams: HashMap<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>, Box<dyn Sync + Send + RawAny>>,
-    subscriber: SetSubscriber<HashSet<ByAddress<Arc<Tree<dyn Sync + Send + Any>>>>>,
+    streams: HashMap<ByAddress<Arcf<Tree<dyn Sync + Send + Any>>>, Box<dyn Sync + Send + RawAny>>,
+    subscriber: SetSubscriber<HashSet<ByAddress<Arcf<Tree<dyn Sync + Send + Any>>>>>,
 }
 
 impl<T: SerializeStream> SerializeStream for ForestRoot<T> {
@@ -108,7 +108,7 @@ impl<E: Encoder, T: SerializeUpdate<E>> SerializeUpdate<E> for ForestRoot<T> {
                     .serializers
                     .get_mut(&address)
                     .ok_or(TreeError::MissingId)?
-                    .downcast_ref::<Arc<Tree<dyn Sync + Send + SerializeUpdateDyn<E>>>>()
+                    .downcast_ref::<Arcf<Tree<dyn Sync + Send + SerializeUpdateDyn<E>>>>()
                     .unwrap()
                     .clone();
                 let serializer_ref = self.forest().get(&serializer);
@@ -116,7 +116,7 @@ impl<E: Encoder, T: SerializeUpdate<E>> SerializeUpdate<E> for ForestRoot<T> {
                 let mut e = e.encode_entry()?;
                 let id = ForestSharedSerializeContext::get_id(
                     ctx.reborrow(),
-                    Arc::downgrade(&serializer) as sync::Weak<Tree<dyn Sync + Send + Any>>,
+                    Arcf::downgrade(&serializer) as ArcfWeak<Tree<dyn Sync + Send + RawAny>>,
                 )?
                 .unwrap();
                 <usize as Serialize<E>>::serialize(&id, e.encode_key()?, ctx.reborrow())?;
@@ -142,20 +142,20 @@ impl<
     > SerializeArc<E> for Tree<T>
 {
     fn serialize_arc<'w, 'en>(
-        this: &ArcRef<Self>,
+        this: &ArcfRef<Self>,
         e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let serializer_table = ctx.reborrow().get_mut::<ForestSerializerTable>()?;
         serializer_table
             .streamers
-            .entry(ByAddress(this.arc()))
-            .or_insert_with(|| this.arc() as Arc<Tree<dyn Sync + Send + SerializeStreamDyn>>);
+            .entry(ByAddress(this.strong()))
+            .or_insert_with(|| this.strong() as Arcf<Tree<dyn Sync + Send + SerializeStreamDyn>>);
         serializer_table
             .serializers
-            .entry(ByAddress(this.arc()))
+            .entry(ByAddress(this.strong()))
             .or_insert_with(|| {
-                Box::new(this.arc() as Arc<Tree<dyn Sync + Send + SerializeUpdateDyn<E>>>)
+                Box::new(this.strong() as Arcf<Tree<dyn Sync + Send + SerializeUpdateDyn<E>>>)
             });
         ForestSharedSerializeContext::serialize_strong(&**this, this.weak(), e, ctx)?;
         Ok(())

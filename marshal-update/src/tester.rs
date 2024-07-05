@@ -6,6 +6,7 @@ use pretty_assertions::assert_eq;
 use marshal::context::OwnedContext;
 use marshal_json::decode::full::{JsonDecoder, JsonDecoderBuilder};
 use marshal_json::encode::full::{JsonEncoder, JsonEncoderBuilder};
+use marshal_pointer::ArcfWeak;
 use marshal_shared::de::SharedArcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
 
@@ -14,7 +15,7 @@ use crate::forest::forest::Tree;
 use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct Tester<T: SerializeStream> {
-    shared_ser_ctx: SharedSerializeContext<sync::Weak<Tree<dyn Sync + Send + Any>>>,
+    shared_ser_ctx: SharedSerializeContext<ArcfWeak<Tree<dyn Sync + Send + Any>>>,
     input: T,
     input_stream: T::Stream,
     shared_de_ctx: SharedArcDeserializeContext,

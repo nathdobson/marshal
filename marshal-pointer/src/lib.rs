@@ -14,10 +14,14 @@
 #![feature(never_type)]
 #![feature(strict_provenance)]
 
+use crate::empty::EmptyStrong;
 use crate::raw_arc::RawArc;
 use crate::raw_rc::RawRc;
 use crate::strong::Strong;
+use crate::strong_ref::StrongRef;
+use crate::unique::UniqueStrong;
 use crate::weak::Weak;
+use crate::weak_ref::WeakRef;
 
 pub mod boxed;
 pub mod empty;
@@ -34,5 +38,19 @@ pub mod weak_ref;
 
 pub type Arcf<T> = Strong<RawArc, T>;
 pub type ArcfWeak<T> = Weak<RawArc, T>;
+pub type ArcfRef<T> = StrongRef<RawArc, T>;
+pub type ArcfWeakRef<T> = WeakRef<RawArc, T>;
+pub type UniqueArcf<T> = UniqueStrong<RawArc, T>;
+pub type EmptyArcf<T> = EmptyStrong<RawArc, T>;
+
 pub type Rcf<T> = Strong<RawRc, T>;
 pub type RcfWeak<T> = Weak<RawRc, T>;
+pub type RcfRef<T> = StrongRef<RawRc, T>;
+pub type RcfWeakRef<T> = WeakRef<RawRc, T>;
+pub type UniqueRcf<T> = UniqueStrong<RawRc, T>;
+pub type EmptyRcf<T> = EmptyStrong<RawRc, T>;
+
+pub trait AsFlatRef {
+    type FlatRef: ?Sized;
+    fn as_flat_ref(&self) -> &Self::FlatRef;
+}

@@ -15,7 +15,7 @@ use marshal_object::{
     AsDiscriminant, derive_box_object, derive_deserialize_provider, derive_serialize_provider,
     derive_variant,
 };
-use marshal_pointer::RawAny;
+use marshal_pointer::raw_any::RawAny;
 use marshal_update::de::DeserializeUpdate;
 use marshal_update::object_map::ObjectMap;
 use marshal_update::ser::{SerializeStream, SerializeUpdate, SerializeUpdateDyn};

@@ -1,5 +1,6 @@
+use crate::raw_any::{DerefRaw, DowncastError, DowncastRef, RawAny};
 use std::ops::Deref;
-use crate::raw_any::{AsFlatRef, DerefRaw, DowncastError, DowncastRef, RawAny};
+use crate::AsFlatRef;
 
 #[repr(transparent)]
 pub struct BoxRef<T: ?Sized>(T);
@@ -33,10 +34,12 @@ impl<T: ?Sized> DerefRaw for Box<T> {
 }
 
 impl<T: 'static> DowncastRef<BoxRef<T>> for BoxRef<dyn RawAny> {
-    fn downcast_ref(&self) -> Result<&BoxRef<T>, DowncastError> {
+    fn downcast_ref(&self) -> Result<&BoxRef<T>, DowncastError<()>> {
         unsafe {
-            (&(self.0) as *const dyn RawAny).downcast_check::<T>()?;
-            Ok(&*(self as *const BoxRef<dyn RawAny> as *const BoxRef<T>))
+            match (&self.0 as *const dyn RawAny).downcast_check::<T>() {
+                Ok(x) => Ok(&*(self as *const BoxRef<dyn RawAny> as *const BoxRef<T>)),
+                Err(e) => Err(e),
+            }
         }
     }
 }

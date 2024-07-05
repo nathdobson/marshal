@@ -1,13 +1,13 @@
 use std::marker::{PhantomData, Unsize};
 use std::rc;
 
+use crate::variants::{VariantImpl, VariantImplSet};
+use crate::{AsDiscriminant, Object};
 use marshal::context::Context;
 use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
-use marshal_pointer::{AsFlatRef, DowncastRef, RawAny};
-
-use crate::{AsDiscriminant, Object};
-use crate::variants::{VariantImpl, VariantImplSet};
+use marshal_pointer::AsFlatRef;
+use marshal_pointer::raw_any::{DowncastRef, RawAny};
 
 pub fn serialize_object<'w, 'en, O: Object, E: Encoder>(
     value: &<O::Pointer<O::Dyn> as AsFlatRef>::FlatRef,

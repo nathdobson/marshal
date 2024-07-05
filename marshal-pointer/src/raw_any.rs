@@ -1,10 +1,7 @@
-use std::any::{Any, type_name, TypeId};
-use std::fmt::{Display, Formatter};
+use crate::empty::EmptyStrong;
+use std::any::{type_name, Any, TypeId};
+use std::fmt::{Debug, Display, Formatter};
 
-pub trait AsFlatRef {
-    type FlatRef: ?Sized;
-    fn as_flat_ref(&self) -> &Self::FlatRef;
-}
 
 pub trait DerefRaw {
     type RawTarget: ?Sized;
@@ -26,32 +23,52 @@ impl<T: Any> RawAny for T {
 }
 
 impl dyn RawAny {
-    pub fn downcast_check<T: 'static>(self: *const Self) -> Result<(), DowncastError> {
+    pub fn downcast_check<T: 'static>(self: *const Self) -> Result<(), DowncastError<()>> {
         if self.raw_type_id() == TypeId::of::<T>() {
             Ok(())
         } else {
             Err(DowncastError {
                 from: self.raw_type_name(),
                 to: type_name::<T>(),
+                inner: (),
             })
         }
     }
 }
 
-#[derive(Debug)]
-pub struct DowncastError {
+pub struct DowncastError<E> {
     from: &'static str,
     to: &'static str,
+    inner: E,
 }
 
-impl Display for DowncastError {
+impl<E> DowncastError<E> {
+    pub fn map<E2>(self, e: impl FnOnce(E) -> E2) -> DowncastError<E2> {
+        DowncastError {
+            from: self.from,
+            to: self.from,
+            inner: e(self.inner),
+        }
+    }
+}
+
+impl<E> Debug for DowncastError<E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DowncastError")
+            .field("from", &self.from)
+            .field("to", &self.to)
+            .finish()
+    }
+}
+
+impl<E> Display for DowncastError<E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "tried to downcast from {} to {}", self.from, self.to)
     }
 }
 
-impl std::error::Error for DowncastError {}
+impl<E> std::error::Error for DowncastError<E> {}
 
 pub trait DowncastRef<T: ?Sized> {
-    fn downcast_ref(&self) -> Result<&T, DowncastError>;
+    fn downcast_ref(&self) -> Result<&T, DowncastError<()>>;
 }

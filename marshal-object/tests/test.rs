@@ -11,21 +11,23 @@ use std::rc;
 use std::rc::Rc;
 
 use marshal::context::OwnedContext;
-use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::decode::full::BinDecoderBuilder;
-use marshal_bin::DeserializeBin;
-use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::decode::BinDecoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
+use marshal_bin::encode::BinEncoderSchema;
+use marshal_bin::DeserializeBin;
 use marshal_bin::SerializeBin;
 use marshal_bin::VU128_MAX_PADDING;
 use marshal_json::decode::full::JsonDecoderBuilder;
-use marshal_json::DeserializeJson;
 use marshal_json::encode::full::JsonEncoderBuilder;
+use marshal_json::DeserializeJson;
 use marshal_json::SerializeJson;
+use marshal_pointer::raw_any::RawAny;
+use marshal_pointer::{Rcf, RcfWeak};
 use marshal_shared::de::SharedRcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
 
-use crate::x::{A, MyTrait};
+use crate::x::{MyTrait, A};
 
 #[no_implicit_prelude]
 mod x {
@@ -95,7 +97,7 @@ mod x {
     pub trait MyTrait:
         'static
         + ::std::fmt::Debug
-        + ::marshal_pointer::RawAny
+        + ::marshal_pointer::raw_any::RawAny
         + ::marshal_object::AsDiscriminant<BoxMyTrait>
         + ::marshal_object::AsDiscriminant<RcMyTrait>
         + ::marshal_object::AsDiscriminant<ArcMyTrait>
@@ -152,7 +154,7 @@ pub fn json_round_trip<T: Debug + SerializeJson + DeserializeJson>(
     expected: &str,
 ) -> anyhow::Result<T> {
     let mut ser_ctx = OwnedContext::new();
-    let mut shared_ser_ctx = SharedSerializeContext::<rc::Weak<dyn Any>>::default();
+    let mut shared_ser_ctx = SharedSerializeContext::<RcfWeak<dyn Any>>::default();
     ser_ctx.insert_mut(&mut shared_ser_ctx);
     println!("{:?}", input);
     let found = JsonEncoderBuilder::new().serialize(input, ser_ctx.borrow())?;
@@ -170,7 +172,7 @@ pub fn bin_round_trip<T: Debug + SerializeBin + DeserializeBin>(
     expected: &[&[u8]],
 ) -> anyhow::Result<T> {
     let mut ser_ctx = OwnedContext::new();
-    let mut shared_ser_ctx = SharedSerializeContext::<rc::Weak<dyn Any>>::default();
+    let mut shared_ser_ctx = SharedSerializeContext::<RcfWeak<dyn Any>>::default();
     ser_ctx.insert_mut(&mut shared_ser_ctx);
     println!("{:?}", input);
     let found =
@@ -192,7 +194,7 @@ pub fn bin_round_trip<T: Debug + SerializeBin + DeserializeBin>(
 
 #[test]
 fn test_json_rc() -> anyhow::Result<()> {
-    let input = Rc::new(A(42u8)) as Rc<dyn MyTrait>;
+    let input = Rcf::new(A(42u8)) as Rcf<dyn MyTrait>;
     let output = json_round_trip(
         &input,
         r#"{
@@ -206,7 +208,7 @@ fn test_json_rc() -> anyhow::Result<()> {
   ]
 }"#,
     )?;
-    let output: &A = &*Rc::<dyn Any>::downcast::<A>(output).unwrap();
+    let output: &A = &*Rcf::<dyn RawAny>::downcast::<A>(output).unwrap();
     assert_eq!(output, &A(42));
     Ok(())
 }
@@ -231,7 +233,7 @@ fn test_json_box() -> anyhow::Result<()> {
 
 #[test]
 fn test_bin() -> anyhow::Result<()> {
-    let input = Rc::new(A(42u8)) as Rc<dyn MyTrait>;
+    let input = Rcf::new(A(42u8)) as Rcf<dyn MyTrait>;
     let output = bin_round_trip(
         &input,
         &[
@@ -256,7 +258,7 @@ fn test_bin() -> anyhow::Result<()> {
             //
         ],
     )?;
-    let output: &A = &*Rc::<dyn Any>::downcast::<A>(output).unwrap();
+    let output: &A = &*Rcf::<dyn RawAny>::downcast::<A>(output).unwrap();
     assert_eq!(output, &A(42));
     Ok(())
 }

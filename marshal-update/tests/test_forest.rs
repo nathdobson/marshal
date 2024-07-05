@@ -5,6 +5,7 @@ use std::sync::Arc;
 use pretty_assertions::assert_eq;
 
 use marshal_derive::{Deserialize, DeserializeUpdate, Serialize, SerializeStream, SerializeUpdate};
+use marshal_pointer::Arcf;
 use marshal_update::forest::forest::Forest;
 use marshal_update::forest::forest::ForestRoot;
 use marshal_update::forest::forest::Tree;
@@ -46,7 +47,7 @@ fn test_forest() -> anyhow::Result<()> {
 #[test]
 fn test_forest_insert() -> anyhow::Result<()> {
     let forest = Forest::new();
-    let tree: Arc<Tree<Option<Arc<Tree<u8>>>>> = forest.add(None);
+    let tree: Arcf<Tree<Option<Arcf<Tree<u8>>>>> = forest.add(None);
     let root = ForestRoot::new(forest, tree.clone());
     let mut tester = Tester::new(
         root,
@@ -98,10 +99,10 @@ fn test_forest_insert() -> anyhow::Result<()> {
 fn test_forest_list() -> anyhow::Result<()> {
     #[derive(Deserialize, DeserializeUpdate, Serialize, SerializeUpdate, SerializeStream)]
     struct Cons {
-        head: Arc<Tree<u8>>,
+        head: Arcf<Tree<u8>>,
         tail: List,
     }
-    type List = Option<Arc<Tree<Cons>>>;
+    type List = Option<Arcf<Tree<Cons>>>;
     let forest = Forest::new();
     let list = forest.add(Cons {
         head: forest.add(4),
