@@ -41,7 +41,7 @@ impl DiscriminantWidth {
             Self::U8
         } else if max <= 0x1_00_00 {
             Self::U16
-        } else if max <= 0x1_00_00_00_00 {
+        } else if max as u64 <= 0x1_00_00_00_00 {
             Self::U32
         } else {
             Self::U64

@@ -3,12 +3,12 @@ use std::borrow::Cow;
 use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 use serde::Deserializer;
 
-use marshal::{Primitive, PrimitiveType, SchemaError};
 use marshal::context::Context;
 use marshal::decode::{
     AnyDecoder, AnySpecDecoder, DecodeHint, Decoder, DecoderView, EntryDecoder, SeqDecoder,
     SpecDecoder,
 };
+use marshal::{Primitive, PrimitiveType, SchemaError};
 
 use crate::{MarshalError, WithSerde};
 
@@ -377,7 +377,7 @@ impl<'p, 'de, D: Decoder> Deserializer<'de> for MarshalDeserializer<'p, 'de, D> 
             output = visitor.visit_enum(MarshalEnumAccess::<D>(d))?;
         }
         if let Some(_) = d.decode_next()? {
-            return Err(anyhow::Error::from(SchemaError::TupleTooLong).into());
+            return Err(anyhow::Error::from(SchemaError::TupleTooLong { expected: 1 }).into());
         }
         Ok(output)
     }
@@ -492,7 +492,9 @@ impl<'p, 'de, D: Decoder> VariantAccess<'de> for MarshalVariantAccess<'p, 'de, D
                 .map_err(anyhow::Error::from)?,
         ))?;
         if let Some(_) = seq.decode_next()? {
-            return Err(MarshalError(anyhow::Error::from(SchemaError::TupleTooLong)));
+            return Err(MarshalError(anyhow::Error::from(
+                SchemaError::TupleTooLong { expected: 1 },
+            )));
         }
         self.0.decode_end()?;
         Ok(result)

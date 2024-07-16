@@ -128,9 +128,10 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         &mut self,
         _: Self::AnySpecEncoder,
         _: &'static str,
-        _: &'static [&'static str],
-        _: usize,
+        variants: &'static [&'static str],
+        variant_index: usize,
     ) -> anyhow::Result<()> {
+        self.encode_discriminant(variant_index, variants.len());
         Ok(())
     }
 

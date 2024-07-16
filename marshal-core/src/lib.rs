@@ -125,7 +125,9 @@ pub enum SchemaError {
     },
     TupleTooShort,
     UninhabitedType,
-    TupleTooLong,
+    TupleTooLong {
+        expected: usize,
+    },
 }
 
 impl Display for SchemaError {

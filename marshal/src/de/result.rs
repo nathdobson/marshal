@@ -10,13 +10,13 @@ impl<D: Decoder, A: Deserialize<D>, B: Deserialize<D>> Deserialize<D> for Result
             0 => {
                 let mut tuple = variant.decode_tuple_variant_helper(1)?;
                 let value = A::deserialize(tuple.decode_next()?, ctx)?;
-                tuple.decode_end()?;
+                tuple.decode_end(1)?;
                 Ok(value)
             }
             1 => {
                 let mut tuple = variant.decode_tuple_variant_helper(1)?;
                 let value = B::deserialize(tuple.decode_next()?, ctx)?;
-                tuple.decode_end()?;
+                tuple.decode_end(1)?;
                 Err(value)
             }
             _ => unreachable!(),

@@ -123,7 +123,11 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
                         _ => return Err(FixedError::UnsupportedHint.into()),
                     }))
                 }
-                DecodeHint::Identifier => {}
+                DecodeHint::Identifier => {
+                    return Ok(SimpleDecoderView::Primitive(Primitive::U64(
+                        disc.try_into()?,
+                    )));
+                }
                 _ => return Err(FixedError::UnsupportedHint.into()),
             },
         }
@@ -140,9 +144,10 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
                 }
             }
             DecodeHint::UnitStruct { .. } => Ok(SimpleDecoderView::Primitive(Primitive::Unit)),
-            DecodeHint::Seq => Ok(SimpleDecoderView::Seq(FixedSeqDecoder {
-                len: self.data.read_vu128::<u64>()? as usize,
-            })),
+            DecodeHint::Seq => {
+                let len = self.data.read_vu128::<u64>()? as usize;
+                Ok(SimpleDecoderView::Seq(FixedSeqDecoder { len }))
+            }
             DecodeHint::Tuple { len } => Ok(SimpleDecoderView::Seq(FixedSeqDecoder { len })),
             DecodeHint::TupleStruct { name: _, len } => {
                 Ok(SimpleDecoderView::Seq(FixedSeqDecoder { len }))

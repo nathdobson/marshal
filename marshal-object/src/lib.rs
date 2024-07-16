@@ -112,6 +112,7 @@ impl Builder for ObjectRegistry {
 
     fn build(mut self) -> Self::Output {
         for (_, object) in &mut self.objects {
+            object.variants.sort_by_key(|x| x.variant_name);
             let mut variant_names = object
                 .variants
                 .iter()

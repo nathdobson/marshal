@@ -1,13 +1,14 @@
+use std::any::type_name;
 use std::marker::PhantomData;
 use std::ops::CoerceUnsized;
 
 use marshal::context::Context;
 use marshal::de::Deserialize;
-use marshal::decode::{AnyDecoder, DecodeHint, Decoder, DecoderView, DecodeVariantHint};
+use marshal::decode::{AnyDecoder, DecodeHint, DecodeVariantHint, Decoder, DecoderView};
 use marshal::SchemaError;
 
-use crate::Object;
 use crate::variants::{VariantImpl, VariantImplSet};
+use crate::Object;
 
 pub trait DeserializeVariantForDiscriminant<D: Decoder>: Object {
     fn deserialize_variant<'p, 'de>(
@@ -45,7 +46,7 @@ where
                     let variant = d.decode_next()?.ok_or(SchemaError::TupleTooShort)?;
                     let result = O::deserialize_variant(disc, variant, ctx)?;
                     if let Some(_) = d.decode_next()? {
-                        return Err(SchemaError::TupleTooLong.into());
+                        return Err(SchemaError::TupleTooLong { expected: 1 }.into());
                     }
                     result
                 }

@@ -18,9 +18,9 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> TupleHelper<'p, 'de, D> {
         Ok(self.seq.decode_next()?.ok_or(SchemaError::TupleTooShort)?)
     }
     #[inline]
-    pub fn decode_end(mut self) -> anyhow::Result<()> {
+    pub fn decode_end(mut self, expected: usize) -> anyhow::Result<()> {
         if let Some(_) = self.seq.decode_next()? {
-            Err(SchemaError::TupleTooLong.into())
+            Err(SchemaError::TupleTooLong { expected }.into())
         } else {
             Ok(())
         }

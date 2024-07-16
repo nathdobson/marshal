@@ -20,7 +20,7 @@ macro_rules! derive_tuple {
         > Deserialize<D> for ($($T,)*)
         {
             fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, mut ctx: Context) -> anyhow::Result<Self> {
-                match d.decode(DecodeHint::Tuple { len: 4 })? {
+                match d.decode(DecodeHint::Tuple { len: ${count($T)} })? {
                     DecoderView::Seq(mut p) => {
                         let result=(
                             $(
@@ -31,7 +31,7 @@ macro_rules! derive_tuple {
                             )*
                         );
                         if let Some(_) = p.decode_next()? {
-                            return Err(SchemaError::TupleTooLong.into());
+                            return Err(SchemaError::TupleTooLong{expected:${count($T)}}.into());
                         }
                         Ok(result)
                     }

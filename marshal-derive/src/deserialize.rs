@@ -141,7 +141,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                                     ),*
                                 })
                             }
-                            v => v.mismatch("map from field names or indices to field values")?,
+                            v => v.mismatch("seq or map from field names or indices to field values")?,
                         }
                     }
                 }
@@ -250,16 +250,31 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                                             }
                                             entry.decode_end()?;
                                         }
+                                        #(
+                                            let #field_var_idents = #field_var_idents.ok_or(#schema_error::MissingField{field_name:#field_literals})?;
+                                        )*
+                                        #type_ident::#variant_ident {
+                                            #(
+                                                #field_idents:#field_var_idents
+                                            ),*
+                                        }
+
                                     },
-                                    v => v.mismatch("expected map")?
-                                }
-                                #(
-                                    let #field_var_idents = #field_var_idents.ok_or(#schema_error::MissingField{field_name:#field_literals})?;
-                                )*
-                                #type_ident::#variant_ident {
-                                    #(
-                                        #field_idents:#field_var_idents
-                                    ),*
+                                    #decoder_view_type::Seq(mut decoder) => {
+                                        #(
+                                            let #field_var_idents = {
+                                                let next = decoder.decode_next()?.ok_or(#schema_error::TupleTooShort)?;
+                                                <#field_types as #deserialize_trait<D>>::deserialize(next, ctx.reborrow())?
+                                            };
+                                        )*
+                                        decoder.ignore()?;
+                                        #type_ident::#variant_ident {
+                                            #(
+                                                #field_idents: #field_var_idents
+                                            ),*
+                                        }
+                                    }
+                                    v => v.mismatch("expected map or seq")?
                                 }
                             },
                         });
