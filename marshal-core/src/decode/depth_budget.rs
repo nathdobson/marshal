@@ -24,15 +24,18 @@ impl Display for OverflowError {
 impl Error for OverflowError {}
 
 impl<T> WithDepthBudget<T> {
+    #[inline]
     pub fn new(budget: usize, inner: T) -> Self {
         WithDepthBudget { budget, inner }
     }
 }
 
 impl<'de, D: SpecDecoder<'de>> DepthBudgetDecoder<D> {
+    #[inline]
     pub fn new(inner: D) -> Self {
         DepthBudgetDecoder { inner }
     }
+    #[inline]
     fn wrap_view<'p>(
         budget: usize,
         view: SimpleDecoderView<'de, D>,
@@ -48,12 +51,15 @@ impl<'de, D: SpecDecoder<'de>> DepthBudgetDecoder<D> {
             SimpleDecoderView::Enum(x) => SimpleDecoderView::Enum(WithDepthBudget::new(budget, x)),
         }
     }
+    #[inline]
     pub fn inner(&self) -> &D {
         &self.inner
     }
+    #[inline]
     pub fn inner_mut(&mut self) -> &mut  D {
         &mut self.inner
     }
+    #[inline]
     pub fn end(self) -> anyhow::Result<D> {
         Ok(self.inner)
     }
@@ -71,6 +77,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
     type SomeDecoder = WithDepthBudget<D::SomeDecoder>;
     type SomeCloser = WithDepthBudget<D::SomeCloser>;
 
+    #[inline]
     fn decode(
         &mut self,
         any: Self::AnyDecoder,
@@ -82,10 +89,12 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
         ))
     }
 
+    #[inline]
     fn is_human_readable(&self) -> bool {
         self.inner.is_human_readable()
     }
 
+    #[inline]
     fn decode_seq_next(
         &mut self,
         seq: &mut Self::SeqDecoder,
@@ -97,10 +106,12 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
         }
     }
 
+    #[inline]
     fn decode_seq_end(&mut self, seq: Self::SeqDecoder) -> anyhow::Result<()> {
         self.inner.decode_seq_end(seq.inner)
     }
 
+    #[inline]
     fn decode_map_next(
         &mut self,
         map: &mut Self::MapDecoder,
@@ -112,10 +123,12 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
         }
     }
 
+    #[inline]
     fn decode_map_end(&mut self, map: Self::MapDecoder) -> anyhow::Result<()> {
         self.inner.decode_map_end(map.inner)
     }
 
+    #[inline]
     fn decode_entry_key(
         &mut self,
         key: Self::KeyDecoder,
@@ -127,6 +140,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
         ))
     }
 
+    #[inline]
     fn decode_entry_value(
         &mut self,
         value: Self::ValueDecoder,
@@ -137,6 +151,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
         ))
     }
 
+    #[inline]
     fn decode_enum_discriminant(
         &mut self,
         disc: Self::DiscriminantDecoder,
@@ -148,6 +163,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
         ))
     }
 
+    #[inline]
     fn decode_enum_variant(
         &mut self,
         variant: Self::VariantDecoder,
@@ -160,10 +176,12 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
         ))
     }
 
+    #[inline]
     fn decode_enum_end(&mut self, closer: Self::EnumCloser) -> anyhow::Result<()> {
         self.inner.decode_enum_end(closer.inner)
     }
 
+    #[inline]
     fn decode_some_inner(
         &mut self,
         some: Self::SomeDecoder,
@@ -175,6 +193,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for DepthBudgetDecoder<D> {
         ))
     }
 
+    #[inline]
     fn decode_some_end(&mut self, closer: Self::SomeCloser) -> anyhow::Result<()> {
         self.inner.decode_some_end(closer.inner)
     }

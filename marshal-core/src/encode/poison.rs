@@ -20,12 +20,15 @@ impl Display for PoisonError {
 impl std::error::Error for PoisonError {}
 
 impl<E: SpecEncoder> PoisonEncoder<E> {
+    #[inline]
     pub fn new(inner: E) -> Self {
         PoisonEncoder { inner, depth: 0 }
     }
+    #[inline]
     pub fn start(&mut self, inner: E::AnySpecEncoder) -> <Self as SpecEncoder>::AnySpecEncoder {
         self.push(inner)
     }
+    #[inline]
     pub fn end(self) -> anyhow::Result<E> {
         if self.depth == 0 {
             Ok(self.inner)
@@ -33,6 +36,7 @@ impl<E: SpecEncoder> PoisonEncoder<E> {
             Err(PoisonError::UnexpectedEncodeState.into())
         }
     }
+    #[inline]
     fn push<T>(&mut self, inner: T) -> PoisonWrapper<T> {
         self.depth += 1;
         PoisonWrapper {
@@ -40,6 +44,7 @@ impl<E: SpecEncoder> PoisonEncoder<E> {
             inner,
         }
     }
+    #[inline]
     fn pop<T>(&mut self, wrapper: PoisonWrapper<T>) -> anyhow::Result<T> {
         if wrapper.depth == self.depth {
             self.depth -= 1;
@@ -48,6 +53,7 @@ impl<E: SpecEncoder> PoisonEncoder<E> {
             Err(PoisonError::UnexpectedEncodeState.into())
         }
     }
+    #[inline]
     fn peek<'a, T>(&self, wrapper: &'a mut PoisonWrapper<T>) -> anyhow::Result<&'a mut T> {
         if wrapper.depth == self.depth {
             Ok(&mut wrapper.inner)
@@ -75,26 +81,31 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     type TupleVariantEncoder = PoisonWrapper<E::TupleVariantEncoder>;
     type StructVariantEncoder = PoisonWrapper<E::StructVariantEncoder>;
 
+    #[inline]
     fn encode_prim(&mut self, any: Self::AnySpecEncoder, prim: Primitive) -> anyhow::Result<()> {
         let any = self.pop(any)?;
         self.inner.encode_prim(any, prim)
     }
 
+    #[inline]
     fn encode_str(&mut self, any: Self::AnySpecEncoder, s: &str) -> anyhow::Result<()> {
         let any = self.pop(any)?;
         self.inner.encode_str(any, s)
     }
 
+    #[inline]
     fn encode_bytes(&mut self, any: Self::AnySpecEncoder, s: &[u8]) -> anyhow::Result<()> {
         let any = self.pop(any)?;
         self.inner.encode_bytes(any, s)
     }
 
+    #[inline]
     fn encode_none(&mut self, any: Self::AnySpecEncoder) -> anyhow::Result<()> {
         let any = self.pop(any)?;
         self.inner.encode_none(any)
     }
 
+    #[inline]
     fn encode_some(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -106,6 +117,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok((some_encoder, some_closer))
     }
 
+    #[inline]
     fn encode_unit_struct(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -115,6 +127,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         self.inner.encode_unit_struct(any, name)
     }
 
+    #[inline]
     fn encode_tuple_struct(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -126,6 +139,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(tuple_struct_encoder))
     }
 
+    #[inline]
     fn encode_struct(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -137,6 +151,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(struct_encoder))
     }
 
+    #[inline]
     fn encode_unit_variant(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -150,6 +165,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(())
     }
 
+    #[inline]
     fn encode_tuple_variant(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -165,6 +181,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn encode_struct_variant(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -180,6 +197,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn encode_seq(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -190,6 +208,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn encode_tuple(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -200,6 +219,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn encode_map(
         &mut self,
         any: Self::AnySpecEncoder,
@@ -210,11 +230,13 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn some_end(&mut self, some: Self::SomeCloser) -> anyhow::Result<()> {
         let some = self.pop(some)?;
         self.inner.some_end(some)
     }
 
+    #[inline]
     fn tuple_encode_element(
         &mut self,
         tuple: &mut Self::TupleEncoder,
@@ -224,11 +246,13 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn tuple_end(&mut self, tuple: Self::TupleEncoder) -> anyhow::Result<()> {
         let tuple = self.pop(tuple)?;
         self.inner.tuple_end(tuple)
     }
 
+    #[inline]
     fn seq_encode_element(
         &mut self,
         seq: &mut Self::SeqEncoder,
@@ -238,11 +262,13 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn seq_end(&mut self, seq: Self::SeqEncoder) -> anyhow::Result<()> {
         let seq = self.pop(seq)?;
         self.inner.seq_end(seq)
     }
 
+    #[inline]
     fn map_encode_element(
         &mut self,
         map: &mut Self::MapEncoder,
@@ -254,12 +280,14 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok((key, value))
     }
 
+    #[inline]
     fn map_end(&mut self, map: Self::MapEncoder) -> anyhow::Result<()> {
         let map = self.pop(map)?;
         self.inner.map_end(map)?;
         Ok(())
     }
 
+    #[inline]
     fn entry_encode_value(
         &mut self,
         value: Self::ValueEncoder,
@@ -271,12 +299,14 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok((value, closer))
     }
 
+    #[inline]
     fn entry_end(&mut self, closer: Self::EntryCloser) -> anyhow::Result<()> {
         let closer = self.pop(closer)?;
         self.inner.entry_end(closer)?;
         Ok(())
     }
 
+    #[inline]
     fn tuple_struct_encode_field(
         &mut self,
         struc: &mut Self::TupleStructEncoder,
@@ -286,12 +316,14 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn tuple_struct_end(&mut self, struc: Self::TupleStructEncoder) -> anyhow::Result<()> {
         let struc = self.pop(struc)?;
         self.inner.tuple_struct_end(struc)?;
         Ok(())
     }
 
+    #[inline]
     fn struct_encode_field(
         &mut self,
         struc: &mut Self::StructEncoder,
@@ -302,12 +334,14 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn struct_end(&mut self, struc: Self::StructEncoder) -> anyhow::Result<()> {
         let struc = self.pop(struc)?;
         self.inner.struct_end(struc)?;
         Ok(())
     }
 
+    #[inline]
     fn tuple_variant_encode_field(
         &mut self,
         variant: &mut Self::TupleVariantEncoder,
@@ -317,12 +351,14 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn tuple_variant_end(&mut self, variant: Self::TupleVariantEncoder) -> anyhow::Result<()> {
         let variant = self.pop(variant)?;
         self.inner.tuple_variant_end(variant)?;
         Ok(())
     }
 
+    #[inline]
     fn struct_variant_encode_field(
         &mut self,
         variant: &mut Self::StructVariantEncoder,
@@ -333,12 +369,14 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
         Ok(self.push(encoder))
     }
 
+    #[inline]
     fn struct_variant_end(&mut self, variant: Self::StructVariantEncoder) -> anyhow::Result<()> {
         let variant = self.pop(variant)?;
         self.inner.struct_variant_end(variant)?;
         Ok(())
     }
 
+    #[inline]
     fn is_human_readable(&self) -> bool {
         self.inner.is_human_readable()
     }

@@ -68,6 +68,7 @@ impl<
 {
     type Item = anyhow::Result<T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         match self.seq.decode_next() {
             Err(e) => Some(Err(e)),
@@ -75,6 +76,7 @@ impl<
             Ok(Some(x)) => Some((self.map)(x)),
         }
     }
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         if let Some(size) = self.seq.exact_size() {
             (size, Some(size))
@@ -105,6 +107,7 @@ impl<
 {
     type Item = anyhow::Result<V>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let result: anyhow::Result<Option<V>> = try {
             match self.map.decode_next()? {
@@ -119,6 +122,7 @@ impl<
         };
         result.transpose()
     }
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         if let Some(size) = self.map.exact_size() {
             (size, Some(size))
@@ -307,24 +311,29 @@ pub struct SomeDecoder<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> MapDecoder<'p, 'de, D> {
+    #[inline]
     pub fn into_raw(self) -> (&'p mut D, D::MapDecoder) {
         (self.this, self.map.unwrap())
     }
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
+    #[inline]
     pub fn decode(self, hint: DecodeHint) -> anyhow::Result<DecoderView<'p, 'de, D>> {
         Ok(self.this.decode(self.any, hint)?.wrap(self.this))
     }
+    #[inline]
     pub fn ignore(self) -> anyhow::Result<()> {
         self.decode(DecodeHint::Ignore)?.ignore()
     }
+    #[inline]
     pub fn is_human_readable(&self) -> bool {
         self.this.is_human_readable()
     }
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SeqDecoder<'p, 'de, D> {
+    #[inline]
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<AnySpecDecoder<'p2, 'de, D>>> {
         if let Some(seq) = &mut self.seq {
             if let Some(any) = self.this.decode_seq_next(seq)? {
@@ -340,15 +349,18 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SeqDecoder<'p, 'de, D> {
             Ok(None)
         }
     }
+    #[inline]
     pub fn exact_size(&self) -> Option<usize> {
         self.this.decode_seq_exact_size(self.seq.as_ref().unwrap())
     }
+    #[inline]
     pub fn ignore(mut self) -> anyhow::Result<()> {
         while let Some(next) = self.decode_next()? {
             next.ignore()?;
         }
         Ok(())
     }
+    #[inline]
     pub fn seq_into_iter<T, F: for<'p2> FnMut(AnySpecDecoder<'p2, 'de, D>) -> anyhow::Result<T>>(
         self,
         map: F,
@@ -362,6 +374,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SeqDecoder<'p, 'de, D> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> MapDecoder<'p, 'de, D> {
+    #[inline]
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<Option<EntryDecoder<'p2, 'de, D>>> {
         if let Some(data) = self.this.decode_map_next(self.map.as_mut().unwrap())? {
             Ok(Some(EntryDecoder {
@@ -374,15 +387,18 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> MapDecoder<'p, 'de, D> {
             Ok(None)
         }
     }
+    #[inline]
     pub fn exact_size(&self) -> Option<usize> {
         self.this.decode_map_exact_size(self.map.as_ref().unwrap())
     }
+    #[inline]
     pub fn ignore(mut self) -> anyhow::Result<()> {
         while let Some(next) = self.decode_next()? {
             next.ignore()?;
         }
         Ok(())
     }
+    #[inline]
     pub fn map_into_iter<
         C,
         K,
@@ -406,6 +422,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> MapDecoder<'p, 'de, D> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> EntryDecoder<'p, 'de, D> {
+    #[inline]
     pub fn decode_key<'p2>(&'p2 mut self) -> anyhow::Result<AnySpecDecoder<'p2, 'de, D>> {
         let (key, value) = self.this.decode_entry_key(self.key.take().unwrap())?;
         self.value = Some(value);
@@ -415,6 +432,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> EntryDecoder<'p, 'de, D> {
         })
     }
 
+    #[inline]
     pub fn decode_value<'p2>(&'p2 mut self) -> anyhow::Result<AnySpecDecoder<'p2, 'de, D>> {
         let value = self.value.take().unwrap();
         let value = self.this.decode_entry_value(value)?;
@@ -424,10 +442,12 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> EntryDecoder<'p, 'de, D> {
         })
     }
 
+    #[inline]
     pub fn decode_end(mut self) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     pub fn ignore(mut self) -> anyhow::Result<()> {
         self.decode_key()?.ignore()?;
         self.decode_value()?.ignore()?;
@@ -440,6 +460,7 @@ impl<'p, 'de, T> EnumDecoder<'p, 'de, T>
 where
     T: ?Sized + SpecDecoder<'de>,
 {
+    #[inline]
     pub fn decode_discriminant<'p2>(&'p2 mut self) -> anyhow::Result<AnySpecDecoder<'p2, 'de, T>> {
         let (discriminant, variant) = self
             .this
@@ -451,6 +472,7 @@ where
         })
     }
 
+    #[inline]
     pub fn decode_variant<'p2>(
         &'p2 mut self,
         hint: DecodeVariantHint,
@@ -462,10 +484,12 @@ where
         Ok(data.wrap(self.this))
     }
 
+    #[inline]
     pub fn decode_end(mut self) -> anyhow::Result<()> {
         self.this.decode_enum_end(self.closer.take().unwrap())
     }
 
+    #[inline]
     pub fn ignore(mut self) -> anyhow::Result<()> {
         self.decode_discriminant()?.ignore()?;
         self.decode_variant(DecodeVariantHint::Ignore)?.ignore()?;
@@ -474,6 +498,7 @@ where
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SomeDecoder<'p, 'de, D> {
+    #[inline]
     pub fn decode_some<'p2>(&'p2 mut self) -> anyhow::Result<AnySpecDecoder<'p2, 'de, D>> {
         let (any, closer) = self
             .this
@@ -482,10 +507,12 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SomeDecoder<'p, 'de, D> {
         Ok(AnySpecDecoder::new(self.this, any))
     }
 
+    #[inline]
     pub fn decode_end(mut self) -> anyhow::Result<()> {
         self.this.decode_some_end(self.some_closer.take().unwrap())
     }
 
+    #[inline]
     pub fn ignore(mut self) -> anyhow::Result<()> {
         self.decode_some()?.ignore()?;
         self.decode_end()?;
@@ -494,12 +521,14 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> SomeDecoder<'p, 'de, D> {
 }
 
 impl<'p, 'de, T: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, T> {
+    #[inline]
     pub fn new(decoder: &'p mut T, any: T::AnyDecoder) -> Self {
         AnySpecDecoder { this: decoder, any }
     }
 }
 
 impl<'p, 'de, T: ?Sized + SpecDecoder<'de>> EntryDecoder<'p, 'de, T> {
+    #[inline]
     pub fn new(decoder: &'p mut T, key: T::KeyDecoder) -> Self {
         EntryDecoder {
             this: decoder,
@@ -510,24 +539,28 @@ impl<'p, 'de, T: ?Sized + SpecDecoder<'de>> EntryDecoder<'p, 'de, T> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
+    #[inline]
     pub fn try_into_seq(self) -> anyhow::Result<SeqDecoder<'p, 'de, D>> {
         match self {
             DecoderView::Seq(x) => Ok(x),
             unexpected => unexpected.mismatch("seq")?,
         }
     }
+    #[inline]
     pub fn try_into_map(self) -> anyhow::Result<MapDecoder<'p, 'de, D>> {
         match self {
             DecoderView::Map(x) => Ok(x),
             unexpected => unexpected.mismatch("map")?,
         }
     }
+    #[inline]
     pub fn try_into_string(self) -> anyhow::Result<Cow<'de, str>> {
         match self {
             DecoderView::String(x) => Ok(x),
             unexpected => unexpected.mismatch("string")?,
         }
     }
+    #[inline]
     pub fn try_into_option(self) -> anyhow::Result<Option<SomeDecoder<'p, 'de, D>>> {
         match self {
             DecoderView::None => Ok(None),
@@ -535,12 +568,14 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
             unexpected => unexpected.mismatch("option")?,
         }
     }
+    #[inline]
     pub fn try_into_enum(self) -> anyhow::Result<EnumDecoder<'p, 'de, D>> {
         match self {
             DecoderView::Enum(e) => Ok(e),
             unexpected => unexpected.mismatch("enum")?,
         }
     }
+    #[inline]
     pub fn try_into_identifier(
         self,
         ids: &'static [&'static str],
@@ -551,6 +586,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
             unexpected => unexpected.mismatch("identifier")?,
         }
     }
+    #[inline]
     pub fn try_into_discriminant(self, ids: &'static [&'static str]) -> anyhow::Result<usize> {
         Ok(self
             .try_into_identifier(ids)?
@@ -559,6 +595,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
                 expected: ids,
             })?)
     }
+    #[inline]
     pub fn try_into_unit(self) -> anyhow::Result<()> {
         match self {
             DecoderView::Primitive(p) => p.try_into(),
@@ -584,6 +621,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> DecoderView<'p, 'de, D> {
         }
         .into())
     }
+    #[inline]
     pub fn ignore(self) -> anyhow::Result<()> {
         match self {
             DecoderView::Primitive(_) => {}
@@ -615,6 +653,7 @@ impl<'p, 'de, P: SpecDecoder<'de>> Debug for DecoderView<'p, 'de, P> {
 }
 
 impl<'de, D: ?Sized + SpecDecoder<'de>> SimpleDecoderView<'de, D> {
+    #[inline]
     fn wrap<'p>(self, this: &'p mut D) -> DecoderView<'p, 'de, D> {
         match self {
             SimpleDecoderView::Primitive(x) => DecoderView::Primitive(x),

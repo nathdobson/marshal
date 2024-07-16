@@ -11,9 +11,11 @@ pub struct SimpleFixedSpecDecoder<'de> {
 }
 
 impl<'de> SimpleFixedSpecDecoder<'de> {
+    #[inline]
     pub fn new(data: &'de [u8]) -> Self {
         SimpleFixedSpecDecoder { data }
     }
+    #[inline]
     fn decode_prim(&mut self, hint: PrimitiveType) -> anyhow::Result<Primitive> {
         match hint {
             PrimitiveType::Unit => Ok(Primitive::Unit),
@@ -33,18 +35,21 @@ impl<'de> SimpleFixedSpecDecoder<'de> {
             PrimitiveType::Char => Ok(Primitive::Char(self.data.read_vu128::<u32>()?.try_into()?)),
         }
     }
+    #[inline]
     fn decode_str(&mut self) -> anyhow::Result<Cow<'de, str>> {
         let len = usize::try_from(self.data.read_vu128::<u64>()?)?;
         Ok(Cow::Borrowed(std::str::from_utf8(
             self.data.take(..len).ok_or(FixedError::UnexpectedEof)?,
         )?))
     }
+    #[inline]
     fn decode_bytes(&mut self) -> anyhow::Result<Cow<'de, [u8]>> {
         let len = usize::try_from(self.data.read_vu128::<u64>()?)?;
         Ok(Cow::Borrowed(
             self.data.take(..len).ok_or(FixedError::UnexpectedEof)?,
         ))
     }
+    #[inline]
     fn decode_discriminant(&mut self, variants: usize) -> anyhow::Result<usize> {
         Ok(match DiscriminantWidth::from_max(variants) {
             DiscriminantWidth::U8 => self.data.read_vu128::<u8>()? as usize,
@@ -53,6 +58,7 @@ impl<'de> SimpleFixedSpecDecoder<'de> {
             DiscriminantWidth::U64 => self.data.read_vu128::<u64>()? as usize,
         })
     }
+    #[inline]
     pub fn end(self) -> anyhow::Result<()> {
         if self.data.len() > VU128_PADDING {
             return Err(FixedError::TrailingData.into());
@@ -93,6 +99,7 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
     type SomeDecoder = ();
     type SomeCloser = ();
 
+    #[inline]
     fn decode(
         &mut self,
         any: Self::AnyDecoder,
@@ -156,10 +163,12 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
         }
     }
 
+    #[inline]
     fn is_human_readable(&self) -> bool {
         false
     }
 
+    #[inline]
     fn decode_seq_next(
         &mut self,
         seq: &mut Self::SeqDecoder,
@@ -172,10 +181,12 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
         }
     }
 
+    #[inline]
     fn decode_seq_end(&mut self, _: Self::SeqDecoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn decode_map_next(
         &mut self,
         map: &mut Self::MapDecoder,
@@ -188,10 +199,12 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
         }
     }
 
+    #[inline]
     fn decode_map_end(&mut self, _: Self::MapDecoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn decode_entry_key(
         &mut self,
         _: Self::KeyDecoder,
@@ -199,10 +212,12 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
         Ok((FixedAnyDecoder::Any, ()))
     }
 
+    #[inline]
     fn decode_entry_value(&mut self, _: Self::ValueDecoder) -> anyhow::Result<Self::AnyDecoder> {
         Ok(FixedAnyDecoder::Any)
     }
 
+    #[inline]
     fn decode_enum_discriminant(
         &mut self,
         e: Self::DiscriminantDecoder,
@@ -210,6 +225,7 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
         Ok((FixedAnyDecoder::Discriminant(e.discriminant), ()))
     }
 
+    #[inline]
     fn decode_enum_variant(
         &mut self,
         _: Self::VariantDecoder,
@@ -230,10 +246,12 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
         }
     }
 
+    #[inline]
     fn decode_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn decode_some_inner(
         &mut self,
         _: Self::SomeDecoder,
@@ -241,6 +259,7 @@ impl<'de> SpecDecoder<'de> for SimpleFixedSpecDecoder<'de> {
         Ok((FixedAnyDecoder::Any, ()))
     }
 
+    #[inline]
     fn decode_some_end(&mut self, _: Self::SomeCloser) -> anyhow::Result<()> {
         Ok(())
     }

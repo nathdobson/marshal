@@ -7,6 +7,7 @@ pub struct EnumDecoderHelper<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
+    #[inline]
     pub fn decode_enum_helper(
         self,
         name: &'static str,
@@ -24,6 +25,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> EnumDecoder<'p, 'de, D> {
+    #[inline]
     pub fn decode_tuple_variant_helper<'p2>(
         &'p2 mut self,
         len: usize,

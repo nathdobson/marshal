@@ -35,6 +35,7 @@ enum DiscriminantWidth {
 }
 
 impl DiscriminantWidth {
+    #[inline]
     fn from_max(max: usize) -> Self {
         if max <= 0x1_00 {
             Self::U8

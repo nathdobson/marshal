@@ -23,7 +23,6 @@ pub mod decode;
 pub mod encode;
 #[cfg(test)]
 mod test;
-mod to_from_vu128;
 mod util;
 
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Hash, FromPrimitive)]

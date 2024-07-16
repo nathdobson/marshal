@@ -43,38 +43,46 @@ pub struct SimpleBinSpecEncoder<'s> {
 }
 
 impl<'s> SimpleBinSpecEncoder<'s> {
+    #[inline]
     pub fn new(schema: &mut BinEncoderSchema) -> SimpleBinSpecEncoder {
         SimpleBinSpecEncoder {
             output: vec![],
             schema,
         }
     }
+    #[inline]
     pub fn end(mut self) -> anyhow::Result<Vec<u8>> {
         //pad to maximum vu128
         self.output.resize(self.output.len() + VU128_PADDING, 0);
         Ok(self.output)
     }
+    #[inline]
     pub fn write_raw(&mut self, value: &[u8]) -> anyhow::Result<()> {
         self.output.extend_from_slice(value);
         Ok(())
     }
+    #[inline]
     pub fn write_vu128<T: ToFromVu128>(&mut self, value: T) -> anyhow::Result<()> {
         self.output.write_vu128(value);
         Ok(())
     }
+    #[inline]
     pub fn write_tag(&mut self, tag: TypeTag) -> anyhow::Result<()> {
         self.output.push(tag as u8);
         Ok(())
     }
+    #[inline]
     pub fn write_usize(&mut self, value: usize) -> anyhow::Result<()> {
         Ok(self.output.write_vu128(value as u64))
     }
+    #[inline]
     pub fn write_byte_slice(&mut self, value: &[u8]) -> anyhow::Result<()> {
         self.write_usize(value.len())?;
         self.write_raw(value)?;
         Ok(())
     }
 
+    #[inline]
     pub fn write_str_slice(&mut self, value: &str) -> anyhow::Result<()> {
         self.write_byte_slice(value.as_bytes())
     }
@@ -111,6 +119,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
     type TupleVariantEncoder = ();
     type StructVariantEncoder = ();
 
+    #[inline]
     fn encode_prim(&mut self, _any: Self::AnySpecEncoder, prim: Primitive) -> anyhow::Result<()> {
         match prim {
             Primitive::Unit => {
@@ -176,23 +185,27 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn encode_str(&mut self, _any: Self::AnySpecEncoder, s: &str) -> anyhow::Result<()> {
         self.write_tag(TypeTag::String)?;
         self.write_str_slice(s)?;
         Ok(())
     }
 
+    #[inline]
     fn encode_bytes(&mut self, _any: Self::AnySpecEncoder, s: &[u8]) -> anyhow::Result<()> {
         self.write_tag(TypeTag::Bytes)?;
         self.write_byte_slice(s)?;
         Ok(())
     }
 
+    #[inline]
     fn encode_none(&mut self, _any: Self::AnySpecEncoder) -> anyhow::Result<()> {
         self.write_tag(TypeTag::None)?;
         Ok(())
     }
 
+    #[inline]
     fn encode_some(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -201,6 +214,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(((), ()))
     }
 
+    #[inline]
     fn encode_unit_struct(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -209,6 +223,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         self.write_tag(TypeTag::UnitStruct)
     }
 
+    #[inline]
     fn encode_tuple_struct(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -220,6 +235,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn encode_struct(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -232,6 +248,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn encode_unit_variant(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -247,6 +264,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn encode_tuple_variant(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -264,6 +282,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn encode_struct_variant(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -282,6 +301,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn encode_seq(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -293,6 +313,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn encode_tuple(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -303,6 +324,7 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn encode_map(
         &mut self,
         _any: Self::AnySpecEncoder,
@@ -313,10 +335,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn some_end(&mut self, _some: Self::SomeCloser) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_encode_element(
         &mut self,
         _tuple: &mut Self::TupleEncoder,
@@ -324,10 +348,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_end(&mut self, _tuple: Self::TupleEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn seq_encode_element(
         &mut self,
         _seq: &mut Self::SeqEncoder,
@@ -335,10 +361,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn seq_end(&mut self, _tuple: Self::SeqEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn map_encode_element(
         &mut self,
         _map: &mut Self::MapEncoder,
@@ -346,10 +374,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(((), ()))
     }
 
+    #[inline]
     fn map_end(&mut self, _map: Self::MapEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn entry_encode_value(
         &mut self,
         _value: Self::ValueEncoder,
@@ -357,10 +387,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(((), ()))
     }
 
+    #[inline]
     fn entry_end(&mut self, _closer: Self::EntryCloser) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_struct_encode_field(
         &mut self,
         _tuple: &mut Self::TupleStructEncoder,
@@ -368,10 +400,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_struct_end(&mut self, _map: Self::TupleStructEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn struct_encode_field(
         &mut self,
         _map: &mut Self::StructEncoder,
@@ -380,10 +414,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn struct_end(&mut self, _map: Self::StructEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_variant_encode_field(
         &mut self,
         _map: &mut Self::TupleVariantEncoder,
@@ -391,10 +427,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_variant_end(&mut self, _map: Self::TupleVariantEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn struct_variant_encode_field(
         &mut self,
         _map: &mut Self::StructVariantEncoder,
@@ -403,10 +441,12 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
         Ok(())
     }
 
+    #[inline]
     fn struct_variant_end(&mut self, _map: Self::StructVariantEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn is_human_readable(&self) -> bool {
         false
     }

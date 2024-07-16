@@ -7,6 +7,7 @@ pub struct StructDecoderHelper<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
+    #[inline]
     pub fn decode_struct_helper(
         self,
         name: &'static str,
@@ -25,6 +26,7 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> AnySpecDecoder<'p, 'de, D> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> StructDecoderHelper<'p, 'de, D> {
+    #[inline]
     pub fn next<'p2>(
         &'p2 mut self,
     ) -> anyhow::Result<Option<(usize, AnySpecDecoder<'p2, 'de, D>)>> {
@@ -68,12 +70,3 @@ impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> StructDecoderHelper<'p, 'de, D> {
         }
     }
 }
-//
-// impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> FieldDecoderHelper<'p, 'de, D> {
-//     pub fn decode_field<'p2>(&'p2 mut self) -> anyhow::Result<AnySpecDecoder<'p2, 'de, D>> {
-//         self.decoder.decode_entry_value(self.)
-//     }
-//     pub fn decode_end(self) -> anyhow::Result<()> {
-//         self.decoder.decode_end()
-//     }
-// }

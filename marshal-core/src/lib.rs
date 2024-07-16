@@ -52,6 +52,7 @@ pub enum PrimitiveType {
 impl TryFrom<Primitive> for usize {
     type Error = anyhow::Error;
 
+    #[inline]
     fn try_from(value: Primitive) -> Result<Self, Self::Error> {
         Ok(match value {
             Primitive::Unit => 0,
@@ -76,6 +77,7 @@ impl TryFrom<Primitive> for usize {
 impl TryFrom<Primitive> for isize {
     type Error = anyhow::Error;
 
+    #[inline]
     fn try_from(value: Primitive) -> Result<Self, Self::Error> {
         Ok(match value {
             Primitive::Unit => 0,
@@ -99,6 +101,7 @@ impl TryFrom<Primitive> for isize {
 
 impl TryFrom<Primitive> for () {
     type Error = anyhow::Error;
+    #[inline]
     fn try_from(value: Primitive) -> Result<Self, Self::Error> {
         match value {
             Primitive::Unit => Ok(()),

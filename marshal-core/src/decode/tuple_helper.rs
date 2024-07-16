@@ -6,15 +6,18 @@ pub struct TupleHelper<'p, 'de, D: ?Sized + SpecDecoder<'de>> {
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> TupleHelper<'p, 'de, D> {
+    #[inline]
     pub fn new(seq: SeqDecoder<'p, 'de, D>) -> Self {
         TupleHelper { seq }
     }
 }
 
 impl<'p, 'de, D: ?Sized + SpecDecoder<'de>> TupleHelper<'p, 'de, D> {
+    #[inline]
     pub fn decode_next<'p2>(&'p2 mut self) -> anyhow::Result<AnySpecDecoder<'p2, 'de, D>> {
         Ok(self.seq.decode_next()?.ok_or(SchemaError::TupleTooShort)?)
     }
+    #[inline]
     pub fn decode_end(mut self) -> anyhow::Result<()> {
         if let Some(_) = self.seq.decode_next()? {
             Err(SchemaError::TupleTooLong.into())

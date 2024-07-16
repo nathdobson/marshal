@@ -24,12 +24,15 @@ impl Display for PoisonError {
 impl std::error::Error for PoisonError {}
 
 impl<'de, D: SpecDecoder<'de>> PoisonDecoder<D> {
+    #[inline]
     pub fn new(inner: D) -> Self {
         PoisonDecoder { inner, depth: 0 }
     }
+    #[inline]
     pub fn start<'p>(&'p mut self, inner: D::AnyDecoder) -> <Self as SpecDecoder<'de>>::AnyDecoder {
         self.push(inner)
     }
+    #[inline]
     pub fn end(self) -> anyhow::Result<D> {
         if self.depth == 0 {
             Ok(self.inner)
@@ -37,6 +40,7 @@ impl<'de, D: SpecDecoder<'de>> PoisonDecoder<D> {
             Err(PoisonError::UnexpectedDecodeState.into())
         }
     }
+    #[inline]
     fn push<T>(&mut self, inner: T) -> PoisonWrapper<T> {
         self.depth += 1;
         PoisonWrapper {
@@ -44,6 +48,7 @@ impl<'de, D: SpecDecoder<'de>> PoisonDecoder<D> {
             inner,
         }
     }
+    #[inline]
     fn pop<T>(&mut self, wrapper: PoisonWrapper<T>) -> anyhow::Result<T> {
         if wrapper.depth == self.depth {
             self.depth -= 1;
@@ -52,6 +57,7 @@ impl<'de, D: SpecDecoder<'de>> PoisonDecoder<D> {
             Err(PoisonError::UnexpectedDecodeState.into())
         }
     }
+    #[inline]
     fn peek<'a, T>(&self, wrapper: &'a mut PoisonWrapper<T>) -> anyhow::Result<&'a mut T> {
         if wrapper.depth == self.depth {
             Ok(&mut wrapper.inner)
@@ -59,6 +65,7 @@ impl<'de, D: SpecDecoder<'de>> PoisonDecoder<D> {
             Err(PoisonError::UnexpectedDecodeState.into())
         }
     }
+    #[inline]
     fn wrap_view(&mut self, view: SimpleDecoderView<'de, D>) -> SimpleDecoderView<'de, Self> {
         match view {
             SimpleDecoderView::Primitive(x) => SimpleDecoderView::Primitive(x),
@@ -71,9 +78,11 @@ impl<'de, D: SpecDecoder<'de>> PoisonDecoder<D> {
             SimpleDecoderView::Enum(x) => SimpleDecoderView::Enum(self.push(x)),
         }
     }
+    #[inline]
     pub fn inner(&self) -> &D {
         &self.inner
     }
+    #[inline]
     pub fn inner_mut(&mut self) -> &mut D {
         &mut self.inner
     }
@@ -91,6 +100,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
     type SomeDecoder = PoisonWrapper<D::SomeDecoder>;
     type SomeCloser = PoisonWrapper<D::SomeCloser>;
 
+    #[inline]
     fn decode(
         &mut self,
         any: Self::AnyDecoder,
@@ -101,10 +111,12 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
         Ok(self.wrap_view(decoder))
     }
 
+    #[inline]
     fn is_human_readable(&self) -> bool {
         self.inner.is_human_readable()
     }
 
+    #[inline]
     fn decode_seq_next(
         &mut self,
         seq: &mut Self::SeqDecoder,
@@ -117,11 +129,13 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
         }
     }
 
+    #[inline]
     fn decode_seq_end(&mut self, seq: Self::SeqDecoder) -> anyhow::Result<()> {
         let seq = self.pop(seq)?;
         self.inner.decode_seq_end(seq)
     }
 
+    #[inline]
     fn decode_map_next(
         &mut self,
         map: &mut Self::MapDecoder,
@@ -131,11 +145,13 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
         Ok(decoder.map(|decoder| self.push(decoder)))
     }
 
+    #[inline]
     fn decode_map_end(&mut self, map: Self::MapDecoder) -> anyhow::Result<()> {
         let map = self.pop(map)?;
         self.inner.decode_map_end(map)
     }
 
+    #[inline]
     fn decode_entry_key(
         &mut self,
         key: Self::KeyDecoder,
@@ -147,6 +163,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
         Ok((decoder, value))
     }
 
+    #[inline]
     fn decode_entry_value(
         &mut self,
         value: Self::ValueDecoder,
@@ -156,6 +173,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
         Ok(self.push(decoder))
     }
 
+    #[inline]
     fn decode_enum_discriminant(
         &mut self,
         disc: Self::DiscriminantDecoder,
@@ -167,6 +185,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
         Ok((decoder, variant))
     }
 
+    #[inline]
     fn decode_enum_variant(
         &mut self,
         variant: Self::VariantDecoder,
@@ -179,12 +198,14 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
         Ok((decoder, closer))
     }
 
+    #[inline]
     fn decode_enum_end(&mut self, closer: Self::EnumCloser) -> anyhow::Result<()> {
         let closer = self.pop(closer)?;
         self.inner.decode_enum_end(closer)?;
         Ok(())
     }
 
+    #[inline]
     fn decode_some_inner(
         &mut self,
         some: Self::SomeDecoder,
@@ -196,6 +217,7 @@ impl<'de, D: SpecDecoder<'de>> SpecDecoder<'de> for PoisonDecoder<D> {
         Ok((decoder, closer))
     }
 
+    #[inline]
     fn decode_some_end(&mut self, closer: Self::SomeCloser) -> anyhow::Result<()> {
         let closer = self.pop(closer)?;
         self.inner.decode_some_end(closer)?;

@@ -73,12 +73,14 @@ impl Display for BinDecoderError {
 impl std::error::Error for BinDecoderError {}
 
 impl<'de> SimpleBinSpecDecoder<'de> {
+    #[inline]
     pub fn new(data: &'de [u8], schema: &'de mut BinDecoderSchema) -> SimpleBinSpecDecoder<'de> {
         SimpleBinSpecDecoder {
             content: data,
             schema,
         }
     }
+    #[inline]
     pub fn end(self) -> anyhow::Result<()> {
         if self.content.len() > VU128_PADDING {
             return Err(BinDecoderError::TrailingData.into());
@@ -91,20 +93,25 @@ impl<'de> SimpleBinSpecDecoder<'de> {
 }
 
 impl<'de> SimpleBinSpecDecoder<'de> {
+    #[inline]
     fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
         Ok(self.content.take(..count).ok_or(BinDecoderError::Eof)?)
     }
+    #[inline]
     fn read_usize(&mut self) -> anyhow::Result<usize> {
         Ok(usize::try_from(self.content.read_vu128::<u64>()?)?)
     }
+    #[inline]
     fn decode_type_tag(&mut self) -> anyhow::Result<TypeTag> {
         let tag_num = self.read_count(1)?[0];
         Ok(TypeTag::from_u8(tag_num).ok_or(BinDecoderError::BadTag(tag_num))?)
     }
+    #[inline]
     fn read_bytes(&mut self) -> anyhow::Result<&'de [u8]> {
         let len = self.read_usize()?;
         self.read_count(len)
     }
+    #[inline]
     fn read_str(&mut self) -> anyhow::Result<&'de str> {
         Ok(std::str::from_utf8(self.read_bytes()?)?)
     }
@@ -121,6 +128,7 @@ impl<'de> SimpleBinSpecDecoder<'de> {
         self.schema.enum_defs.push(def);
         Ok(())
     }
+    #[inline]
     fn read_enum_def_ref(&mut self) -> anyhow::Result<&'de EnumDefForeign> {
         let index = self.read_usize()?;
         Ok(self
@@ -201,6 +209,7 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
     type SomeDecoder = ();
     type SomeCloser = ();
 
+    #[inline]
     fn decode(
         &mut self,
         any: Self::AnyDecoder,
@@ -338,10 +347,12 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
         }
     }
 
+    #[inline]
     fn is_human_readable(&self) -> bool {
         false
     }
 
+    #[inline]
     fn decode_seq_next(
         &mut self,
         seq: &mut Self::SeqDecoder,
@@ -354,10 +365,12 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
         }
     }
 
+    #[inline]
     fn decode_seq_end(&mut self, _seq: Self::SeqDecoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn decode_map_next(
         &mut self,
         map: &mut Self::MapDecoder,
@@ -384,10 +397,12 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
         }
     }
 
+    #[inline]
     fn decode_map_end(&mut self, _map: Self::MapDecoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn decode_entry_key(
         &mut self,
         key: Self::KeyDecoder,
@@ -399,10 +414,12 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
         }
     }
 
+    #[inline]
     fn decode_entry_value(&mut self, _: Self::ValueDecoder) -> anyhow::Result<Self::AnyDecoder> {
         Ok(BinAnyDecoder::Read)
     }
 
+    #[inline]
     fn decode_enum_discriminant(
         &mut self,
         e: Self::DiscriminantDecoder,
@@ -416,6 +433,7 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
         ))
     }
 
+    #[inline]
     fn decode_enum_variant(
         &mut self,
         _: Self::VariantDecoder,
@@ -441,10 +459,12 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
         ))
     }
 
+    #[inline]
     fn decode_enum_end(&mut self, _: Self::EnumCloser) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn decode_some_inner(
         &mut self,
         _: Self::SomeDecoder,
@@ -452,6 +472,7 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
         Ok((BinAnyDecoder::Read, ()))
     }
 
+    #[inline]
     fn decode_some_end(&mut self, _: Self::SomeCloser) -> anyhow::Result<()> {
         Ok(())
     }

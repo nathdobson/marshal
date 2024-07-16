@@ -14,6 +14,7 @@ impl SimpleFixedSpecEncoder {
     pub fn new() -> Self {
         SimpleFixedSpecEncoder { output: vec![] }
     }
+    #[inline]
     pub fn encode_discriminant(&mut self, index: usize, max: usize) {
         match DiscriminantWidth::from_max(max) {
             DiscriminantWidth::U8 => self.output.write_vu128(index as u8),
@@ -22,6 +23,7 @@ impl SimpleFixedSpecEncoder {
             DiscriminantWidth::U64 => self.output.write_vu128(index as u64),
         }
     }
+    #[inline]
     pub fn end(mut self) -> anyhow::Result<Vec<u8>> {
         self.output.resize(self.output.len() + VU128_PADDING, 0);
         Ok(self.output)
@@ -41,6 +43,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
     type TupleVariantEncoder = ();
     type StructVariantEncoder = ();
 
+    #[inline]
     fn encode_prim(&mut self, _: Self::AnySpecEncoder, prim: Primitive) -> anyhow::Result<()> {
         match prim {
             Primitive::Unit => {}
@@ -62,23 +65,27 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_str(&mut self, _: Self::AnySpecEncoder, s: &str) -> anyhow::Result<()> {
         self.output.write_vu128(s.len() as u64);
         self.output.extend_from_slice(s.as_bytes());
         Ok(())
     }
 
+    #[inline]
     fn encode_bytes(&mut self, _: Self::AnySpecEncoder, s: &[u8]) -> anyhow::Result<()> {
         self.output.write_vu128(s.len() as u64);
         self.output.extend_from_slice(s);
         Ok(())
     }
 
+    #[inline]
     fn encode_none(&mut self, _: Self::AnySpecEncoder) -> anyhow::Result<()> {
         self.output.write_vu128(false);
         Ok(())
     }
 
+    #[inline]
     fn encode_some(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -87,6 +94,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(((), ()))
     }
 
+    #[inline]
     fn encode_unit_struct(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -95,6 +103,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_tuple_struct(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -104,6 +113,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_struct(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -113,6 +123,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_unit_variant(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -123,6 +134,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_tuple_variant(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -135,6 +147,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_struct_variant(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -147,6 +160,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_seq(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -157,6 +171,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_tuple(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -165,6 +180,7 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn encode_map(
         &mut self,
         _: Self::AnySpecEncoder,
@@ -175,10 +191,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn some_end(&mut self, _: Self::SomeCloser) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_encode_element(
         &mut self,
         _: &mut Self::TupleEncoder,
@@ -186,10 +204,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn tuple_end(&mut self, _: Self::TupleEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn seq_encode_element(
         &mut self,
         _: &mut Self::SeqEncoder,
@@ -197,10 +217,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn seq_end(&mut self, _: Self::SeqEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn map_encode_element(
         &mut self,
         _: &mut Self::MapEncoder,
@@ -208,10 +230,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(((), ()))
     }
 
+    #[inline]
     fn map_end(&mut self, _: Self::MapEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn entry_encode_value(
         &mut self,
         _: Self::ValueEncoder,
@@ -219,10 +243,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(((), ()))
     }
 
+    #[inline]
     fn entry_end(&mut self, _: Self::EntryCloser) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_struct_encode_field(
         &mut self,
         _: &mut Self::TupleStructEncoder,
@@ -230,10 +256,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn tuple_struct_end(&mut self, _: Self::TupleStructEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn struct_encode_field(
         &mut self,
         _: &mut Self::StructEncoder,
@@ -242,10 +270,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn struct_end(&mut self, _: Self::StructEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn tuple_variant_encode_field(
         &mut self,
         _: &mut Self::TupleVariantEncoder,
@@ -253,10 +283,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn tuple_variant_end(&mut self, _: Self::TupleVariantEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn struct_variant_encode_field(
         &mut self,
         _: &mut Self::StructVariantEncoder,
@@ -265,10 +297,12 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
         Ok(())
     }
 
+    #[inline]
     fn struct_variant_end(&mut self, _: Self::StructVariantEncoder) -> anyhow::Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn is_human_readable(&self) -> bool {
         false
     }
