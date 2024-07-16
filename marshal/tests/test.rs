@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 #[cfg(test)]
 #[no_implicit_prelude]
 mod test_no_prelude {

@@ -8,7 +8,6 @@
 #![feature(ptr_metadata)]
 #![allow(internal_features)]
 #![feature(layout_for_ptr)]
-#![feature(hint_assert_unchecked)]
 #![feature(alloc_layout_extra)]
 #![feature(set_ptr_value)]
 #![feature(never_type)]

@@ -45,6 +45,8 @@ marshal-vu128 = {path="marshal-vu128"}
 rand = "0.8.5"
 marshal-fixed = {path="marshal-fixed"}
 rand_xorshift = "0.3.0"
+bincode = "1.3.3"
+typetag = "0.2.16"
 
 [profile.bench]
 debug = true

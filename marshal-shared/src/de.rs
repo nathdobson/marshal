@@ -41,13 +41,6 @@ impl ArcState {
             init: None,
         }
     }
-    pub fn new<T: 'static + Sync + Send>(init: Arcf<T>) -> Self {
-        ArcState {
-            weak: Arcf::<T>::downgrade(&init),
-            uninit: None,
-            init: Some(init),
-        }
-    }
     pub fn init<T: 'static + Sync + Send>(&mut self, value: T) -> anyhow::Result<Arcf<T>> {
         let uninit = self.uninit.take().ok_or(SharedError::DoubleDefinition)?;
         let uninit = EmptyArcf::downcast::<T>(uninit)
@@ -79,13 +72,6 @@ impl RcState {
             weak,
             uninit: Some(uninit),
             init: None,
-        }
-    }
-    pub fn new<T: 'static>(init: Rcf<T>) -> Self {
-        RcState {
-            weak: Rcf::<T>::downgrade(&init),
-            uninit: None,
-            init: Some(init),
         }
     }
     pub fn init<T: 'static>(&mut self, value: T) -> anyhow::Result<Rcf<T>> {
