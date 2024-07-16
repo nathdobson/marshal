@@ -16,3 +16,4 @@ paste = {workspace=true}
 marshal-bin = {workspace=true}
 marshal-json = {workspace=true}
 marshal-shared = {workspace=true}
+marshal-vu128 = {workspace = true}

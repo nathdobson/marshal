@@ -14,6 +14,7 @@ safe-once-map = { workspace = true }
 safe-once = { workspace = true }
 lock_api = {workspace=true}
 marshal = { workspace = true }
+marshal-vu128 = {workspace = true}
 
 [dev-dependencies]
 marshal-derive = { workspace = true }

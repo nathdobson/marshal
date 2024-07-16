@@ -5,12 +5,11 @@ use by_address::ByAddress;
 use num_traits::FromPrimitive;
 use safe_once_map::cell::OnceCellMap;
 
-use marshal_core::{Primitive, PrimitiveType};
-use marshal_core::decode::{DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder};
-
-use crate::{TypeTag, VU128_MAX_PADDING};
-use crate::to_from_vu128::{Array, ToFromVu128};
 use crate::util::StableCellVec;
+use crate::{TypeTag};
+use marshal_core::decode::{DecodeHint, DecodeVariantHint, SimpleDecoderView, SpecDecoder};
+use marshal_core::{Primitive, PrimitiveType};
+use marshal_vu128::{ReadVu128, VU128_PADDING};
 
 pub mod full;
 
@@ -81,7 +80,7 @@ impl<'de> SimpleBinSpecDecoder<'de> {
         }
     }
     pub fn end(self) -> anyhow::Result<()> {
-        if self.content.len() > VU128_MAX_PADDING {
+        if self.content.len() > VU128_PADDING {
             return Err(BinDecoderError::TrailingData.into());
         }
         if self.content.iter().any(|x| *x != 0) {
@@ -95,15 +94,8 @@ impl<'de> SimpleBinSpecDecoder<'de> {
     fn read_count(&mut self, count: usize) -> anyhow::Result<&'de [u8]> {
         Ok(self.content.take(..count).ok_or(BinDecoderError::Eof)?)
     }
-    fn read_vu128<T: ToFromVu128 + Display>(&mut self) -> anyhow::Result<T> {
-        let (value, count) = T::decode_vu128(T::Buffer::try_from_slice(
-            &self.content[..T::Buffer::ARRAY_LEN],
-        )?);
-        self.content.take(..count).ok_or(BinDecoderError::Eof)?;
-        Ok(value)
-    }
     fn read_usize(&mut self) -> anyhow::Result<usize> {
-        Ok(usize::try_from(self.read_vu128::<u64>()?)?)
+        Ok(usize::try_from(self.content.read_vu128::<u64>()?)?)
     }
     fn decode_type_tag(&mut self) -> anyhow::Result<TypeTag> {
         let tag_num = self.read_count(1)?[0];
@@ -227,72 +219,72 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
                 TypeTag::Unit => return Ok(SimpleDecoderView::Primitive(Primitive::Unit)),
                 TypeTag::Bool => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::Bool(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::I8 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I8(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::I16 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I16(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::I32 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I32(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::I64 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I64(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::I128 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::I128(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::U8 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U8(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::U16 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U16(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::U32 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U32(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::U64 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U64(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::U128 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::U128(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::F32 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::F32(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::F64 => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::F32(
-                        self.read_vu128()?,
+                        self.content.read_vu128()?,
                     )));
                 }
                 TypeTag::Char => {
                     return Ok(SimpleDecoderView::Primitive(Primitive::Char(
-                        self.read_vu128::<u32>()?.try_into()?,
+                        self.content.read_vu128::<u32>()?.try_into()?,
                     )));
                 }
                 TypeTag::Struct => {
@@ -331,7 +323,7 @@ impl<'de> SpecDecoder<'de> for SimpleBinSpecDecoder<'de> {
                     )));
                 }
                 TypeTag::Tuple => {
-                    let len = self.read_vu128::<u64>()?;
+                    let len = self.content.read_vu128::<u64>()?;
                     return Ok(SimpleDecoderView::Seq(BinSeqDecoder {
                         len: usize::try_from(len)?,
                     }));

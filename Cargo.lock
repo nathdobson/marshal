@@ -551,6 +551,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "marshal-benchmark"
+version = "0.1.0"
+dependencies = [
+ "marshal",
+ "marshal-bin",
+ "marshal-fixed",
+ "marshal-json",
+ "rand",
+ "rand_xorshift",
+]
+
+[[package]]
 name = "marshal-bin"
 version = "0.1.0"
 dependencies = [
@@ -560,6 +572,7 @@ dependencies = [
  "marshal",
  "marshal-core",
  "marshal-derive",
+ "marshal-vu128",
  "num-derive",
  "num-traits",
  "safe-once",
@@ -584,6 +597,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "marshal-fixed"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "marshal",
+ "marshal-vu128",
 ]
 
 [[package]]
@@ -613,6 +635,7 @@ dependencies = [
  "marshal-json",
  "marshal-pointer",
  "marshal-shared",
+ "marshal-vu128",
  "paste",
  "safe-once",
  "type-map",
@@ -679,6 +702,14 @@ dependencies = [
  "slab",
  "tokenlock",
  "weak-table",
+]
+
+[[package]]
+name = "marshal-vu128"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "vu128",
 ]
 
 [[package]]

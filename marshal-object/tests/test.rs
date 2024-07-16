@@ -15,7 +15,6 @@ use marshal_bin::DeserializeBin;
 use marshal_bin::encode::BinEncoderSchema;
 use marshal_bin::encode::full::BinEncoderBuilder;
 use marshal_bin::SerializeBin;
-use marshal_bin::VU128_MAX_PADDING;
 use marshal_json::decode::full::JsonDecoderBuilder;
 use marshal_json::DeserializeJson;
 use marshal_json::encode::full::JsonEncoderBuilder;
@@ -24,7 +23,7 @@ use marshal_pointer::{Rcf, RcfWeak};
 use marshal_pointer::raw_any::RawAny;
 use marshal_shared::de::SharedRcDeserializeContext;
 use marshal_shared::ser::SharedSerializeContext;
-
+use marshal_vu128::VU128_PADDING;
 use crate::x::{A, MyTrait};
 
 #[no_implicit_prelude]
@@ -175,7 +174,7 @@ pub fn bin_round_trip<T: Debug + SerializeBin + DeserializeBin>(
     println!("{:?}", input);
     let found =
         BinEncoderBuilder::new(&mut BinEncoderSchema::new()).serialize(input, ser_ctx.borrow())?;
-    let compare = &found[0..found.len() - VU128_MAX_PADDING];
+    let compare = &found[0..found.len() - VU128_PADDING];
     assert!(
         expected.contains(&compare),
         "{:?} \n{:?}",

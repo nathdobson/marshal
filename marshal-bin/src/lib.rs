@@ -26,8 +26,6 @@ mod test;
 mod to_from_vu128;
 mod util;
 
-pub const VU128_MAX_PADDING: usize = 17;
-
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Hash, FromPrimitive)]
 pub enum TypeTag {
     Unit = 0,

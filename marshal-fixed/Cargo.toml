@@ -1,0 +1,9 @@
+[package]
+name = "marshal-fixed"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+marshal = {workspace = true}
+marshal-vu128 = {workspace = true}
+anyhow = {workspace = true}

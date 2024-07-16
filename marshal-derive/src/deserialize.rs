@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Data, DeriveInput, Token, Variant};
 use syn::parse::ParseStream;
+use syn::{Data, DeriveInput, Token, Variant};
 
 use crate::generics::DeriveGenerics;
 use crate::ident_to_lit;
@@ -84,12 +84,12 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                             ],
                             name: #type_name,
                         };
-                        #(
-                            let mut #field_var_idents : #option_type<#field_types> = #option_type::None;
-                        )*
                         let decoder = decoder.decode( hint)?;
                         match decoder {
                             #decoder_view_type::Map(mut decoder) => {
+                                #(
+                                    let mut #field_var_idents : #option_type<#field_types> = #option_type::None;
+                                )*
                                 while let Some(mut entry) = decoder.decode_next()?{
                                     let field_index: Option<usize> = match entry.decode_key()?.decode(#decode_hint_type::Identifier)?{
                                         #decoder_view_type::String(name) => match &*name {
@@ -118,17 +118,31 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
                                     };
                                     entry.decode_end()?;
                                 }
+                                #(
+                                    let #field_var_idents = #field_var_idents.ok_or(#schema_error::MissingField{field_name:#field_literals})?;
+                                )*
+                                ::std::result::Result::Ok(#type_ident {
+                                    #(
+                                        #field_idents: #field_var_idents
+                                    ),*
+                                })
                             },
+                            #decoder_view_type::Seq(mut decoder) => {
+                                #(
+                                    let #field_var_idents = {
+                                        let next = decoder.decode_next()?.ok_or(#schema_error::TupleTooShort)?;
+                                        <#field_types as #deserialize_trait<D>>::deserialize(next, ctx.reborrow())?
+                                    };
+                                )*
+                                decoder.ignore()?;
+                                ::std::result::Result::Ok(#type_ident {
+                                    #(
+                                        #field_idents: #field_var_idents
+                                    ),*
+                                })
+                            }
                             v => v.mismatch("map from field names or indices to field values")?,
                         }
-                        #(
-                            let #field_var_idents = #field_var_idents.ok_or(#schema_error::MissingField{field_name:#field_literals})?;
-                        )*
-                        ::std::result::Result::Ok(#type_ident {
-                            #(
-                                #field_idents: #field_var_idents
-                            ),*
-                        })
                     }
                 }
             }),

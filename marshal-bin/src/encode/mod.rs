@@ -5,9 +5,8 @@ use by_address::ByAddress;
 
 use marshal_core::encode::SpecEncoder;
 use marshal_core::Primitive;
-
-use crate::{TypeTag, VU128_MAX_PADDING};
-use crate::to_from_vu128::{Array, ToFromVu128};
+use marshal_vu128::{ToFromVu128, VU128_PADDING, WriteVu128};
+use crate::{TypeTag};
 
 pub mod full;
 
@@ -52,7 +51,7 @@ impl<'s> SimpleBinSpecEncoder<'s> {
     }
     pub fn end(mut self) -> anyhow::Result<Vec<u8>> {
         //pad to maximum vu128
-        self.output.resize(self.output.len() + VU128_MAX_PADDING, 0);
+        self.output.resize(self.output.len() + VU128_PADDING, 0);
         Ok(self.output)
     }
     pub fn write_raw(&mut self, value: &[u8]) -> anyhow::Result<()> {
@@ -60,13 +59,7 @@ impl<'s> SimpleBinSpecEncoder<'s> {
         Ok(())
     }
     pub fn write_vu128<T: ToFromVu128>(&mut self, value: T) -> anyhow::Result<()> {
-        let start = self.output.len();
-        self.output.resize(start + T::Buffer::ARRAY_LEN, 0);
-        let written = T::encode_vu128(
-            T::Buffer::try_from_slice_mut(&mut self.output[start..]).unwrap(),
-            value,
-        );
-        self.output.resize(start + written, 0);
+        self.output.write_vu128(value);
         Ok(())
     }
     pub fn write_tag(&mut self, tag: TypeTag) -> anyhow::Result<()> {
@@ -74,7 +67,7 @@ impl<'s> SimpleBinSpecEncoder<'s> {
         Ok(())
     }
     pub fn write_usize(&mut self, value: usize) -> anyhow::Result<()> {
-        self.write_vu128(value as u64)
+        Ok(self.output.write_vu128(value as u64))
     }
     pub fn write_byte_slice(&mut self, value: &[u8]) -> anyhow::Result<()> {
         self.write_usize(value.len())?;

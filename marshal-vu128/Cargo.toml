@@ -1,0 +1,8 @@
+[package]
+name = "marshal-vu128"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vu128 = { workspace = true }
+rand = {workspace = true}

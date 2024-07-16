@@ -2,7 +2,7 @@
 resolver = "2"
 
 members = [
-    "marshal", "marshal-bin",  "marshal-core", "marshal-derive", "marshal-json", "marshal-object", "marshal-pointer", "marshal-serde", "marshal-shared", "marshal-structural", "marshal-update",
+    "marshal", "marshal-benchmark", "marshal-bin",  "marshal-core", "marshal-derive", "marshal-fixed", "marshal-json", "marshal-object", "marshal-pointer", "marshal-serde", "marshal-shared", "marshal-structural", "marshal-update", "marshal-vu128",
 ]
 
 [workspace.dependencies]
@@ -41,6 +41,10 @@ lock_api = "0.4.12"
 serde = "1.0.203"
 base64urlsafedata = "0.5.0"
 paste = "1.0.15"
+marshal-vu128 = {path="marshal-vu128"}
+rand = "0.8.5"
+marshal-fixed = {path="marshal-fixed"}
+rand_xorshift = "0.3.0"
 
 [profile.bench]
 debug = true

@@ -5,8 +5,8 @@ use marshal::context::OwnedContext;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
-
-use crate::{BinDecoder, VU128_MAX_PADDING};
+use marshal_vu128::VU128_PADDING;
+use crate::{BinDecoder};
 use crate::decode::BinDecoderSchema;
 use crate::decode::full::BinDecoderBuilder;
 use crate::encode::BinEncoderSchema;
@@ -25,7 +25,7 @@ fn test_round_trip<
     let mut c = OwnedContext::new();
     input.serialize(w.build(), c.borrow())?;
     let found = w.end()?;
-    assert_eq!(&found[0..found.len() - VU128_MAX_PADDING], expected);
+    assert_eq!(&found[0..found.len() - VU128_PADDING], expected);
     let mut decoder_schema = BinDecoderSchema::new();
     let mut p = BinDecoderBuilder::new(&found, &mut decoder_schema);
     let f = T::deserialize(p.build(), c.borrow())?;
@@ -48,7 +48,7 @@ fn test_transmute<
     let mut c = OwnedContext::new();
     input.serialize(w.build(), c.borrow())?;
     let found = w.end()?;
-    assert_eq!(&found[0..found.len() - VU128_MAX_PADDING], expected);
+    assert_eq!(&found[0..found.len() - VU128_PADDING], expected);
     let mut decoder_schema = BinDecoderSchema::new();
     let mut p = BinDecoderBuilder::new(&found, &mut decoder_schema);
     let f = T2::deserialize(p.build(), c.borrow())?;

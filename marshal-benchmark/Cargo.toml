@@ -1,0 +1,12 @@
+[package]
+name = "marshal-benchmark"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = {workspace = true}
+marshal = {workspace = true}
+marshal-bin = {workspace = true}
+marshal-json = {workspace = true}
+marshal-fixed = {workspace = true}
+rand_xorshift = {workspace = true}
