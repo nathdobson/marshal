@@ -13,6 +13,8 @@ mod tuple;
 mod vec;
 mod result;
 mod anyhow_de;
+#[cfg(feature="by_address")]
+mod by_address;
 
 pub trait Deserialize<D: Decoder> {
     fn deserialize<'p, 'de>(d: AnyDecoder<'p, 'de, D>, ctx: Context) -> anyhow::Result<Self>

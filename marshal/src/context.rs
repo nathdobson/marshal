@@ -1,10 +1,10 @@
+use std::any::{type_name, TypeId};
+use std::collections::HashMap;
+use std::fmt::Debug;
 use std::{
     any::Any,
     fmt::{Display, Formatter},
 };
-use std::any::{type_name, TypeId};
-use std::collections::HashMap;
-use std::fmt::Debug;
 
 trait ContextEntry: Any {
     fn type_name_dyn(&self) -> &'static str;
@@ -58,9 +58,11 @@ impl<'ctx> OwnedContext<'ctx> {
         }
     }
     pub fn insert_mut<T: Any>(&mut self, value: &'ctx mut T) {
+        log::info!("insert mut {}", type_name::<T>());
         self.mut_ctx.map.insert(TypeId::of::<T>(), value);
     }
     pub fn insert_const<T: Any>(&mut self, value: &'ctx T) {
+        log::info!("insert const {}", type_name::<T>());
         self.const_ctx.map.insert(TypeId::of::<T>(), value);
     }
     pub fn borrow<'borrow>(&'borrow mut self) -> Context<'borrow, 'ctx> {

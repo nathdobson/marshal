@@ -11,6 +11,8 @@ marshal-core = { workspace = true }
 marshal-derive = {workspace=true}
 marshal-pointer = {workspace=true}
 base64urlsafedata = {workspace=true, optional = true}
+by_address = {workspace = true, optional = true}
+log = {workspace = true}
 
 [dev-dependencies]
 criterion = { workspace=true }

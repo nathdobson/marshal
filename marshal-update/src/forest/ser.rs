@@ -16,7 +16,7 @@ use crate::forest::forest::{Forest, ForestRoot, Tree};
 use crate::ser::{SerializeStream, SerializeStreamDyn, SerializeUpdate, SerializeUpdateDyn};
 use crate::ser::set_channel::SetSubscriber;
 
-type ForestSharedSerializeContext = SharedSerializeContext<ArcfWeak<Tree<dyn Sync + Send + Any>>>;
+pub type ForestSharedSerializeContext = SharedSerializeContext<ArcfWeak<Tree<dyn Sync + Send + Any>>>;
 pub(super) struct ForestSerializerTable {
     streamers: HashMap<
         ByAddress<Arcf<Tree<dyn Sync + Send + Any>>>,

@@ -10,8 +10,8 @@ use marshal::encode::{AnyEncoder, Encoder};
 use marshal::ser::Serialize;
 
 use crate::de::DeserializeUpdate;
-use crate::ser::{SerializeStream, SerializeUpdate};
 use crate::ser::set_channel::{SetPublisher, SetSubscriber};
+use crate::ser::{SerializeStream, SerializeUpdate};
 
 pub struct UpdateHashMap<K, V> {
     map: HashMap<K, V>,
@@ -196,6 +196,18 @@ impl<K: Eq + Hash + Sync + Send + Clone, V> UpdateHashMap<K, V> {
 }
 
 impl<'a, K: 'a + Eq + Hash + Sync + Send + Clone, V: 'a> Entry<'a, K, V> {
+    pub fn or_default(self) -> &'a V
+    where
+        V: Default,
+    {
+        self.or_insert_with(V::default)
+    }
+    pub fn or_default_mut(self) -> &'a mut V
+    where
+        V: Default,
+    {
+        self.or_insert_with_mut(V::default)
+    }
     pub fn or_insert_with<F: FnOnce() -> V>(self, f: F) -> &'a V {
         match self {
             Entry::Occupied(o) => o.into_ref(),

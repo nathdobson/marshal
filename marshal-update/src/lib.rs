@@ -7,7 +7,7 @@ pub use marshal_derive::DeserializeUpdate;
 pub use marshal_derive::SerializeStream;
 pub use marshal_derive::SerializeUpdate;
 
-mod btree_map;
+pub mod btree_map;
 pub mod de;
 pub mod hash_map;
 pub mod prim;
@@ -16,4 +16,4 @@ pub mod version;
 pub mod object_map;
 pub mod tester;
 pub mod forest;
-mod object_type_id;
+pub mod push_vec;

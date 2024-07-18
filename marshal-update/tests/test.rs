@@ -1,9 +1,10 @@
 #![deny(unused_must_use)]
 
 use marshal_derive::{Deserialize, Serialize};
-use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
 use marshal_update::hash_map::UpdateHashMap;
+use marshal_update::push_vec::PushVec;
 use marshal_update::tester::Tester;
+use marshal_update::{DeserializeUpdate, SerializeStream, SerializeUpdate};
 
 #[test]
 fn test_simple() -> anyhow::Result<()> {
@@ -122,5 +123,36 @@ fn test_map() -> anyhow::Result<()> {
 }"#,
     )?;
     assert_eq!(*tester.output().get(&15).unwrap(), 23);
+    Ok(())
+}
+
+#[test]
+fn test_push_vec() -> anyhow::Result<()> {
+    let mut vec = PushVec::new();
+    vec.push(1);
+    let mut tester = Tester::new(
+        vec,
+        r#"[
+  1
+]"#,
+    )?;
+    tester.input_mut().push(2);
+    tester.input_mut().push(3);
+    tester.next(
+        r#"[
+  2,
+  3
+]"#,
+    )?;
+    assert_eq!(&**tester.output(), &[1, 2, 3]);
+    tester.input_mut().push(4);
+    tester.input_mut().push(5);
+    tester.next(
+        r#"[
+  4,
+  5
+]"#,
+    )?;
+    assert_eq!(&**tester.output(), &[1, 2, 3, 4, 5]);
     Ok(())
 }

@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::collections::HashSet;
+use std::fmt::{Debug, Formatter};
 use std::marker::Unsize;
 use std::sync::Arc;
 
@@ -126,5 +127,11 @@ impl ForestId {
 impl<T: Default> Default for ForestRoot<T> {
     fn default() -> Self {
         ForestRoot::new(Forest::new(), T::default())
+    }
+}
+
+impl<T: ?Sized> Debug for Tree<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Tree").finish_non_exhaustive()
     }
 }

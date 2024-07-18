@@ -21,3 +21,4 @@ catalog = {workspace=true}
 slab = {workspace=true}
 tokenlock = {workspace=true}
 pretty_assertions = {workspace = true}
+log = {workspace = true}

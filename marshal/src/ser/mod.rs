@@ -14,6 +14,9 @@ mod tuple;
 mod vec;
 mod result;
 mod anyhow_ser;
+mod slice;
+#[cfg(feature="by_address")]
+mod by_address;
 
 pub trait Serialize<W: Encoder> {
     fn serialize<'w, 'en>(&self, e: AnyEncoder<'w, 'en, W>, ctx: Context) -> anyhow::Result<()>;
