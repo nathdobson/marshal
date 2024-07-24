@@ -191,7 +191,7 @@ pub fn derive_deserialize_impl(input: &DeriveInput) -> Result<TokenStream, syn::
             let ParsedEnum {
                 variant_literals,
                 variant_indices,
-            } = ParsedEnum::new(data);
+            } = ParsedEnum::new(data)?;
             let mut matches: Vec<TokenStream> = vec![];
             for (variant_index, variant) in data.variants.iter().enumerate() {
                 let Variant {

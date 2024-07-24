@@ -50,7 +50,10 @@ impl<'de> SimpleRsonSpecDecoder<'de> {
         self.cursor = chars.as_str();
         Ok(c)
     }
-    pub fn read_matches(&mut self, expected: impl Fn(char) -> bool) -> anyhow::Result<&'de str> {
+    pub fn read_matches(
+        &mut self,
+        mut expected: impl FnMut(char) -> bool,
+    ) -> anyhow::Result<&'de str> {
         let mut chars = self.cursor.char_indices();
         let mut limit = self.cursor.len();
         while let Some((pos, c)) = chars.next() {
@@ -98,6 +101,34 @@ impl<'de> SimpleRsonSpecDecoder<'de> {
             Ok(Some(ident))
         } else {
             Ok(None)
+        }
+    }
+    pub fn read_ident(&mut self) -> anyhow::Result<&'de str> {
+        self.read_whitespace()?;
+        if self.try_read_token("<")? {
+            let mut depth: usize = 0;
+            let result = self.read_matches(|c| {
+                if c == '<' {
+                    depth += 1;
+                    true
+                } else if c == '>' {
+                    if let Some(new_depth) = depth.checked_sub(1) {
+                        depth = new_depth;
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    true
+                }
+            })?;
+            if depth != 0 {
+                return Err(RsonError::UnexpectedEof.into());
+            }
+            self.read_token(">")?;
+            Ok(result)
+        } else {
+            Ok(self.read_matches(|x| x.is_ascii_alphanumeric() || x == '_')?)
         }
     }
     pub fn end(self) -> anyhow::Result<()> {
@@ -236,7 +267,7 @@ impl<'de> SpecDecoder<'de> for SimpleRsonSpecDecoder<'de> {
                     Ok(SimpleDecoderView::Bytes(Cow::Owned(result)))
                 }
                 "struct" => {
-                    let _name = self.try_read_alphanum()?.ok_or(RsonError::ExpectedIdent)?;
+                    let _name = self.read_ident()?;
                     if self.try_read_token("(")? {
                         Ok(SimpleDecoderView::Seq(RsonSeqDecoder {
                             started: false,
@@ -252,9 +283,9 @@ impl<'de> SpecDecoder<'de> for SimpleRsonSpecDecoder<'de> {
                     }
                 }
                 "enum" => {
-                    let _name = self.try_read_alphanum()?.ok_or(RsonError::ExpectedIdent)?;
+                    let _name = self.read_ident()?;
                     self.read_token("::")?;
-                    let variant = self.try_read_alphanum()?.ok_or(RsonError::ExpectedIdent)?;
+                    let variant = self.read_ident()?;
                     Ok(SimpleDecoderView::Enum(RsonDiscriminantDecoder { variant }))
                 }
                 "none" => Ok(SimpleDecoderView::None),
@@ -323,7 +354,7 @@ impl<'de> SpecDecoder<'de> for SimpleRsonSpecDecoder<'de> {
         key: Self::KeyDecoder,
     ) -> anyhow::Result<(Self::AnyDecoder, Self::ValueDecoder)> {
         if key.is_struct {
-            let name = self.try_read_alphanum()?.ok_or(RsonError::ExpectedIdent)?;
+            let name = self.read_ident()?;
             Ok((RsonAnyDecoder::String(name), ()))
         } else {
             Ok((RsonAnyDecoder::Any, ()))

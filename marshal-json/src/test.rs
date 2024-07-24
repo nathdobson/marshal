@@ -108,5 +108,15 @@ fn test_rt() -> anyhow::Result<()> {
 }"#,
     )?;
 
+    #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+    enum RenamedVariant {
+        #[marshal(rename = "Renamed\"")]
+        Variant,
+    }
+    test_round_trip(
+        RenamedVariant::Variant,
+        r#""Renamed\"""#,
+    )?;
+
     Ok(())
 }

@@ -71,6 +71,13 @@ impl SimpleRsonSpecEncoder {
         }
         self.append_str(ctx.encode_context, t);
     }
+    fn append_ident(&mut self, ctx: EncodeContext, ident: &str) {
+        if ident.chars().all(|x| x.is_ascii_alphanumeric() || x == '_') {
+            self.append_str(ctx, ident)
+        } else {
+            self.append_display(ctx, format_args!("<{}>", ident))
+        }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -231,7 +238,8 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
         any: Self::AnySpecEncoder,
         name: &'static str,
     ) -> anyhow::Result<()> {
-        self.append_display(any.ctx, format_args!("struct {}", name));
+        self.append_str(any.ctx, "struct ");
+        self.append_ident(any.ctx, name);
         Ok(())
     }
 
@@ -241,7 +249,9 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
         name: &'static str,
         len: usize,
     ) -> anyhow::Result<Self::TupleStructEncoder> {
-        self.append_display(any.ctx, format_args!("struct {}(", name));
+        self.append_str(any.ctx, "struct ");
+        self.append_ident(any.ctx, name);
+        self.append_str(any.ctx, "(");
         Ok(RsonTupleStructEncoder {
             ctx: BlockContext::new(any.ctx, len),
         })
@@ -253,7 +263,9 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
         name: &'static str,
         fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructEncoder> {
-        self.append_display(any.ctx, format_args!("struct {} {{", name));
+        self.append_str(any.ctx, "struct ");
+        self.append_ident(any.ctx, name);
+        self.append_str(any.ctx, " {");
         Ok(RsonStructEncoder {
             ctx: BlockContext::new(any.ctx, fields.len()),
         })
@@ -266,10 +278,10 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
         variants: &'static [&'static str],
         variant_index: usize,
     ) -> anyhow::Result<()> {
-        self.append_display(
-            any.ctx,
-            format_args!("enum {}::{}", name, variants[variant_index]),
-        );
+        self.append_str(any.ctx, "enum ");
+        self.append_ident(any.ctx, name);
+        self.append_str(any.ctx, "::");
+        self.append_ident(any.ctx, variants[variant_index]);
         Ok(())
     }
 
@@ -281,10 +293,11 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
         variant_index: usize,
         len: usize,
     ) -> anyhow::Result<Self::TupleVariantEncoder> {
-        self.append_display(
-            any.ctx,
-            format_args!("enum {}::{}(", name, variants[variant_index]),
-        );
+        self.append_str(any.ctx, "enum ");
+        self.append_ident(any.ctx, name);
+        self.append_str(any.ctx, "::");
+        self.append_ident(any.ctx, variants[variant_index]);
+        self.append_str(any.ctx, "(");
         Ok(RsonTupleVariantEncoder {
             ctx: BlockContext::new(any.ctx, len),
         })
@@ -298,10 +311,11 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
         variant_index: usize,
         fields: &'static [&'static str],
     ) -> anyhow::Result<Self::StructVariantEncoder> {
-        self.append_display(
-            any.ctx,
-            format_args!("enum {}::{} {{", name, variants[variant_index]),
-        );
+        self.append_str(any.ctx, "enum ");
+        self.append_ident(any.ctx, name);
+        self.append_str(any.ctx, "::");
+        self.append_ident(any.ctx, variants[variant_index]);
+        self.append_str(any.ctx, " {");
         Ok(RsonStructVariantEncoder {
             ctx: BlockContext::new(any.ctx, fields.len()),
         })
@@ -417,7 +431,8 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
         field: &'static str,
     ) -> anyhow::Result<Self::AnySpecEncoder> {
         let ctx = self.append_delimiter(&mut map.ctx, ",", " ");
-        self.append_display(ctx, format_args!("{}: ", field));
+        self.append_ident(ctx, field);
+        self.append_str(ctx, ": ");
         Ok(RsonAnySpecEncoder { ctx })
     }
 
@@ -445,7 +460,8 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
         key: &'static str,
     ) -> anyhow::Result<Self::AnySpecEncoder> {
         let ctx = self.append_delimiter(&mut map.ctx, ",", " ");
-        self.append_display(ctx, format_args!("{}: ", key));
+        self.append_ident(ctx, key);
+        self.append_display(ctx, ": ");
         Ok(RsonAnySpecEncoder { ctx })
     }
 

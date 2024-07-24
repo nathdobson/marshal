@@ -19,6 +19,7 @@ mod parsed_fields;
 mod serialize;
 mod serialize_stream;
 mod serialize_update;
+mod parse_attr;
 
 #[proc_macro_derive(Deserialize, attributes(deserialize, marshal))]
 pub fn derive_deserialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

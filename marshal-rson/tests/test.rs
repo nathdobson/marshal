@@ -228,5 +228,14 @@ enum Enum::StructVariant2 {
   u16 3: u16 4,
 }",
     )?;
+    #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+    enum RenamedVariant {
+        #[marshal(rename = r#"abc::<cd>::ef"#)]
+        Variant,
+    }
+    test_round_trip(
+        RenamedVariant::Variant,
+        r#"enum RenamedVariant::<abc::<cd>::ef>"#,
+    )?;
     Ok(())
 }
