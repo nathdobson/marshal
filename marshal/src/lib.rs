@@ -52,6 +52,7 @@ mod base64urlsafedata;
 pub mod context;
 pub mod de;
 pub mod ser;
+mod features;
 
 #[doc(hidden)]
 pub mod reexports {

@@ -545,6 +545,7 @@ dependencies = [
  "marshal-core",
  "marshal-derive",
  "marshal-pointer",
+ "ordered-float",
  "rand",
  "rand_xorshift",
  "serde",
@@ -652,6 +653,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "marshal-rson"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "marshal",
+ "ordered-float",
+]
+
+[[package]]
 name = "marshal-serde"
 version = "0.1.0"
 dependencies = [
@@ -682,6 +693,10 @@ dependencies = [
  "marshal-core",
  "marshal-json",
 ]
+
+[[package]]
+name = "marshal-text"
+version = "0.1.0"
 
 [[package]]
 name = "marshal-update"
@@ -770,6 +785,15 @@ name = "oorandom"
 version = "11.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b410bbe7e14ab526a0e86877eb47c6996a2bd7746f027ba551028c925390e4e9"
+
+[[package]]
+name = "ordered-float"
+version = "4.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19ff2cf528c6c03d9ed653d6c4ce1dc0582dc4af309790ad92f07c1cd551b0be"
+dependencies = [
+ "num-traits",
+]
 
 [[package]]
 name = "parking_lot"
