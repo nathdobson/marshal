@@ -12,7 +12,7 @@ impl<W: Encoder, K: Eq + Hash + Serialize<W>, V: Serialize<W>> Serialize<W> for 
         w: AnyEncoder<'w, 'en, W>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
-        let mut w = w.encode_map(Some(self.len()))?;
+        let mut w = w.encode_map(self.len())?;
         for (k, v) in self.iter() {
             let mut w = w.encode_entry()?;
             k.serialize(w.encode_key()?, ctx.reborrow())?;
@@ -30,7 +30,7 @@ impl<W: Encoder, K: Ord + Serialize<W>, V: Serialize<W>> Serialize<W> for BTreeM
         w: AnyEncoder<'w, 'en, W>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
-        let mut w = w.encode_map(Some(self.len()))?;
+        let mut w = w.encode_map(self.len())?;
         for (k, v) in self.iter() {
             let mut w = w.encode_entry()?;
             k.serialize(w.encode_key()?, ctx.reborrow())?;

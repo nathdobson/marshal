@@ -695,10 +695,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "marshal-text"
-version = "0.1.0"
-
-[[package]]
 name = "marshal-update"
 version = "0.1.0"
 dependencies = [

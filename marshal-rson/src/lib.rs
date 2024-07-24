@@ -22,7 +22,6 @@ pub enum RsonError {
     ExpectedToken { token: &'static str },
     ExpectedIdent,
     UnexpectedEscape,
-    MissingLen,
 }
 
 impl Display for RsonError {

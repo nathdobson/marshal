@@ -9,7 +9,7 @@ impl<W: Encoder, T: Serialize<W>> Serialize<W> for Vec<T> {
         w: AnyEncoder<'w, 'en, W>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
-        let mut w = w.encode_seq(Some(self.len()))?;
+        let mut w = w.encode_seq(self.len())?;
         for x in self.iter() {
             x.serialize(w.encode_element()?, ctx.reborrow())?;
         }

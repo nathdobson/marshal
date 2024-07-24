@@ -2,7 +2,21 @@
 resolver = "2"
 
 members = [
-    "marshal", "marshal-benchmark", "marshal-bin",  "marshal-core", "marshal-derive", "marshal-fixed", "marshal-json", "marshal-object", "marshal-pointer", "marshal-rson", "marshal-serde", "marshal-shared", "marshal-structural", "marshal-text", "marshal-update", "marshal-vu128",
+    "marshal",
+    "marshal-benchmark",
+    "marshal-bin",
+    "marshal-core",
+    "marshal-derive",
+    "marshal-fixed",
+    "marshal-json",
+    "marshal-object",
+    "marshal-pointer",
+    "marshal-rson",
+    "marshal-serde",
+    "marshal-shared",
+    "marshal-structural",
+    "marshal-update",
+    "marshal-vu128",
 ]
 
 [workspace.dependencies]

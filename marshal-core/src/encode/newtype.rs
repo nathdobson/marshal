@@ -116,7 +116,7 @@ macro_rules! derive_encoder_for_newtype {
                 fn encode_seq(
                     &mut self,
                     any: Self::AnySpecEncoder,
-                    len: Option<usize>,
+                    len: usize,
                 ) -> anyhow::Result<Self::SeqEncoder> {
                     self.0.encode_seq(any, len)
                 }
@@ -134,7 +134,7 @@ macro_rules! derive_encoder_for_newtype {
                 fn encode_map(
                     &mut self,
                     any: Self::AnySpecEncoder,
-                    len: Option<usize>,
+                    len: usize,
                 ) -> anyhow::Result<Self::MapEncoder> {
                     self.0.encode_map(any, len)
                 }

@@ -72,7 +72,7 @@ pub trait SpecEncoder {
     fn encode_seq(
         &mut self,
         any: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::SeqEncoder>;
     fn encode_tuple(
         &mut self,
@@ -82,7 +82,7 @@ pub trait SpecEncoder {
     fn encode_map(
         &mut self,
         any: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::MapEncoder>;
 
     fn some_end(&mut self, some: Self::SomeCloser) -> anyhow::Result<()>;
@@ -279,7 +279,7 @@ impl<'w, T: SpecEncoder> AnySpecEncoder<'w, T> {
     }
 
     #[inline]
-    pub fn encode_seq(mut self, len: Option<usize>) -> anyhow::Result<SeqEncoder<'w, T>> {
+    pub fn encode_seq(mut self, len: usize) -> anyhow::Result<SeqEncoder<'w, T>> {
         let inner = self.encoder.encode_seq(self.inner, len)?;
         Ok(SeqEncoder {
             encoder: self.encoder,
@@ -297,7 +297,7 @@ impl<'w, T: SpecEncoder> AnySpecEncoder<'w, T> {
     }
 
     #[inline]
-    pub fn encode_map(mut self, len: Option<usize>) -> anyhow::Result<MapEncoder<'w, T>> {
+    pub fn encode_map(mut self, len: usize) -> anyhow::Result<MapEncoder<'w, T>> {
         let inner = self.encoder.encode_map(self.inner, len)?;
         Ok(MapEncoder {
             encoder: self.encoder,

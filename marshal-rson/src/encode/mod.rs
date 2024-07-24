@@ -1,4 +1,3 @@
-use crate::RsonError;
 use anyhow;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
@@ -311,9 +310,8 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
     fn encode_seq(
         &mut self,
         any: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::SeqEncoder> {
-        let len = len.ok_or(RsonError::MissingLen)?;
         self.append_str(any.ctx, "[");
         Ok(RsonSeqEncoder {
             ctx: BlockContext::new(any.ctx, len),
@@ -334,9 +332,8 @@ impl SpecEncoder for SimpleRsonSpecEncoder {
     fn encode_map(
         &mut self,
         any: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::MapEncoder> {
-        let len = len.ok_or(RsonError::MissingLen)?;
         self.append_str(any.ctx, "{");
         Ok(RsonMapEncoder {
             ctx: BlockContext::new(any.ctx, len),

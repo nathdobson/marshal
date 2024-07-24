@@ -201,7 +201,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     fn encode_seq(
         &mut self,
         any: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::SeqEncoder> {
         let any = self.pop(any)?;
         let encoder = self.inner.encode_seq(any, len)?;
@@ -223,7 +223,7 @@ impl<E: SpecEncoder> SpecEncoder for PoisonEncoder<E> {
     fn encode_map(
         &mut self,
         any: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::MapEncoder> {
         let any = self.pop(any)?;
         let encoder = self.inner.encode_map(any, len)?;

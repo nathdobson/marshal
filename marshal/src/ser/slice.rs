@@ -8,7 +8,7 @@ impl<E: Encoder, T: Serialize<E>> Serialize<E> for [T] {
         e: AnyEncoder<'w, 'en, E>,
         mut ctx: Context,
     ) -> anyhow::Result<()> {
-        let mut e = e.encode_seq(Some(self.len()))?;
+        let mut e = e.encode_seq(self.len())?;
         for x in self {
             x.serialize(e.encode_element()?, ctx.reborrow())?;
         }
