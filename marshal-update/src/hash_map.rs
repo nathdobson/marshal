@@ -73,7 +73,7 @@ impl<E: Encoder, K: Eq + Hash + Sync + Send + Clone + Serialize<E>, V: Serialize
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let ref mut queue = *stream.subscriber.recv();
-        let mut e = e.encode_map(Some(queue.len()))?;
+        let mut e = e.encode_map(queue.len())?;
         for key in queue.drain() {
             let mut e = e.encode_entry()?;
             key.serialize(e.encode_key()?, ctx.reborrow())?;

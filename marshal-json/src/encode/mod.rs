@@ -375,7 +375,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     fn encode_seq(
         &mut self,
         any: Self::AnySpecEncoder,
-        _len: Option<usize>,
+        _len: usize,
     ) -> anyhow::Result<Self::SeqEncoder> {
         if any.must_be_string {
             return Err(JsonEncoderError::MustBeString.into());
@@ -407,7 +407,7 @@ impl SpecEncoder for SimpleJsonSpecEncoder {
     fn encode_map(
         &mut self,
         any: Self::AnySpecEncoder,
-        _len: Option<usize>,
+        _len: usize,
     ) -> anyhow::Result<Self::MapEncoder> {
         if any.must_be_string {
             return Err(JsonEncoderError::MustBeString.into());

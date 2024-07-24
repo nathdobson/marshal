@@ -1,7 +1,6 @@
 pub mod full;
 
 use crate::DiscriminantWidth;
-use anyhow::anyhow;
 use marshal::encode::SpecEncoder;
 use marshal::Primitive;
 use marshal_vu128::{WriteVu128, VU128_PADDING};
@@ -165,10 +164,10 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
     fn encode_seq(
         &mut self,
         _: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::SeqEncoder> {
         self.output
-            .write_vu128(len.ok_or_else(|| anyhow!("missing seq length"))? as u64);
+            .write_vu128(len as u64);
         Ok(())
     }
 
@@ -185,10 +184,10 @@ impl SpecEncoder for SimpleFixedSpecEncoder {
     fn encode_map(
         &mut self,
         _: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::MapEncoder> {
         self.output
-            .write_vu128(len.ok_or_else(|| anyhow!("missing map length"))? as u64);
+            .write_vu128(len as u64);
         Ok(())
     }
 

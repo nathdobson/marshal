@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use serde::{Serialize, Serializer};
 
 use marshal::context::Context;
@@ -146,7 +147,7 @@ impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        let mut e = self.0.encode_map(Some(1))?;
+        let mut e = self.0.encode_map(1)?;
         {
             let mut e = e.encode_entry()?;
             e.encode_key()?.encode_str(variant)?;
@@ -181,7 +182,7 @@ impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
     where
         T: ?Sized + Serialize,
     {
-        let mut e = self.0.encode_map(Some(1))?;
+        let mut e = self.0.encode_map(1)?;
         {
             let mut e = e.encode_entry()?;
             e.encode_key()?.encode_str(variant)?;
@@ -197,7 +198,9 @@ impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        let e = self.0.encode_seq(len)?;
+        let e = self
+            .0
+            .encode_seq(len.ok_or_else(|| anyhow!("missing length"))?)?;
         Ok(MarshalSerializeSeq(e))
     }
 
@@ -223,7 +226,7 @@ impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
         let (encoder, any) = self.0.into_raw();
-        let mut map = encoder.encode_map(any, Some(1))?;
+        let mut map = encoder.encode_map(any, 1)?;
         let (key, value) = encoder.map_encode_element(&mut map)?;
         encoder.encode_str(key, variant)?;
         let (value, entry) = encoder.entry_encode_value(value)?;
@@ -238,7 +241,7 @@ impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         let (encoder, any) = self.0.into_raw();
-        let map = encoder.encode_map(any, len)?;
+        let map = encoder.encode_map(any, len.ok_or_else(|| anyhow!("missing length"))?)?;
         Ok(MarshalSerializeMap {
             encoder,
             entry: None,
@@ -251,7 +254,7 @@ impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
         _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(MarshalSerializeStruct(self.0.encode_map(Some(len))?))
+        Ok(MarshalSerializeStruct(self.0.encode_map(len)?))
     }
 
     fn serialize_struct_variant(
@@ -262,11 +265,11 @@ impl<'w, 'en, E: Encoder> Serializer for MarshalSerializer<'w, 'en, E> {
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         let (encoder, any) = self.0.into_raw();
-        let mut map = encoder.encode_map(any, Some(1))?;
+        let mut map = encoder.encode_map(any, 1)?;
         let (key, value) = encoder.map_encode_element(&mut map)?;
         encoder.encode_str(key, variant)?;
         let (value, entry) = encoder.entry_encode_value(value)?;
-        let fields = encoder.encode_map(value, Some(len))?;
+        let fields = encoder.encode_map(value, len)?;
         Ok(MarshalSerializeStructVariant {
             encoder,
             fields,

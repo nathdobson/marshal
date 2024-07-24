@@ -305,9 +305,8 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
     fn encode_seq(
         &mut self,
         _any: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::SeqEncoder> {
-        let len = len.ok_or(BinEncoderError::MissingLen)?;
         self.write_tag(TypeTag::Seq)?;
         self.write_usize(len)?;
         Ok(())
@@ -328,10 +327,10 @@ impl<'s> SpecEncoder for SimpleBinSpecEncoder<'s> {
     fn encode_map(
         &mut self,
         _any: Self::AnySpecEncoder,
-        len: Option<usize>,
+        len: usize,
     ) -> anyhow::Result<Self::MapEncoder> {
         self.write_tag(TypeTag::Map)?;
-        self.write_usize(len.ok_or(BinEncoderError::MissingLen)?)?;
+        self.write_usize(len)?;
         Ok(())
     }
 

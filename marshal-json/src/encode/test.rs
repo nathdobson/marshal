@@ -56,7 +56,7 @@ fn test_surrogate() -> anyhow::Result<()> {
 #[test]
 fn test_map0() -> anyhow::Result<()> {
     run_simple(r#"{}"#, |w| {
-        let mut m = w.encode_map(None)?;
+        let mut m = w.encode_map(0)?;
         m.end()?;
         Ok(())
     })
@@ -70,7 +70,7 @@ fn test_map1() -> anyhow::Result<()> {
   "key": "value"
 }"#,
         |w| {
-            let mut m = w.encode_map(None)?;
+            let mut m = w.encode_map(1)?;
             let mut e = m.encode_entry()?;
             e.encode_key()?.encode_str("key")?;
             e.encode_value()?.encode_str("value")?;
@@ -90,7 +90,7 @@ fn test_map2() -> anyhow::Result<()> {
   "k2": "v2"
 }"#,
         |w| {
-            let mut m = w.encode_map(None)?;
+            let mut m = w.encode_map(2)?;
             {
                 let mut e = m.encode_entry()?;
                 e.encode_key()?.encode_str("k1")?;
@@ -112,7 +112,7 @@ fn test_map2() -> anyhow::Result<()> {
 #[test]
 fn test_seq0() -> anyhow::Result<()> {
     run_simple(r#"[]"#, |w| {
-        let mut s = w.encode_seq(None)?;
+        let mut s = w.encode_seq(0)?;
         s.end()?;
         Ok(())
     })
@@ -126,7 +126,7 @@ fn test_seq1() -> anyhow::Result<()> {
   "elem"
 ]"#,
         |w| {
-            let mut s = w.encode_seq(None)?;
+            let mut s = w.encode_seq(1)?;
             s.encode_element()?.encode_str("elem")?;
             s.end()?;
             Ok(())
@@ -143,7 +143,7 @@ fn test_seq2() -> anyhow::Result<()> {
   "elem2"
 ]"#,
         |w| {
-            let mut s = w.encode_seq(None)?;
+            let mut s = w.encode_seq(2)?;
             s.encode_element()?.encode_str("elem1")?;
             s.encode_element()?.encode_str("elem2")?;
             s.end()?;
@@ -252,18 +252,18 @@ fn test_tuple() -> anyhow::Result<()> {
 #[test]
 fn test_seq() -> anyhow::Result<()> {
     run_simple("[]", |w| {
-        let mut w = w.encode_seq(None)?;
+        let mut w = w.encode_seq(0)?;
         w.end()?;
         Ok(())
     })?;
     run_simple("[\n  4\n]", |w| {
-        let mut w = w.encode_seq(None)?;
+        let mut w = w.encode_seq(1)?;
         w.encode_element()?.encode_prim(Primitive::U32(4))?;
         w.end()?;
         Ok(())
     })?;
     run_simple("[\n  4,\n  8\n]", |w| {
-        let mut w = w.encode_seq(None)?;
+        let mut w = w.encode_seq(2)?;
         w.encode_element()?.encode_prim(Primitive::U32(4))?;
         w.encode_element()?.encode_prim(Primitive::U32(8))?;
         w.end()?;

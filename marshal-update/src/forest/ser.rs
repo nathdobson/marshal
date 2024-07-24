@@ -98,7 +98,7 @@ impl<E: Encoder, T: SerializeUpdate<E>> SerializeUpdate<E> for ForestRoot<T> {
             .serialize_update(&mut stream.root, e.encode_field()?, ctx.reborrow())?;
         {
             let ref mut addresses = *stream.subscriber.recv();
-            let mut e = e.encode_field()?.encode_map(Some(addresses.len()))?;
+            let mut e = e.encode_field()?.encode_map(addresses.len())?;
             for address in addresses.drain() {
                 let serializer = ctx
                     .reborrow()

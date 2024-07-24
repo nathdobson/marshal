@@ -56,7 +56,7 @@ impl<E: Encoder, K: Ord + Sync + Send + Clone + Serialize<E>, V: SerializeUpdate
         mut ctx: Context,
     ) -> anyhow::Result<()> {
         let queue = mem::replace(&mut *stream.subscriber.recv(), BTreeSet::new());
-        let mut e = e.encode_map(Some(queue.len()))?;
+        let mut e = e.encode_map(queue.len())?;
         for key in queue {
             let mut e = e.encode_entry()?;
             key.serialize(e.encode_key()?, ctx.reborrow())?;
