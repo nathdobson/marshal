@@ -1,8 +1,7 @@
 use proc_macro2::Ident;
 use quote::format_ident;
-use syn::meta::ParseNestedMeta;
 use syn::spanned::Spanned;
-use syn::{Fields, LitStr, Token, Type};
+use syn::{Fields, LitStr, Type};
 use crate::parse_attr::ParsedAttrs;
 
 pub struct ParsedFieldsNamed<'a> {

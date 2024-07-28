@@ -52,7 +52,11 @@ fn test() -> anyhow::Result<()> {
     test_round_trip(OrderedFloat(f32::NEG_INFINITY), r#"f32 -inf"#)?;
     test_round_trip('a', r#"char 'a'"#)?;
     test_round_trip("ab'\"\n\\a".to_owned(), r#"string "ab'\"\n\\a""#)?;
+    test_round_trip(Vec::<u8>::new(), r#"bytes """#)?;
+    test_round_trip(vec![1u8], r#"bytes "AQ==""#)?;
+    test_round_trip(vec![1u8, 2u8], r#"bytes "AQI=""#)?;
     test_round_trip(vec![1u8, 2u8, 3u8], r#"bytes "AQID""#)?;
+    test_round_trip(vec![1u8, 2u8, 3u8, 4u8], r#"bytes "AQIDBA==""#)?;
     test_round_trip(Option::<!>::None, r#"none"#)?;
     test_round_trip(Some(Option::<!>::None), r#"some none"#)?;
     test_round_trip(Some(Some(Option::<!>::None)), r#"some some none"#)?;

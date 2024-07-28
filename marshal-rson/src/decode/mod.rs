@@ -260,10 +260,11 @@ impl<'de> SpecDecoder<'de> for SimpleRsonSpecDecoder<'de> {
                 }
                 "bytes" => {
                     self.read_token("\"")?;
-                    let encoded =
-                        self.read_matches(|x| x.is_ascii_alphanumeric() || x == '+' || x == '/')?;
-                    let result = BASE64_STANDARD.decode(encoded.as_bytes())?;
+                    let encoded = self.read_matches(|x| {
+                        x.is_ascii_alphanumeric() || x == '+' || x == '/' || x == '='
+                    })?;
                     self.read_token("\"")?;
+                    let result = BASE64_STANDARD.decode(encoded.as_bytes())?;
                     Ok(SimpleDecoderView::Bytes(Cow::Owned(result)))
                 }
                 "struct" => {
