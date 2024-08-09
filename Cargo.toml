@@ -30,7 +30,7 @@ base64 = "0.22.1"
 itertools = "0.13.0"
 anyhow = "1.0.86 "
 type-map = "0.5.0"
-vu128 = "1.0.0"
+vu128 = {git = "https://github.com/nathdobson/rust-vu128.git", rev="bbdfc5133e54dbb7e084ab1c76948a46d9519355"}
 proc-macro2 = "1.0.85"
 quote = "1.0.36"
 syn = "2.0.66"

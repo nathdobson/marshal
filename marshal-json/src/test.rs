@@ -1,9 +1,9 @@
-use std::fmt::Debug;
-
 use marshal::context::OwnedContext;
 use marshal::de::Deserialize;
 use marshal::ser::Serialize;
 use marshal_derive::{Deserialize, Serialize};
+use std::fmt::Debug;
+use std::time::SystemTime;
 
 use crate::decode::full::JsonDecoderBuilder;
 use crate::encode::full::{JsonEncoder, JsonEncoderBuilder};
@@ -19,7 +19,9 @@ pub fn test_round_trip<T: Debug + Eq + Serialize<JsonEncoder> + Deserialize<Json
     let mut c = OwnedContext::new();
     input.serialize(w.build(), c.borrow())?;
     let found = w.end()?;
-    assert_eq!(expected.trim_start(), found);
+    if !expected.is_empty() {
+        assert_eq!(expected.trim_start(), found);
+    }
     let mut p = JsonDecoderBuilder::new(found.as_bytes());
     let f = T::deserialize(p.build(), c.borrow())?;
     p.end()?;
@@ -113,10 +115,8 @@ fn test_rt() -> anyhow::Result<()> {
         #[marshal(rename = "Renamed\"")]
         Variant,
     }
-    test_round_trip(
-        RenamedVariant::Variant,
-        r#""Renamed\"""#,
-    )?;
+    test_round_trip(RenamedVariant::Variant, r#""Renamed\"""#)?;
+    test_round_trip(SystemTime::now(), "")?;
 
     Ok(())
 }

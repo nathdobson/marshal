@@ -15,3 +15,6 @@ mod vec;
 mod anyhow;
 mod reference;
 mod slice;
+#[cfg(feature = "base64urlsafedata")]
+mod base64urlsafedata;
+mod time;

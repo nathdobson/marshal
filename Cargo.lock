@@ -1282,8 +1282,7 @@ checksum = "86bd8d4e895da8537e5315b8254664e6b769c4ff3db18321b297a1e7004392e3"
 [[package]]
 name = "vu128"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c51a178c8f3f425d86542b14f3dce9e16e86bb86328e2293745e6744ebd62e11"
+source = "git+https://github.com/nathdobson/rust-vu128.git?rev=bbdfc5133e54dbb7e084ab1c76948a46d9519355#bbdfc5133e54dbb7e084ab1c76948a46d9519355"
 
 [[package]]
 name = "walkdir"

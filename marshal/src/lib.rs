@@ -43,12 +43,12 @@
 //! ### Incremental Serialization and Deserialization
 //! The [marshal_update] crate provides traits to encode incremental updates for a data structure to avoid writing the entire data structure for every change.
 
+extern crate self as marshal;
+
 pub use marshal_core::*;
 pub use marshal_derive::Deserialize;
 pub use marshal_derive::Serialize;
 
-#[cfg(feature = "base64urlsafedata")]
-mod base64urlsafedata;
 pub mod context;
 pub mod de;
 pub mod ser;

@@ -8,6 +8,7 @@ use marshal_fixed::decode::full::{FixedDecoder, FixedDecoderBuilder};
 use marshal_fixed::encode::full::{FixedEncoder, FixedEncoderBuilder};
 use marshal_vu128::VU128_PADDING;
 use std::fmt::Debug;
+use std::time::{Duration, Instant, SystemTime};
 
 #[track_caller]
 pub fn test_round_trip<T: Debug + Eq + Serialize<FixedEncoder> + Deserialize<FixedDecoder>>(
@@ -19,7 +20,9 @@ pub fn test_round_trip<T: Debug + Eq + Serialize<FixedEncoder> + Deserialize<Fix
     let mut c = OwnedContext::new();
     input.serialize(w.build(), c.borrow())?;
     let found = w.end()?;
-    assert_eq!(expected, &found[..found.len() - VU128_PADDING]);
+    if !expected.is_empty() {
+        assert_eq!(expected, &found[..found.len() - VU128_PADDING]);
+    }
     let mut p = FixedDecoderBuilder::new(&found);
     let f = T::deserialize(p.build(), c.borrow())?;
     p.end()?;
@@ -41,6 +44,11 @@ fn test_rt() -> anyhow::Result<()> {
         y: u32,
     }
 
+    test_round_trip(u8::MAX, &[])?;
+    test_round_trip(u16::MAX, &[])?;
+    test_round_trip(u32::MAX, &[])?;
+    test_round_trip(u64::MAX, &[])?;
+    test_round_trip(u128::MAX, &[])?;
     test_round_trip(Struct0 {}, &[])?;
     test_round_trip(Struct1 { x: 123 }, &[123])?;
     test_round_trip(Struct2 { x: 123, y: 23 }, &[123, 23])?;
@@ -78,6 +86,13 @@ fn test_rt() -> anyhow::Result<()> {
     test_round_trip((0u8, 1u8, 2u8), &[0, 1, 2])?;
     test_round_trip((0u8, 1u8, 2u8, 3u8), &[0, 1, 2, 3])?;
     test_round_trip((0u8, 1u8, 2u8, 3u8, 4u8), &[0, 1, 2, 3, 4])?;
+    // test_round_trip(Instant::now(), &[])?;
+    test_round_trip(Duration::from_secs(1), &[])?;
+    test_round_trip(Duration::from_secs(u64::MAX), &[])?;
+    test_round_trip(1722628047u64, &[])?;
+    test_round_trip(352217000u32, &[])?;
+    test_round_trip((1722628047u64, 352217000u32), &[])?;
+    test_round_trip(SystemTime::now(), &[])?;
 
     Ok(())
 }

@@ -4,6 +4,7 @@ use crate::{ReadVu128, WriteVu128, VU128_PADDING};
 use rand::{thread_rng, Rng};
 use std::hint::black_box;
 use test::Bencher;
+use vu128::{decode_u64, encode_u64};
 
 const COUNT: usize = 10000;
 
@@ -30,4 +31,15 @@ fn bench_1(bencher: &mut Bencher) {
             output.write_vu128(val);
         }
     })
+}
+
+#[test]
+fn test() {
+    let n = 1722628047u64;
+    let mut result = [255u8; 9];
+    let len = encode_u64(&mut result, n);
+    result[len..].fill(255);
+    let (out, len2) = decode_u64(&result);
+    println!("{:?} {:?}", len, result);
+    println!("{:?} {:?}", out, len2);
 }
